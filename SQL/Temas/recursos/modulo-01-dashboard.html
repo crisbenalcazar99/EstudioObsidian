@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Módulo 01 · Semántica y orden lógico de ejecución</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E7EAF0; --card:#FFFFFF; --tint:#F3F5F9;
+    --ink:#101A33; --slate:#5A688F; --hair:#C9D0DE;
+    --seek:#12715C; --cost:#A31A56; --warn:#8A5A12;
+    --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+    --body:"IBM Plex Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+    --r:3px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--body);
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+    background-image:linear-gradient(to right,rgba(16,26,51,.035) 1px,transparent 1px);
+    background-size:28px 100%;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:34px 20px 90px}
+  p{margin:0 0 12px}
+  a{color:var(--cost)}
+
+  .plan-call{font-family:var(--mono);font-size:12.5px;color:var(--slate);margin:0 0 18px}
+  .plan-call b{color:var(--cost);font-weight:600}
+  .plan-call a{text-decoration:none;border-bottom:1px solid var(--hair)}
+  h1{font-family:var(--display);font-size:clamp(34px,6vw,58px);font-weight:800;
+     line-height:.96;letter-spacing:-.028em;margin:0 0 14px}
+  h1 em{font-style:normal;color:var(--cost)}
+  .lede{max-width:60ch;color:#28324F;font-size:16.5px;margin:0 0 24px}
+
+  .stats{display:flex;flex-wrap:wrap;border:1px solid var(--hair);background:var(--card);border-radius:var(--r);overflow:hidden}
+  .stat{flex:1 1 120px;padding:12px 14px;border-right:1px solid var(--hair)}
+  .stat:last-child{border-right:0}
+  .stat .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--slate);display:block}
+  .stat .v{font-family:var(--display);font-size:25px;font-weight:700;letter-spacing:-.02em;display:block;line-height:1.2}
+
+  .costbar{margin:22px 0 4px}
+  .costbar .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
+    color:var(--slate);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .track{display:flex;gap:2px;height:30px}
+  .seg{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:2px;overflow:hidden;cursor:pointer;padding:0}
+  .seg .fill{position:absolute;inset:0 100% 0 0;background:var(--seek);transition:right .4s cubic-bezier(.2,.7,.3,1)}
+  .seg .tag{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:10.5px;color:var(--slate);mix-blend-mode:multiply}
+  .seg:hover{border-color:var(--ink)}
+  .seg[data-done="1"] .tag{color:#fff;mix-blend-mode:normal}
+
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:28px 0 24px;padding-top:20px;border-top:1px solid var(--hair)}
+  .bar .cap{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--slate);margin-right:4px}
+  .chip{font-family:var(--mono);font-size:12px;padding:6px 11px;border:1px solid var(--hair);
+    background:var(--card);color:var(--slate);border-radius:99px;cursor:pointer}
+  .chip:hover{border-color:var(--ink);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .bar .spacer{flex:1}
+  .ghost{font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--ink);
+    background:transparent;color:var(--ink);border-radius:var(--r);cursor:pointer}
+  .ghost:hover{background:var(--ink);color:#fff}
+  .solid{font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--cost);
+    background:var(--cost);color:#fff;border-radius:var(--r);cursor:pointer}
+  .solid:hover{background:#8C1449;border-color:#8C1449}
+
+  section.sec{display:none;margin:0 0 40px}
+  section.sec.on{display:block;animation:in .2s ease both}
+  @keyframes in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:2px}
+  .sec-head .n{font-family:var(--mono);font-size:12px;color:var(--cost);letter-spacing:.06em}
+  .sec-head h2{font-family:var(--display);font-size:23px;font-weight:700;letter-spacing:-.015em;margin:0}
+  .sec-head .c{font-family:var(--mono);font-size:11.5px;color:var(--slate);margin-left:auto;white-space:nowrap}
+  .sec-note{font-size:14px;color:var(--slate);margin:0 0 18px;max-width:66ch}
+
+  .branch{border-left:1px solid var(--hair);margin-left:9px}
+  .node{position:relative;margin:0 0 8px}
+  .node::before{content:"";position:absolute;left:0;top:26px;width:17px;height:1px;background:var(--hair)}
+  .node-inner{margin-left:17px;background:var(--card);border:1px solid var(--hair);border-radius:var(--r)}
+  .node.open .node-inner{border-color:var(--ink)}
+  .node-head{width:100%;display:flex;align-items:center;gap:14px;padding:13px 15px;background:none;
+    border:0;text-align:left;cursor:pointer;font:inherit;color:inherit}
+  .node-head:focus-visible{outline:2px solid var(--cost);outline-offset:-2px}
+  .idx{font-family:var(--mono);font-size:12px;color:var(--slate);min-width:26px}
+  .node.done .idx{color:var(--seek)}
+  .ttl{font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:-.012em;flex:1;min-width:0}
+  .meta{font-family:var(--mono);font-size:11.5px;color:var(--slate);white-space:nowrap;display:flex;gap:10px;align-items:center}
+  .caret{font-family:var(--mono);color:var(--slate);transition:transform .2s ease}
+  .node.open .caret{transform:rotate(90deg)}
+  .body{display:none;padding:15px 18px 18px;border-top:1px solid var(--hair)}
+  .node.open .body{display:block}
+  .body > :first-child{margin-top:0}
+
+  .card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);padding:16px 18px;margin:0 0 14px}
+  h3{font-family:var(--display);font-size:16px;font-weight:700;margin:20px 0 8px;letter-spacing:-.01em}
+  h3:first-child{margin-top:0}
+  .kicker{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);margin:0 0 6px}
+  .rule{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 14px;max-width:72ch}
+  .rule > b:first-child{display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);font-weight:600;margin:0 0 4px}
+
+  .engines{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 14px;max-width:72ch}
+  .engines .kicker{margin:0 0 8px}
+  .engine{margin:0 0 10px;padding-bottom:10px;border-bottom:1px dashed var(--hair)}
+  .engine:last-child{margin:0;padding-bottom:0;border-bottom:0}
+  .engine .eng{display:inline-block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--cost);font-weight:600;margin:0 0 4px}
+  .engine p{margin:0;font-size:14.5px}
+
+  .code{position:relative;margin:12px 0;border:1px solid var(--hair);border-left:2px solid var(--slate);border-radius:2px;background:var(--tint)}
+  .code.bad{border-left-color:var(--cost)}
+  .code.good{border-left-color:var(--seek)}
+  .code .cap{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--slate);padding:7px 12px 0}
+  .code pre{margin:0;padding:10px 12px 12px;overflow:auto;font-family:var(--mono);font-size:12.4px;line-height:1.55;white-space:pre}
+  .code .cp{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:10.5px;padding:3px 8px;
+    border:1px solid var(--hair);background:var(--card);color:var(--slate);border-radius:99px;cursor:pointer;opacity:0}
+  .code:hover .cp,.code .cp:focus{opacity:1}
+  .code .cp:hover{border-color:var(--ink);color:var(--ink)}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+  .split .code{margin:0}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13.4px;margin:12px 0}
+  table.t th{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--slate);text-align:left;font-weight:600;border-bottom:1px solid var(--ink);padding:7px 10px 7px 0}
+  table.t td{border-bottom:1px solid var(--hair);padding:7px 10px 7px 0;vertical-align:top}
+  table.t td:first-child,table.t th:first-child{padding-left:0}
+  .yes{color:var(--seek);font-weight:600}
+  .no{color:var(--cost);font-weight:600}
+
+  ul.plain{margin:0 0 12px;padding-left:18px}
+  ul.plain li{margin:0 0 5px}
+  .temas-chk{list-style:none;margin:0;padding:0}
+  .temas-chk li{margin:0 0 4px}
+  .chk{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;cursor:pointer}
+  .chk input{appearance:none;width:14px;height:14px;margin:4px 0 0;flex:none;border:1px solid var(--slate);
+    border-radius:2px;background:var(--card);cursor:pointer}
+  .chk input:checked{background:var(--seek);border-color:var(--seek)}
+  .chk input:focus-visible{outline:2px solid var(--cost);outline-offset:2px}
+
+  .err{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 16px}
+  .err h4{font-family:var(--display);font-size:15px;margin:0 0 4px;font-weight:700}
+  .err .fix{font-size:13.4px;color:var(--seek)}
+  .err .fix b{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em}
+
+  .qa{border-bottom:1px solid var(--hair);padding:12px 0}
+  .qa:last-child{border-bottom:0}
+  .qa .q{font-weight:600;font-size:14.5px;margin:0 0 6px;display:flex;gap:10px}
+  .qa .q span{font-family:var(--mono);font-size:12px;color:var(--cost);flex:none}
+  .hidden{display:none}
+  .hidden.show{display:block;animation:in .2s ease both}
+  .reveal{font-family:var(--mono);font-size:11.5px;padding:4px 10px;border:1px dashed var(--hair);
+    background:none;color:var(--slate);border-radius:99px;cursor:pointer}
+  .reveal:hover{border-color:var(--ink);border-style:solid;color:var(--ink)}
+  .ans{margin-top:8px;font-size:13.8px;color:#28324F;max-width:76ch}
+
+  dialog{border:1px solid var(--ink);border-radius:var(--r);padding:0;max-width:760px;width:92vw;background:var(--card);color:var(--ink)}
+  dialog::backdrop{background:rgba(16,26,51,.45)}
+  .dl-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--hair)}
+  .dl-head h3{margin:0;font-size:17px}
+  .dl-head .x{margin-left:auto;background:none;border:0;font-family:var(--mono);font-size:15px;cursor:pointer;color:var(--slate)}
+  dialog textarea{width:100%;height:46vh;border:0;padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--tint);color:var(--ink);resize:vertical}
+  dialog textarea:focus{outline:0}
+  .dl-foot{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--hair)}
+  .dl-foot .msg{font-family:var(--mono);font-size:11.5px;color:var(--seek)}
+
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--ink);color:#fff;font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:99px;
+    transition:all .25s ease;pointer-events:none;z-index:9}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:11.5px;color:var(--slate)}
+
+  @media (max-width:760px){
+    .split{grid-template-columns:1fr}
+    body{background-image:none}
+    .body{padding:14px}
+    .code .cp{opacity:1}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="plan-call">plan_de_estudio_sql &rsaquo; <b>módulo 01</b> &rsaquo; fase 00 · cimientos que casi nadie repasa</p>
+
+  <h1>Semántica y orden<br>lógico de ejecución<em>.</em></h1>
+  <p class="lede">Predecir qué devuelve una consulta sin ejecutarla, y explicar por qué un alias del <code>SELECT</code> no sirve en el <code>WHERE</code>. Motor de referencia: SQL Server 2019/2022, con equivalencias en PostgreSQL 14+ y Spark SQL / Databricks donde el comportamiento cambia.</p>
+
+  <div class="stats">
+    <div class="stat"><span class="k">temas</span><span class="v">10</span></div>
+    <div class="stat"><span class="k">costo estimado</span><span class="v">5 h</span></div>
+    <div class="stat"><span class="k">planes comparados</span><span class="v">4</span></div>
+    <div class="stat"><span class="k">errores catalogados</span><span class="v">15</span></div>
+    <div class="stat"><span class="k">ejercicios</span><span class="v">6</span></div>
+    <div class="stat"><span class="k">avance</span><span class="v" id="pctBig">0 %</span></div>
+  </div>
+
+  <div class="costbar">
+    <div class="lbl"><span>costo estimado por tema · avance real</span><span id="pct">0 %</span></div>
+    <div class="track" id="track"></div>
+  </div>
+
+  <div class="bar">
+    <span class="cap">sección</span>
+    <button class="chip" data-s="dataset" aria-pressed="false">dataset</button>
+    <button class="chip" data-s="modelo" aria-pressed="true">modelo mental</button>
+    <button class="chip" data-s="temas" aria-pressed="false">10 temas</button>
+    <button class="chip" data-s="planes" aria-pressed="false">planes</button>
+    <button class="chip" data-s="errores" aria-pressed="false">errores</button>
+    <button class="chip" data-s="ejercicios" aria-pressed="false">ejercicios</button>
+    <button class="chip" data-s="proyecto" aria-pressed="false">proyecto</button>
+    <button class="chip" data-s="examen" aria-pressed="false">examen</button>
+    <span class="spacer"></span>
+    <button class="ghost" id="todo">ver todo</button>
+    <button class="ghost" id="next">prompt módulo 02</button>
+  </div>
+
+<!-- ══════════════════════ DATASET ══════════════════════ -->
+<section class="sec" id="sec-dataset">
+  <div class="sec-head"><span class="n">§ 0</span><h2>Dataset reproducible</h2><span class="c">ejecútalo antes de todo</span></div>
+  <p class="sec-note">Maestro de clientes, productos y ventas con trampas deliberadas: cédulas NULL duplicadas, nombres con y sin tilde, espacios finales, descuentos nulos que no son cero, clientes sin ventas y un producto nunca vendido. Todas las columnas de texto llevan colación explícita para que los ejemplos se comporten igual en cualquier servidor.</p>
+
+  <div class="card">
+    <div class="code"><span class="cap">T-SQL · estructura</span><button class="cp">copiar</button><pre>IF DB_ID('CursoSQL') IS NULL EXEC('CREATE DATABASE CursoSQL;');
+GO
+USE CursoSQL;
+GO
+
+DROP TABLE IF EXISTS dbo.Venta;
+DROP TABLE IF EXISTS dbo.Producto;
+DROP TABLE IF EXISTS dbo.ClienteExterno;
+DROP TABLE IF EXISTS dbo.Cliente;
+GO
+
+CREATE TABLE dbo.Cliente
+(
+    ClienteId     int           NOT NULL CONSTRAINT PK_Cliente PRIMARY KEY,
+    Cedula        varchar(13)   COLLATE Latin1_General_100_CI_AS NULL,
+    Nombre        nvarchar(60)  COLLATE Latin1_General_100_CI_AS NOT NULL,
+    Ciudad        varchar(30)   COLLATE Latin1_General_100_CI_AS NULL,
+    Segmento      varchar(10)   COLLATE Latin1_General_100_CI_AS NULL,
+    LimiteCredito decimal(12,2) NULL,
+    FechaAlta     date          NOT NULL
+);
+
+CREATE TABLE dbo.Producto
+(
+    ProductoId int          NOT NULL CONSTRAINT PK_Producto PRIMARY KEY,
+    Codigo     varchar(10)  COLLATE Latin1_General_100_CI_AS NOT NULL,
+    Nombre     nvarchar(60) COLLATE Latin1_General_100_CI_AS NOT NULL,
+    Categoria  varchar(20)  COLLATE Latin1_General_100_CI_AS NOT NULL
+);
+
+CREATE TABLE dbo.Venta
+(
+    VentaId    int           NOT NULL CONSTRAINT PK_Venta PRIMARY KEY,
+    ClienteId  int           NOT NULL CONSTRAINT FK_Venta_Cliente  REFERENCES dbo.Cliente(ClienteId),
+    ProductoId int           NOT NULL CONSTRAINT FK_Venta_Producto REFERENCES dbo.Producto(ProductoId),
+    Fecha      datetime2(0)  NOT NULL,
+    Cantidad   int           NOT NULL,
+    PrecioUnit decimal(12,2) NOT NULL,
+    Descuento  decimal(12,2) NULL,   -- NULL = "no aplica", no es cero
+    Canal      varchar(10)   COLLATE Latin1_General_100_CI_AS NULL
+);
+
+CREATE TABLE dbo.ClienteExterno
+(
+    Cedula varchar(13)  COLLATE Latin1_General_100_CI_AS NOT NULL CONSTRAINT PK_ClienteExterno PRIMARY KEY,
+    Nombre nvarchar(60) COLLATE Latin1_General_100_CI_AS NOT NULL,
+    Origen varchar(20)  COLLATE Latin1_General_100_CI_AS NOT NULL
+);
+GO</pre></div>
+
+    <div class="code"><span class="cap">T-SQL · datos</span><button class="cp">copiar</button><pre>INSERT dbo.Cliente (ClienteId, Cedula, Nombre, Ciudad, Segmento, LimiteCredito, FechaAlta) VALUES
+ (1 ,'0912345678001', N'José Pérez'    ,'GUAYAQUIL','RETAIL' , 5000.00, '2021-03-15'),
+ (2 ,'0923456789001', N'JOSE PEREZ'    ,'Guayaquil','RETAIL' , 5000.00, '2021-06-01'),
+ (3 ,'0934567890001', N'Ana Solís'     ,'QUITO'    ,'PYME'   ,15000.00, '2022-01-10'),
+ (4 ,'0945678901001', N'Ana Solis  '   ,'QUITO'    ,'PYME'   ,    NULL, '2022-01-11'),  -- espacios finales
+ (5 ,'0956789012001', N'Carlos Mora'   , NULL      ,'RETAIL' , 3000.00, '2022-05-20'),  -- ciudad NULL
+ (6 , NULL          , N'Beatriz Ycaza' ,'CUENCA'   , NULL    , 8000.00, '2022-07-02'),  -- cédula NULL
+ (7 , NULL          , N'Diego Vera'    ,'CUENCA'   ,'PYME'   , 8000.00, '2022-07-03'),  -- 2da cédula NULL
+ (8 ,'0989012345001', N'Elena Ñuñez'   ,'MACHALA'  ,'CORP'   ,50000.00, '2023-02-14'),
+ (9 ,'0990123456001', N'Elena Nunez'   ,'MACHALA'  ,'CORP'   ,50000.00, '2023-02-15'),
+ (10,'0901234567001', N'Fabián Loor'   ,'GUAYAQUIL','CORP'   ,    NULL, '2023-08-30'),
+ (11,'0912345670001', N'Gina Alarcón'  ,'QUITO'    ,'RETAIL' , 2000.00, '2024-01-05'),  -- sin ventas
+ (12,'0912345671001', N'Hugo Zambrano' ,'LOJA'     , NULL    ,    NULL, '2024-02-18'); -- sin ventas
+
+INSERT dbo.Producto (ProductoId, Codigo, Nombre, Categoria) VALUES
+ (100,'CRE-CONS', N'Crédito de consumo'   ,'CREDITO'),
+ (101,'CRE-MICR', N'Microcrédito'         ,'CREDITO'),
+ (102,'CRE-HIPO', N'Crédito hipotecario'  ,'CREDITO'),
+ (200,'SEG-VIDA', N'Seguro de vida'       ,'SEGURO'),
+ (201,'SEG-DESG', N'Seguro de desgravamen','SEGURO'),
+ (300,'TAR-CLAS', N'Tarjeta clásica'      ,'TARJETA');  -- nunca vendido
+
+INSERT dbo.Venta (VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal) VALUES
+ (1 ,1,100,'2023-01-15 09:30:00',1, 1200.00,  100.00,'WEB'),
+ (2 ,1,101,'2023-02-20 11:00:00',2,  300.00,    NULL,'APP'),
+ (3 ,1,102,'2023-03-05 15:45:00',1,25000.00,    NULL, NULL),
+ (4 ,2,100,'2023-01-18 10:00:00',1, 1200.00,   50.00,'WEB'),
+ (5 ,2,200,'2023-04-02 08:15:00',3,   80.00,    NULL,'AGENCIA'),
+ (6 ,3,101,'2023-05-11 16:20:00',1,  300.00,    NULL,'APP'),
+ (7 ,3,100,'2023-06-01 09:05:00',1, 1200.00,  120.00,'APP'),
+ (8 ,3,102,'2023-06-01 09:05:00',1,25000.00, 1000.00,'AGENCIA'),
+ (9 ,4,200,'2023-07-19 13:40:00',2,   80.00,    NULL, NULL),
+ (10,5,101,'2023-08-23 17:55:00',5,  300.00,   75.00,'WEB'),
+ (11,6,100,'2023-09-14 12:10:00',1, 1200.00,    NULL,'WEB'),
+ (12,6,101,'2023-09-14 12:12:00',1,  300.00,    NULL,'WEB'),
+ (13,6,102,'2023-09-15 09:00:00',1,25000.00,  500.00,'AGENCIA'),
+ (14,7,201,'2023-10-01 10:30:00',4,   60.00,    NULL,'APP'),
+ (15,8,100,'2023-11-08 14:00:00',1, 1200.00,    NULL,'AGENCIA'),
+ (16,8,101,'2023-11-08 14:05:00',2,  300.00,   30.00,'AGENCIA'),
+ (17,9,200,'2023-12-22 18:30:00',1,   80.00,    NULL,'WEB'),
+ (18,10,101,'2024-01-09 09:45:00',1,  300.00,   25.00,'APP'),
+ (19,10,102,'2024-02-27 11:20:00',1,25000.00,    NULL, NULL),
+ (20,10,100,'2024-03-30 23:59:00',1, 1200.00,    NULL,'WEB');
+
+INSERT dbo.ClienteExterno (Cedula, Nombre, Origen) VALUES
+ ('0912345678001', N'JOSE PEREZ'  ,'BURO'),
+ ('0934567890001', N'ANA SOLIS'   ,'BURO'),
+ ('0989012345001', N'ELENA NUNEZ' ,'BURO'),
+ ('0999999999001', N'ZOILA GUERRA','BURO');
+GO</pre></div>
+
+    <h3>Tablas de volumen (para los planes)</h3>
+    <p>~500 000 clientes y ~1 000 000 de ventas. Sin esto, la sección de planes no muestra nada interesante: con 20 filas todo cabe en una página y cualquier plan parece bueno.</p>
+    <div class="code"><span class="cap">T-SQL · volumen</span><button class="cp">copiar</button><pre>DROP TABLE IF EXISTS dbo.VentaHist;
+DROP TABLE IF EXISTS dbo.ClienteMasivo;
+GO
+
+CREATE TABLE dbo.ClienteMasivo
+(
+    ClienteId int          NOT NULL IDENTITY(1,1) CONSTRAINT PK_ClienteMasivo PRIMARY KEY,
+    Cedula    varchar(13)  COLLATE Latin1_General_100_CI_AS NOT NULL,
+    Nombre    nvarchar(60) COLLATE Latin1_General_100_CI_AS NOT NULL,
+    Ciudad    varchar(30)  COLLATE Latin1_General_100_CI_AS NULL
+);
+
+;WITH n AS (
+    SELECT TOP (500000) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+    FROM sys.all_objects a CROSS JOIN sys.all_objects b
+)
+INSERT dbo.ClienteMasivo (Cedula, Nombre, Ciudad)
+SELECT RIGHT('0000000000' + CAST(n AS varchar(10)), 10) + '001',
+       CONCAT(N'Cliente ', n),
+       CASE n % 4 WHEN 0 THEN 'GUAYAQUIL' WHEN 1 THEN 'QUITO' WHEN 2 THEN 'CUENCA' ELSE NULL END
+FROM n;
+
+CREATE UNIQUE NONCLUSTERED INDEX IX_ClienteMasivo_Cedula
+    ON dbo.ClienteMasivo(Cedula) INCLUDE (Nombre);
+
+CREATE TABLE dbo.VentaHist
+(
+    VentaId   int           NOT NULL IDENTITY(1,1) CONSTRAINT PK_VentaHist PRIMARY KEY,
+    ClienteId int           NOT NULL,
+    Fecha     datetime2(0)  NOT NULL,
+    Monto     decimal(12,2) NOT NULL,
+    Canal     varchar(10)   COLLATE Latin1_General_100_CI_AS NULL
+);
+
+;WITH n AS (
+    SELECT TOP (1000000) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+    FROM sys.all_objects a CROSS JOIN sys.all_objects b CROSS JOIN sys.all_objects c
+)
+INSERT dbo.VentaHist (ClienteId, Fecha, Monto, Canal)
+SELECT (n % 500000) + 1,
+       DATEADD(minute, (n * 7) % 1051200, '2021-01-01'),   -- ~730 días
+       CAST((n % 997) + 10 AS decimal(12,2)),
+       CASE n % 5 WHEN 0 THEN NULL WHEN 1 THEN 'WEB' WHEN 2 THEN 'APP' ELSE 'AGENCIA' END
+FROM n;
+
+CREATE NONCLUSTERED INDEX IX_VentaHist_Fecha   ON dbo.VentaHist(Fecha)     INCLUDE (Monto, ClienteId);
+CREATE NONCLUSTERED INDEX IX_VentaHist_Cliente ON dbo.VentaHist(ClienteId) INCLUDE (Fecha, Monto);
+GO</pre></div>
+
+    <div class="rule"><b>equivalencias</b>
+      PostgreSQL: <code>generate_series(1,1000000)</code> en vez del CROSS JOIN a <code>sys.all_objects</code>, <code>text</code> por <code>nvarchar</code>, <code>timestamp</code> por <code>datetime2</code>. Spark SQL: <code>spark.range()</code> o <code>sequence()</code>, tipos <code>STRING</code>/<code>TIMESTAMP</code>/<code>DECIMAL</code>; en Delta no hay PK ni FK con enforcement — solo <code>NOT NULL</code> y <code>CHECK</code> se aplican de verdad.
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ MODELO MENTAL ══════════════════════ -->
+<section class="sec on" id="sec-modelo">
+  <div class="sec-head"><span class="n">§ 1</span><h2>Modelo mental</h2><span class="c">léelo antes de tocar SQL</span></div>
+  <p class="sec-note">Todo el módulo se sostiene sobre una distinción: el orden lógico define <em>qué</em> es el resultado correcto; el plan define <em>cómo</em> se obtiene. Mezclarlos es el origen de casi todas las confusiones que siguen.</p>
+
+  <div class="card">
+    <h3>Dos órdenes que no hay que confundir</h3>
+    <table class="t">
+      <tr><th></th><th>Qué define</th><th>Quién lo fija</th><th>¿Cambia?</th></tr>
+      <tr><td><b>Orden lógico</b></td><td><em>Qué</em> debe devolver la consulta</td><td>El estándar SQL</td><td class="no">No. Es un contrato.</td></tr>
+      <tr><td><b>Orden físico</b></td><td><em>Cómo</em> se obtiene (el plan)</td><td>El optimizador</td><td class="yes">Sí, en cada ejecución.</td></tr>
+    </table>
+    <p>El orden lógico <b>no es una receta de ejecución</b>. El optimizador puede evaluar el <code>WHERE</code> antes del <code>JOIN</code>, empujar un predicado dentro de una vista o saltarse una tabla entera, siempre que el resultado sea el mismo que produciría el orden lógico. Esa libertad es exactamente lo que habilita el <em>predicate pushdown</em> y todas las reescrituras de los módulos 09 y 10.</p>
+    <div class="rule"><b>regla operativa</b>Razonas la <b>corrección</b> con el orden lógico. Razonas el <b>costo</b> con el plan. Nunca al revés.</div>
+
+    <h3>Qué hace el motor antes de optimizar</h3>
+    <ul class="plain">
+      <li><b>1. Parsing</b> — validación sintáctica. Aquí muere <code>SELCT</code>.</li>
+      <li><b>2. Binding / algebrización</b> — resolución de nombres, tipos, colaciones y permisos. <b>Aquí muere <code>WHERE Total &gt; 100</code> cuando <code>Total</code> es un alias del <code>SELECT</code></b>: no es un error de ejecución ni de rendimiento, es de <em>resolución de nombres</em>.</li>
+      <li><b>3. Simplificación</b> — árbol de operadores relacionales, eliminación de joins redundantes y contradicciones.</li>
+      <li><b>4. Optimización</b> — transformaciones algebraicas y costeo con estadísticas.</li>
+      <li><b>5. Ejecución</b> — el plan corre como un pipeline de operadores.</li>
+    </ul>
+    <p>Nemotecnia: <b>el orden lógico vive en la fase 2; el orden físico vive en la fase 4.</b></p>
+
+    <h3>La tabla es un multiconjunto, no un archivo</h3>
+    <p>Una tabla es un <b>conjunto</b> en teoría y un <b>multiconjunto</b> en SQL: admite duplicados y <b>no tiene orden intrínseco</b>. Ni el orden de inserción, ni el del índice clustered, ni el del archivo son un orden garantizado. El orden solo existe cuando lo pides con <code>ORDER BY</code> en la consulta más externa. Esta única frase explica el tema 9 completo y la mitad de los bugs de producción del módulo.</p>
+
+    <h3>El orden lógico canónico</h3>
+    <div class="code"><span class="cap">memorízalo</span><button class="cp">copiar</button><pre>(1) FROM        -> incluye JOIN y ON: produce el conjunto de filas de trabajo
+(2) WHERE       -> filtra filas individuales
+(3) GROUP BY    -> colapsa filas en grupos
+(4) HAVING      -> filtra grupos
+(5) SELECT      -> proyecta: aquí y solo aquí nacen los alias de salida
+(6) DISTINCT    -> elimina duplicados del resultado ya proyectado
+(7) ORDER BY    -> ordena el resultado
+(8) OFFSET/FETCH (o TOP) -> recorta el resultado ya ordenado</pre></div>
+    <ul class="plain">
+      <li><code>SELECT</code> es el paso 5: por eso <code>WHERE</code>, <code>GROUP BY</code> y <code>HAVING</code> <b>no ven</b> los alias de salida en T-SQL.</li>
+      <li><code>ORDER BY</code> es el paso 7: por eso <b>sí</b> los ve. Es la única cláusula que opera sobre el resultado proyectado.</li>
+      <li><code>DISTINCT</code> (6) va después de <code>SELECT</code> (5): por eso <code>SELECT DISTINCT … ORDER BY &lt;columna no proyectada&gt;</code> es un error — esa columna se perdió en la proyección.</li>
+    </ul>
+
+    <h3>Semántica "todo a la vez"</h3>
+    <p>Dentro de una misma cláusula todas las expresiones se evalúan conceptualmente en simultáneo. No hay orden de izquierda a derecha ni cortocircuito garantizados.</p>
+    <div class="code"><span class="cap">T-SQL</span><button class="cp">copiar</button><pre>-- No compila: c1 no existe todavía cuando se evalúa c2
+SELECT 1 AS c1, c1 + 1 AS c2;
+
+-- Puede fallar con "Divide by zero" pese al primer predicado:
+-- el orden de evaluación del AND no es contractual
+SELECT * FROM dbo.Venta WHERE Cantidad &lt;&gt; 0 AND (100 / Cantidad) &gt; 5;
+
+-- La forma que sí garantiza el orden es CASE
+SELECT * FROM dbo.Venta WHERE CASE WHEN Cantidad = 0 THEN 0 ELSE 100 / Cantidad END &gt; 5;</pre></div>
+    <p>En PostgreSQL y Spark aplica lo mismo: el <code>AND</code> no garantiza orden de evaluación; <code>CASE</code> sí.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════ TEMAS ══════════════════════ -->
+<section class="sec" id="sec-temas">
+  <div class="sec-head"><span class="n">§ 2</span><h2>Los diez temas</h2><span class="c">marca lo que ya dominas</span></div>
+  <p class="sec-note">Cada nodo se abre con su explicación, el ejemplo ejecutable sobre el dataset y las diferencias de motor. El check alimenta la barra de costo de arriba.</p>
+  <div class="branch" id="temas"></div>
+</section>
+
+<!-- ══════════════════════ PLANES ══════════════════════ -->
+<section class="sec" id="sec-planes">
+  <div class="sec-head"><span class="n">§ 3</span><h2>Ingenua vs correcta</h2><span class="c">4 comparaciones con plan</span></div>
+  <p class="sec-note">Activa el plan real (Ctrl+M en SSMS) y <code>SET STATISTICS IO, TIME ON;</code> antes de cada par. Lo que importa no es el tiempo del reloj sino qué operador aparece y cuántas filas toca.</p>
+
+  <div class="card">
+    <p class="kicker">3.1 · función sobre la columna</p>
+    <h3>Función sobre la columna → scan</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT COUNT(*), SUM(Monto)
+FROM dbo.VentaHist
+WHERE YEAR(Fecha) = 2023;</pre></div>
+      <div class="code good"><span class="cap">correcta</span><button class="cp">copiar</button><pre>SELECT COUNT(*), SUM(Monto)
+FROM dbo.VentaHist
+WHERE Fecha &gt;= '2023-01-01'
+  AND Fecha &lt;  '2024-01-01';</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Operador</td><td>Index Scan sobre <code>IX_VentaHist_Fecha</code></td><td><b>Index Seek</b> con Seek Keys de rango</td></tr>
+      <tr><td>Filas leídas</td><td>1 000 000</td><td>solo el rango</td></tr>
+      <tr><td>El predicado aparece como</td><td><em>Predicate</em> (residual, fila por fila)</td><td><em>Seek Predicate</em> (limita el recorrido)</td></tr>
+      <tr><td>Estimación</td><td>El histograma no se puede usar sobre <code>YEAR(Fecha)</code>: conjetura fija</td><td>Estimación desde el histograma</td></tr>
+      <tr><td>Lecturas lógicas</td><td>miles de páginas</td><td>decenas</td></tr>
+    </table>
+    <p>El índice está ordenado por <code>Fecha</code>, no por <code>YEAR(Fecha)</code>. Cualquier función sobre la columna destruye la correspondencia entre el orden del índice y el del predicado. Y la estimación mala es tan grave como el scan: propaga elecciones de join y reservas de memoria equivocadas por todo el plan.</p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.2 · conversión implícita</p>
+    <h3>Conversión implícita del lado de la columna</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua · parámetro nvarchar</span><button class="cp">copiar</button><pre>DECLARE @ced_n nvarchar(13) = N'0000123456001';
+SELECT Nombre FROM dbo.ClienteMasivo
+WHERE Cedula = @ced_n;</pre></div>
+      <div class="code good"><span class="cap">correcta · mismo tipo que la columna</span><button class="cp">copiar</button><pre>DECLARE @ced_v varchar(13) = '0000123456001';
+SELECT Nombre FROM dbo.ClienteMasivo
+WHERE Cedula = @ced_v;</pre></div>
+    </div>
+    <ul class="plain">
+      <li>En las propiedades del operador aparece <code>CONVERT_IMPLICIT(nvarchar(13),[Cedula],0)</code> <b>aplicado a la columna</b>.</li>
+      <li>El plan trae el warning <code>PlanAffectingConvert</code> (triángulo amarillo sobre el <code>SELECT</code> en SSMS).</li>
+      <li>Con <b>colación Windows</b> verás probablemente un Seek con <code>GetRangeThroughConvert</code>: menos malo, pero con estimación degradada. Con <b>colación <code>SQL_*</code> heredada</b> verás un Index Scan de 500 000 filas para devolver una. Por eso el mismo código vuela en un servidor y se arrastra en otro.</li>
+    </ul>
+    <div class="code"><span class="cap">cazar el problema en todo el caché de planes</span><button class="cp">copiar</button><pre>SELECT TOP (50) qs.execution_count, SUBSTRING(t.text, 1, 300) AS consulta
+FROM sys.dm_exec_query_stats qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) t
+CROSS APPLY sys.dm_exec_query_plan(qs.plan_handle) p
+WHERE CAST(p.query_plan AS nvarchar(max)) LIKE '%PlanAffectingConvert%'
+ORDER BY qs.execution_count DESC;</pre></div>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.3 · anti-join</p>
+    <h3><code>NOT IN</code> sobre columna anulable vs <code>NOT EXISTS</code></h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre
+FROM dbo.Cliente c
+WHERE c.Cedula NOT IN
+      (SELECT e.Cedula FROM dbo.ClienteExterno e);</pre></div>
+      <div class="code good"><span class="cap">correcta</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre
+FROM dbo.Cliente c
+WHERE NOT EXISTS (SELECT 1 FROM dbo.ClienteExterno e
+                  WHERE e.Cedula = c.Cedula);</pre></div>
+    </div>
+    <ul class="plain">
+      <li><b>Semántica:</b> la ingenua pierde a los clientes 6 y 7 (<code>Cedula</code> NULL) porque <code>NULL NOT IN (…)</code> nunca es TRUE. No es diferencia de rendimiento: es diferencia de <b>resultado</b>.</li>
+      <li><b>Plan:</b> <code>NOT EXISTS</code> se traduce directo a un <b>Left Anti Semi Join</b>. <code>NOT IN</code> sobre columnas anulables obliga a un plan más caro que además contabiliza la presencia de NULL del lado derecho. Cuando ambas columnas son <code>NOT NULL</code>, el optimizador demuestra la equivalencia y genera el mismo anti-join: ahí sí son intercambiables.</li>
+    </ul>
+    <div class="code"><span class="cap">repro mínimo del daño</span><button class="cp">copiar</button><pre>SELECT COUNT(*) FROM dbo.Cliente c
+WHERE c.Cedula NOT IN (SELECT c2.Cedula FROM dbo.Cliente c2 WHERE c2.ClienteId IN (6,7));  -- 0
+
+SELECT COUNT(*) FROM dbo.Cliente c
+WHERE NOT EXISTS (SELECT 1 FROM dbo.Cliente c2
+                  WHERE c2.ClienteId IN (6,7) AND c2.Cedula = c.Cedula);                   -- 10</pre></div>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.4 · operador de conjunto</p>
+    <h3><code>UNION</code> cuando bastaba <code>UNION ALL</code></h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT ClienteId, Fecha, Monto FROM dbo.VentaHist
+WHERE Fecha &lt;  '2023-01-01'
+UNION
+SELECT ClienteId, Fecha, Monto FROM dbo.VentaHist
+WHERE Fecha &gt;= '2023-01-01';</pre></div>
+      <div class="code good"><span class="cap">correcta · conjuntos disjuntos</span><button class="cp">copiar</button><pre>SELECT ClienteId, Fecha, Monto FROM dbo.VentaHist
+WHERE Fecha &lt;  '2023-01-01'
+UNION ALL
+SELECT ClienteId, Fecha, Monto FROM dbo.VentaHist
+WHERE Fecha &gt;= '2023-01-01';</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>UNION</th><th>UNION ALL</th></tr>
+      <tr><td>Plan</td><td>Concatenation → <b>Sort(Distinct)</b> o <b>Hash Match (Aggregate)</b></td><td>Concatenation, nada más</td></tr>
+      <tr><td>Memoria</td><td>Reserva proporcional a las filas</td><td>Mínima</td></tr>
+      <tr><td>Riesgo</td><td><em>Sort spill</em> a tempdb si la reserva se queda corta</td><td>—</td></tr>
+      <tr><td>Bloqueante</td><td>Sí: no emite filas hasta consumir todo</td><td>No: pipeline</td></tr>
+    </table>
+    <p>Patrón endémico en scripts que unen "histórico + incremental". Y si de verdad puede haber duplicados, la pregunta correcta no es "¿pongo <code>UNION</code>?" sino "¿por qué mi partición no es disjunta?".</p>
+  </div>
+</section>
+
+<!-- ══════════════════════ ERRORES ══════════════════════ -->
+<section class="sec" id="sec-errores">
+  <div class="sec-head"><span class="n">§ 4</span><h2>Errores silenciosos</h2><span class="c">15 casos · todos ejecutan sin error</span></div>
+  <p class="sec-note">Ninguno lanza excepción. Ese es exactamente el problema: el reporte sale, el proceso termina en verde y el número está mal.</p>
+
+  <div class="card">
+    <div class="err"><h4>1 · <code>&lt;&gt;</code> que esconde filas</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT COUNT(*) FROM dbo.Cliente WHERE Segmento &lt;&gt; 'RETAIL';  -- 6, no 9</pre></div>
+      <p class="fix"><b>fix ·</b> <code>WHERE Segmento &lt;&gt; 'RETAIL' OR Segmento IS NULL</code>, o <code>IS DISTINCT FROM</code> en 2022+.</p></div>
+
+    <div class="err"><h4>2 · <code>NOT IN</code> con NULL → cero filas</h4>
+      <p class="fix"><b>fix ·</b> <code>NOT EXISTS</code>. Ver la comparación 3.3.</p></div>
+
+    <div class="err"><h4>3 · Promedio con denominador equivocado</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT AVG(LimiteCredito) FROM dbo.Cliente;  -- divide entre 8, no entre 12</pre></div>
+      <p class="fix"><b>fix ·</b> decide explícitamente: <code>AVG(ISNULL(LimiteCredito,0))</code> es otra pregunta, y hay que saber cuál estás respondiendo.</p></div>
+
+    <div class="err"><h4>4 · <code>SUM</code> de conjunto vacío = NULL</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT (SELECT SUM(Cantidad) FROM dbo.Venta WHERE ClienteId = 11);  -- NULL, no 0</pre></div>
+      <p class="fix"><b>fix ·</b> <code>ISNULL(SUM(…),0)</code> en toda subconsulta escalar que alimente aritmética.</p></div>
+
+    <div class="err"><h4>5 · <code>COUNT(columna)</code> cuando querías <code>COUNT(*)</code></h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT COUNT(*) AS Filas, COUNT(Canal) AS ConCanal FROM dbo.Venta;  -- 20 vs 17</pre></div></div>
+
+    <div class="err"><h4>6 · <code>CHECK</code> que no valida nada</h4>
+      <p class="fix"><b>fix ·</b> agregar <code>IS NOT NULL</code> a la condición o <code>NOT NULL</code> a la columna. Ver tema 4.</p></div>
+
+    <div class="err"><h4>7 · <code>UNIQUE</code> que rechaza el segundo NULL (SQL Server)</h4>
+      <p class="fix"><b>fix ·</b> índice único filtrado <code>WHERE Cedula IS NOT NULL</code>. Ver tema 5.</p></div>
+
+    <div class="err"><h4>8 · Concatenación que anula la fila entera</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT ClienteId, Ciudad + ' / ' + Segmento AS Ubic
+FROM dbo.Cliente WHERE ClienteId IN (5,6);  -- NULL</pre></div>
+      <p class="fix"><b>fix ·</b> <code>CONCAT()</code> o <code>ISNULL</code> por componente. <code>CONCAT_NULL_YIELDS_NULL OFF</code> está deprecado: no es una solución.</p></div>
+
+    <div class="err"><h4>9 · Espacios finales invisibles</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT ClienteId FROM dbo.Cliente WHERE Nombre = N'Ana Solis';     -- encuentra al 4 (padding ANSI)
+SELECT ClienteId FROM dbo.Cliente WHERE Nombre LIKE N'Ana Solis';  -- no lo encuentra</pre></div>
+      <p class="fix"><b>fix ·</b> normaliza en la carga (<code>TRIM</code>), no en cada consulta.</p></div>
+
+    <div class="err"><h4>10 · <code>DISTINCT</code> que colapsa por colación</h4>
+      <p class="fix"><b>fix ·</b> si el conteo de distintos es un KPI, fija la colación explícitamente en la consulta.</p></div>
+
+    <div class="err"><h4>11 · <code>TOP</code> o paginación sin desempate</h4>
+      <p class="fix"><b>fix ·</b> termina siempre el <code>ORDER BY</code> con una columna única.</p></div>
+
+    <div class="err"><h4>12 · <code>ROW_NUMBER</code> no determinista en deduplicación</h4>
+      <p class="fix"><b>fix ·</b> ídem. Es la causa raíz de reprocesos que "cambian" datos que nadie tocó.</p></div>
+
+    <div class="err"><h4>13 · División entera silenciosa</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT COUNT(CASE WHEN Canal = 'WEB' THEN 1 END) / COUNT(*) AS PctWeb FROM dbo.Venta;  -- 0</pre></div>
+      <p class="fix"><b>fix ·</b> <code>* 1.0</code> o <code>CAST(… AS decimal(10,4))</code> antes de dividir.</p></div>
+
+    <div class="err"><h4>14 · <code>ISNULL</code> que trunca</h4>
+      <div class="code"><button class="cp">copiar</button><pre>DECLARE @c varchar(3) = NULL;
+SELECT ISNULL(@c,'ABCDEFG') AS ConIsNull,     -- 'ABC'  &lt;- truncado al tipo del 1er argumento
+       COALESCE(@c,'ABCDEFG') AS ConCoalesce; -- 'ABCDEFG'</pre></div></div>
+
+    <div class="err"><h4>15 · <code>LEFT JOIN</code> degradado a <code>INNER</code> por el <code>WHERE</code></h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT c.ClienteId, v.VentaId
+FROM dbo.Cliente c
+LEFT JOIN dbo.Venta v ON v.ClienteId = c.ClienteId
+WHERE v.Canal = 'WEB';   -- elimina los clientes sin ventas: ya no es LEFT</pre></div>
+      <p class="fix"><b>fix ·</b> mover el predicado al <code>ON</code>, o <code>WHERE (v.Canal='WEB' OR v.VentaId IS NULL)</code>. Nace del orden lógico: <code>ON</code> es paso 1, <code>WHERE</code> es paso 2. Es el puente al módulo 02.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════ EJERCICIOS ══════════════════════ -->
+<section class="sec" id="sec-ejercicios">
+  <div class="sec-head"><span class="n">§ 5</span><h2>Ejercicios</h2><span class="c">6 · los dos últimos combinan temas</span></div>
+  <p class="sec-note">Resuélvelos antes de abrir la solución. Los ejercicios 5 y 6 cruzan tres y cuatro temas del módulo respectivamente.</p>
+  <div class="branch" id="ejercicios"></div>
+</section>
+
+<!-- ══════════════════════ PROYECTO ══════════════════════ -->
+<section class="sec" id="sec-proyecto">
+  <div class="sec-head"><span class="n">§ 6</span><h2>Mini-proyecto</h2><span class="c">conciliación semántica de clientes</span></div>
+  <p class="sec-note">Un archivo diario del buró llega con tipos y colación distintos a los del core: el escenario habitual de un staging alimentado por SSIS o por un <code>COPY INTO</code>. Nueve criterios de aceptación ejecutables, incluidos uno sobre el plan y uno de idempotencia.</p>
+
+  <div class="card">
+    <h3>Datos de entrada</h3>
+    <div class="code"><span class="cap">T-SQL · staging del buró</span><button class="cp">copiar</button><pre>DROP TABLE IF EXISTS dbo.ClienteBuro;
+GO
+CREATE TABLE dbo.ClienteBuro
+(
+    Cedula     nvarchar(13) COLLATE Latin1_General_100_CI_AI NOT NULL,  -- tipo Y colación distintos al core
+    Nombre     nvarchar(60) COLLATE Latin1_General_100_CI_AI NULL,
+    Ciudad     nvarchar(30) COLLATE Latin1_General_100_CI_AI NULL,
+    Score      int          NULL,
+    FechaCorte date         NOT NULL
+);
+GO
+INSERT dbo.ClienteBuro (Cedula, Nombre, Ciudad, Score, FechaCorte)
+SELECT TOP (200000)
+       CAST(Cedula AS nvarchar(13)),
+       CASE WHEN ClienteId % 1000 = 0 THEN NULL ELSE UPPER(Nombre) END,   -- nombres nulos dispersos
+       CASE WHEN ClienteId % 7    = 0 THEN NULL ELSE Ciudad END,          -- ciudades nulas
+       (ClienteId % 900) + 100,
+       '2024-03-31'
+FROM dbo.ClienteMasivo
+ORDER BY ClienteId;
+
+-- Ruido realista: duplicado sucio y una cédula que no existe en el core
+INSERT dbo.ClienteBuro (Cedula, Nombre, Ciudad, Score, FechaCorte) VALUES
+ (N'0000000001001', N'cliente 1  ', N'guayaquil',  750, '2024-03-31'),
+ (N'9999999999001', N'ZOILA GUERRA', NULL,         820, '2024-03-31');
+GO</pre></div>
+
+    <h3>Entregable</h3>
+    <p>Un script que produzca <code>dbo.ConciliacionClientes</code> con una fila por cédula del universo (core ∪ buró):</p>
+    <table class="t">
+      <tr><th>Columna</th><th>Contenido</th></tr>
+      <tr><td><code>Cedula</code></td><td>clave del universo</td></tr>
+      <tr><td><code>Estado</code></td><td><code>SOLO_CORE</code> · <code>SOLO_BURO</code> · <code>COINCIDE_IGUAL</code> · <code>COINCIDE_CAMBIO</code></td></tr>
+      <tr><td><code>CambioNombre</code>, <code>CambioCiudad</code></td><td><code>bit</code>, comparación null-safe</td></tr>
+      <tr><td><code>NombreCore/Buro</code>, <code>CiudadCore/Buro</code>, <code>Score</code></td><td>valores para auditoría</td></tr>
+      <tr><td><code>EsDuplicadoBuro</code></td><td><code>bit</code>: la cédula llegó más de una vez en el archivo</td></tr>
+    </table>
+
+    <h3>Reglas obligatorias</h3>
+    <ul class="temas-chk" id="reglas">
+      <li><label class="chk"><input type="checkbox"><span>Comparación null-safe: NULL en ambos lados <b>no</b> es cambio; NULL contra valor <b>sí</b> lo es.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>Los nombres se comparan bajo <code>Latin1_General_100_CI_AI</code> <b>explícita</b>: decisión de negocio escrita en el código, no heredada del servidor.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>El join por cédula no convierte ni aplica función sobre la columna indexada del core.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>Ante cédulas duplicadas en el buró se conserva una sola fila, elegida de forma determinista.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>El script es idempotente: dos ejecuciones seguidas producen exactamente el mismo contenido.</span></label></li>
+    </ul>
+
+    <h3>Criterios de aceptación</h3>
+    <div class="code"><span class="cap">cada consulta debe devolver OK</span><button class="cp">copiar</button><pre>-- AC1 · Cardinalidad: universo sin duplicados
+SELECT CASE WHEN COUNT(*) = COUNT(DISTINCT Cedula) THEN 'OK' ELSE 'FALLA' END
+FROM dbo.ConciliacionClientes;
+
+-- AC2 · Cuadre de conteos
+SELECT CASE WHEN (SELECT COUNT(*) FROM dbo.ConciliacionClientes WHERE Estado &lt;&gt; 'SOLO_BURO')
+               = (SELECT COUNT(*) FROM dbo.ClienteMasivo)
+            THEN 'OK' ELSE 'FALLA' END;
+
+-- AC3 · Null-safe: ambos NULL no es cambio
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.ConciliacionClientes
+WHERE CiudadCore IS NULL AND CiudadBuro IS NULL AND CambioCiudad = 1;
+
+-- AC4 · Null-safe inverso: NULL contra valor SÍ es cambio
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.ConciliacionClientes
+WHERE ((CiudadCore IS NULL) &lt;&gt; (CiudadBuro IS NULL)) AND CambioCiudad = 0;
+
+-- AC5 · Coherencia de Estado
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.ConciliacionClientes
+WHERE (Estado = 'COINCIDE_IGUAL'  AND (CambioNombre = 1 OR CambioCiudad = 1))
+   OR (Estado = 'COINCIDE_CAMBIO' AND  CambioNombre = 0 AND CambioCiudad = 0);
+
+-- AC6 · Duplicados del buró colapsados
+SELECT CASE WHEN COUNT(*) = 1 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.ConciliacionClientes WHERE Cedula = '0000000001001';
+
+-- AC7 · La cédula que solo está en el buró
+SELECT CASE WHEN Estado = 'SOLO_BURO' THEN 'OK' ELSE 'FALLA' END
+FROM dbo.ConciliacionClientes WHERE Cedula = '9999999999001';
+
+-- AC8 · Idempotencia (guarda un snapshot, reejecuta, compara en ambas direcciones)
+SELECT CASE WHEN NOT EXISTS (SELECT * FROM dbo.ConciliacionClientes
+                             EXCEPT SELECT * FROM dbo.Conciliacion_Snapshot)
+             AND NOT EXISTS (SELECT * FROM dbo.Conciliacion_Snapshot
+                             EXCEPT SELECT * FROM dbo.ConciliacionClientes)
+            THEN 'OK' ELSE 'FALLA' END;
+
+-- AC9 · Plan limpio: ninguna conversión implícita que afecte el plan
+SELECT CASE WHEN CAST(p.query_plan AS nvarchar(max)) LIKE '%PlanAffectingConvert%'
+            THEN 'FALLA' ELSE 'OK' END
+FROM sys.dm_exec_query_stats qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) t
+CROSS APPLY sys.dm_exec_query_plan(qs.plan_handle) p
+WHERE t.text LIKE '%ConciliacionClientes%';</pre></div>
+    <p><b>AC8</b> usa <code>EXCEPT</code> en las dos direcciones justamente porque es null-safe y compara filas completas. Es el idioma correcto para "estas dos tablas son idénticas" y evita el <code>FULL JOIN</code> con veinte <code>ISNULL</code>.</p>
+
+    <h3>Pistas de diseño</h3>
+    <button class="reveal" data-t="#pistas">mostrar pistas</button>
+    <div class="hidden" id="pistas">
+      <ul class="plain" style="margin-top:12px">
+        <li>La regla 3 obliga a resolver la diferencia de tipo <b>del lado del archivo</b>: convierte <code>ClienteBuro.Cedula</code> a <code>varchar(13)</code> en una tabla intermedia ya tipada — que es lo que harías en el staging real — en vez de dejar que el motor convierta la columna indexada del core.</li>
+        <li>La regla 4 pide <code>ROW_NUMBER() OVER (PARTITION BY Cedula ORDER BY &lt;criterio&gt;, &lt;columna única&gt;)</code>. Sin la columna única final no hay idempotencia, y AC8 lo detecta.</li>
+        <li>El universo de claves se arma con <code>FULL OUTER JOIN</code> o con <code>UNION</code> de ambas claves: decide cuál y justifica el costo.</li>
+        <li>En un <code>FULL JOIN</code>, la única forma segura de saber si un lado faltó es preguntar por una columna <code>NOT NULL</code> de ese lado.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ EXAMEN ══════════════════════ -->
+<section class="sec" id="sec-examen">
+  <div class="sec-head"><span class="n">§ 7</span><h2>Autoevaluación</h2><span class="c">10 preguntas nivel entrevista</span></div>
+  <p class="sec-note">Responde en voz alta antes de revelar. Si no puedes explicarlo en dos frases, vuelve al tema correspondiente.</p>
+  <div class="card" id="examen"></div>
+</section>
+
+  <footer>
+    Módulo 01 de 16 · fase 00 · costo estimado 5 h<br>
+    El avance vive solo en esta pestaña: si recargas, los checks se reinician.<br>
+    Siguiente: <b>módulo 02 — joins a fondo y control de cardinalidad</b>. El puente es el error 15: nace del orden lógico.
+  </footer>
+</div>
+
+<dialog id="dl">
+  <div class="dl-head"><h3 id="dlTitle">Prompt</h3><button class="x" id="dlClose" aria-label="Cerrar">✕</button></div>
+  <textarea id="dlText" spellcheck="false" readonly></textarea>
+  <div class="dl-foot"><button class="solid" id="dlCopy">Copiar al portapapeles</button><span class="msg" id="dlMsg"></span></div>
+</dialog>
+<div class="toast" id="toast">copiado</div>
+
+<script>
+/* ══════════ contenido de los 10 temas ══════════ */
+const TEMAS = [
+{id:"01", min:20, t:"Álgebra relacional mínima", html:`
+<p>SQL es una implementación (imperfecta) del álgebra relacional sobre multiconjuntos. Los cuatro operadores que importan para leer consultas:</p>
+<table class="t">
+<tr><th>Operador</th><th>Notación</th><th>En SQL</th><th>Nota</th></tr>
+<tr><td>Proyección</td><td>π</td><td><code>SELECT col1, col2</code></td><td>En álgebra pura <b>elimina duplicados</b>; en SQL <b>no</b>. Por eso existe <code>DISTINCT</code>.</td></tr>
+<tr><td>Selección</td><td>σ</td><td><code>WHERE</code> / <code>ON</code> / <code>HAVING</code></td><td>Conserva solo lo que evalúa a TRUE.</td></tr>
+<tr><td>Producto</td><td>×</td><td><code>CROSS JOIN</code></td><td>Todo <code>JOIN</code> es producto + selección.</td></tr>
+<tr><td>División</td><td>÷</td><td><em>no existe</em></td><td>Se escribe con doble <code>NOT EXISTS</code> o con <code>HAVING COUNT(DISTINCT …)</code>.</td></tr>
+</table>
+<p><b>Join = producto + selección.</b> Esta equivalencia es la base de casi toda reescritura del optimizador:</p>
+<div class="code"><span class="cap">semánticamente idénticas · mismo plan</span><button class="cp">copiar</button><pre>SELECT c.Nombre, v.VentaId
+FROM dbo.Cliente c
+INNER JOIN dbo.Venta v ON v.ClienteId = c.ClienteId;
+
+SELECT c.Nombre, v.VentaId
+FROM dbo.Cliente c CROSS JOIN dbo.Venta v
+WHERE v.ClienteId = c.ClienteId;</pre></div>
+<p>Lo que <b>no</b> es intercambiable es <code>ON</code> vs <code>WHERE</code> en un <code>OUTER JOIN</code>: ahí el orden lógico manda (módulo 02).</p>
+<h3>División relacional</h3>
+<p>"Clientes que compraron <em>todos</em> los productos de la categoría CREDITO":</p>
+<div class="code"><span class="cap">forma 1 · doble NOT EXISTS (traducción literal)</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre
+FROM dbo.Cliente c
+WHERE NOT EXISTS (
+        SELECT 1 FROM dbo.Producto p
+        WHERE p.Categoria = 'CREDITO'
+          AND NOT EXISTS (SELECT 1 FROM dbo.Venta v
+                          WHERE v.ClienteId  = c.ClienteId
+                            AND v.ProductoId = p.ProductoId)
+      );</pre></div>
+<div class="code"><span class="cap">forma 2 · conteo (más legible, mejor plan)</span><button class="cp">copiar</button><pre>SELECT v.ClienteId
+FROM dbo.Venta v
+JOIN dbo.Producto p ON p.ProductoId = v.ProductoId
+WHERE p.Categoria = 'CREDITO'
+GROUP BY v.ClienteId
+HAVING COUNT(DISTINCT v.ProductoId) =
+       (SELECT COUNT(*) FROM dbo.Producto WHERE Categoria = 'CREDITO');</pre></div>
+<div class="rule"><b>trampa</b>La forma 1 devuelve también a los clientes <b>sin ninguna venta</b> si el divisor está vacío: división por conjunto vacío = todo el universo. Con el dataset, CREDITO tiene 3 productos y la respuesta correcta es el cliente 1 y el 6. Ejecuta ambas y compáralas.</div>
+<p><b>Spark:</b> idéntico, pero <code>COUNT(DISTINCT …)</code> es más caro (shuffle adicional); el <code>NOT EXISTS</code> correlacionado se traduce a un anti-join.</p>`},
+
+{id:"02", min:35, t:"Orden lógico paso a paso", html:`
+<p>Traza esta consulta mentalmente antes de ejecutarla:</p>
+<div class="code"><button class="cp">copiar</button><pre>SELECT   v.ClienteId,
+         SUM(v.Cantidad * v.PrecioUnit) AS TotalBruto
+FROM     dbo.Venta AS v
+WHERE    v.Fecha &gt;= '2023-01-01'
+GROUP BY v.ClienteId
+HAVING   SUM(v.Cantidad * v.PrecioUnit) &gt; 2000
+ORDER BY TotalBruto DESC
+OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY;</pre></div>
+<ul class="plain">
+<li><b>FROM</b> — 20 filas de <code>Venta</code>.</li>
+<li><b>WHERE</b> — descarta filas individuales.</li>
+<li><b>GROUP BY</b> — un grupo por <code>ClienteId</code>. A partir de aquí <b>solo existen columnas agrupadas y agregados</b>: <code>v.Fecha</code> ya no es referenciable sin agregar.</li>
+<li><b>HAVING</b> — descarta grupos. Repite la expresión porque no puede usar <code>TotalBruto</code>.</li>
+<li><b>SELECT</b> — nace el alias <code>TotalBruto</code>.</li>
+<li><b>ORDER BY</b> — usa <code>TotalBruto</code>, y puede porque ya existe.</li>
+<li><b>OFFSET/FETCH</b> — recorta el resultado ya ordenado.</li>
+</ul>
+<h3>Errores que el orden lógico predice sin ejecutar</h3>
+<div class="code bad"><span class="cap">tres errores, tres pasos</span><button class="cp">copiar</button><pre>-- Msg 207: Invalid column name 'TotalBruto'.   (WHERE=2, el alias nace en 5)
+SELECT v.ClienteId, SUM(v.Cantidad * v.PrecioUnit) AS TotalBruto
+FROM dbo.Venta v
+WHERE TotalBruto &gt; 2000
+GROUP BY v.ClienteId;
+
+-- Msg 8120: Column 'v.Fecha' is invalid in the select list...  (no sobrevive al GROUP BY)
+SELECT v.ClienteId, v.Fecha, SUM(v.Cantidad) AS Unidades
+FROM dbo.Venta v
+GROUP BY v.ClienteId;
+
+-- Msg 145: ORDER BY items must appear in the select list if SELECT DISTINCT is specified.
+SELECT DISTINCT v.ClienteId
+FROM dbo.Venta v
+ORDER BY v.Fecha;</pre></div>
+<p>El tercero es el más instructivo: <b>sin</b> <code>DISTINCT</code>, <code>ORDER BY v.Fecha</code> sí funciona, porque <code>ORDER BY</code> ve tanto las columnas de entrada como las de salida. Con <code>DISTINCT</code> el resultado ya colapsó y <code>Fecha</code> sería ambigua: ¿por cuál de las N fechas del grupo ordeno? El motor prefiere el error a inventar una respuesta.</p>
+<div class="rule"><b>PostgreSQL</b>Mismos errores. Y una extensión útil: si agrupas por la clave primaria, puedes seleccionar cualquier columna de esa tabla sin agregarla (dependencia funcional, SQL:1999). T-SQL no lo permite.</div>`},
+
+{id:"03", min:25, t:"Alcance de alias", html:`
+<div class="rule"><b>regla</b>Un alias del <code>SELECT</code> solo es visible donde el orden lógico ya pasó por el <code>SELECT</code>. En T-SQL, eso es únicamente <code>ORDER BY</code>.</div>
+<table class="t">
+<tr><th>Cláusula</th><th>T-SQL</th><th>PostgreSQL</th><th>Spark / Databricks</th></tr>
+<tr><td><code>FROM</code></td><td class="no">no</td><td class="no">no</td><td class="no">no</td></tr>
+<tr><td><code>WHERE</code></td><td class="no">no</td><td class="no">no</td><td class="no">no</td></tr>
+<tr><td><code>GROUP BY</code></td><td class="no">no</td><td class="yes">sí (extensión)</td><td class="yes">sí</td></tr>
+<tr><td><code>HAVING</code></td><td class="no">no</td><td class="no">no</td><td class="yes">sí</td></tr>
+<tr><td><code>ORDER BY</code></td><td class="yes">sí</td><td class="yes">sí</td><td class="yes">sí</td></tr>
+<tr><td>otra expresión del mismo <code>SELECT</code></td><td class="no">no</td><td class="no">no</td><td class="yes">sí (3.4+ / DBR 12.2+)</td></tr>
+</table>
+<div class="code"><span class="cap">Spark · lateral column alias</span><button class="cp">copiar</button><pre>SELECT Cantidad * PrecioUnit AS Bruto,
+       Bruto - COALESCE(Descuento, 0) AS Neto     -- válido en Spark 3.4+, no en T-SQL
+FROM venta;</pre></div>
+<h3>Las tres formas correctas en T-SQL</h3>
+<div class="code good"><span class="cap">(a) CTE o derivada</span><button class="cp">copiar</button><pre>WITH v AS (
+    SELECT VentaId, Cantidad * PrecioUnit - ISNULL(Descuento,0) AS Neto
+    FROM dbo.Venta
+)
+SELECT * FROM v WHERE Neto &gt; 1000;</pre></div>
+<div class="code good"><span class="cap">(b) CROSS APPLY (VALUES) · el idioma T-SQL</span><button class="cp">copiar</button><pre>SELECT v.VentaId, x.Neto
+FROM dbo.Venta v
+CROSS APPLY (VALUES (v.Cantidad * v.PrecioUnit - ISNULL(v.Descuento,0))) AS x(Neto)
+WHERE x.Neto &gt; 1000;</pre></div>
+<div class="code good"><span class="cap">(c) columna calculada persistida</span><button class="cp">copiar</button><pre>ALTER TABLE dbo.Venta
+    ADD Neto AS (Cantidad * PrecioUnit - ISNULL(Descuento,0)) PERSISTED;</pre></div>
+<p>La (b) funciona porque <code>APPLY</code> vive en el <code>FROM</code> (paso 1), antes del <code>WHERE</code> (paso 2). Es la que más rinde en el día a día: encadena (un segundo <code>CROSS APPLY</code> ve el alias del primero), no fuerza materialización y el optimizador la aplana. La (c) permite además <b>indexar</b> la expresión, lo que la vuelve SARGable.</p>`},
+
+{id:"04", min:30, t:"Lógica de tres valores", html:`
+<p>Todo predicado evalúa a <b>TRUE, FALSE o UNKNOWN</b>. UNKNOWN aparece en cuanto un NULL participa en una comparación.</p>
+<div class="code"><span class="cap">tablas de verdad</span><button class="cp">copiar</button><pre>NOT:  NOT TRUE = FALSE | NOT FALSE = TRUE | NOT UNKNOWN = UNKNOWN
+
+AND     | TRUE     FALSE    UNKNOWN        OR      | TRUE   FALSE    UNKNOWN
+--------+---------------------------       --------+--------------------------
+TRUE    | TRUE     FALSE    UNKNOWN        TRUE    | TRUE   TRUE     TRUE
+FALSE   | FALSE    FALSE    FALSE          FALSE   | TRUE   FALSE    UNKNOWN
+UNKNOWN | UNKNOWN  FALSE    UNKNOWN        UNKNOWN | TRUE   UNKNOWN  UNKNOWN</pre></div>
+<div class="rule"><b>la asimetría que hay que memorizar</b>
+<code>WHERE</code>, <code>HAVING</code>, <code>ON</code> y el <code>WHEN</code> de un <code>CASE</code> aceptan la fila <b>solo si el predicado da TRUE</b>. Un <code>CHECK</code> constraint la acepta si da <b>TRUE o UNKNOWN</b>: rechaza únicamente FALSE. Es decir: <b>un CHECK deja pasar los NULL</b>.</div>
+<div class="code bad"><span class="cap">caso mínimo · la constraint que no protege nada</span><button class="cp">copiar</button><pre>ALTER TABLE dbo.Cliente ADD CONSTRAINT CK_Cliente_Limite CHECK (LimiteCredito &gt; 0);
+-- Se crea sin problema aunque hay filas con LimiteCredito NULL (UNKNOWN, no FALSE)
+
+INSERT dbo.Cliente (ClienteId, Cedula, Nombre, Ciudad, Segmento, LimiteCredito, FechaAlta)
+VALUES (99, '0900000000001', N'Prueba', 'GUAYAQUIL', 'RETAIL', NULL, '2024-05-01');  -- pasa
+
+-- Correcto si NULL no debe ser válido:
+--   CHECK (LimiteCredito IS NOT NULL AND LimiteCredito &gt; 0)   o NOT NULL en la columna
+DELETE dbo.Cliente WHERE ClienteId = 99;
+ALTER TABLE dbo.Cliente DROP CONSTRAINT CK_Cliente_Limite;</pre></div>
+<p>Es el bug de modelado más frecuente en tablas de staging: la constraint "existe" y no valida nada.</p>`},
+
+{id:"05", min:45, t:"NULL en filtros, agregados y UNIQUE", html:`
+<h3>a) <code>&lt;&gt;</code> no es el complemento de <code>=</code></h3>
+<div class="code"><button class="cp">copiar</button><pre>SELECT COUNT(*) FROM dbo.Cliente;                             -- 12
+SELECT COUNT(*) FROM dbo.Cliente WHERE Segmento =  'RETAIL';  --  3
+SELECT COUNT(*) FROM dbo.Cliente WHERE Segmento &lt;&gt; 'RETAIL';  --  6  (no 9)
+SELECT COUNT(*) FROM dbo.Cliente WHERE Segmento IS NULL;      --  3
+-- 3 + 6 + 3 = 12: la unión de "igual" y "distinto" NO cubre la tabla</pre></div>
+<h3>b) Los agregados ignoran NULL</h3>
+<div class="code"><button class="cp">copiar</button><pre>SET ANSI_WARNINGS ON;  -- necesario para ver el aviso 8153
+SELECT COUNT(*)             AS Filas,          -- 12
+       COUNT(LimiteCredito) AS ConLimite,      --  8
+       SUM(LimiteCredito)   AS Suma,
+       AVG(LimiteCredito)   AS PromedioReal,          -- Suma / 8
+       SUM(LimiteCredito) / COUNT(*) AS SiNullFuera0  -- Suma / 12  &lt;- otro número
+FROM dbo.Cliente;</pre></div>
+<p>Warning esperado: <code>Msg 8153 — Null value is eliminated by an aggregate or other SET operation</code>. Ese aviso es información, no ruido: te dice que el denominador de tu promedio no es el que crees.</p>
+<h3>c) Agregado sobre conjunto vacío</h3>
+<div class="code"><button class="cp">copiar</button><pre>SELECT SUM(v.Cantidad) FROM dbo.Venta v WHERE v.ClienteId = 11;  -- NULL (cliente sin ventas)
+SELECT COUNT(*)        FROM dbo.Venta v WHERE v.ClienteId = 11;  -- 0
+
+-- En subconsulta escalar el efecto es silencioso:
+SELECT c.ClienteId,
+       (SELECT SUM(v.Cantidad) FROM dbo.Venta v WHERE v.ClienteId = c.ClienteId) AS Unidades,
+       ISNULL((SELECT SUM(v.Cantidad) FROM dbo.Venta v WHERE v.ClienteId = c.ClienteId),0) AS UnidadesOk
+FROM dbo.Cliente c WHERE c.ClienteId IN (10, 11);</pre></div>
+<h3>d) Dónde SÍ se comportan los NULL como iguales</h3>
+<table class="t">
+<tr><th>Contexto</th><th>¿NULL = NULL?</th></tr>
+<tr><td><code>=</code>, <code>&lt;&gt;</code>, <code>IN</code>, <code>JOIN … ON</code></td><td class="no">No (UNKNOWN)</td></tr>
+<tr><td><code>GROUP BY</code></td><td class="yes">Sí: un solo grupo NULL</td></tr>
+<tr><td><code>DISTINCT</code></td><td class="yes">Sí: un solo NULL</td></tr>
+<tr><td><code>UNION</code>, <code>INTERSECT</code>, <code>EXCEPT</code></td><td class="yes">Sí</td></tr>
+<tr><td><code>ORDER BY</code></td><td class="yes">Sí, y en SQL Server NULL va <b>primero</b> en ASC</td></tr>
+<tr><td><code>UNIQUE</code> en SQL Server</td><td class="yes">Sí → solo se admite <b>un</b> NULL</td></tr>
+<tr><td><code>UNIQUE</code> en PostgreSQL</td><td class="no">No por defecto → admite <b>muchos</b> NULL</td></tr>
+</table>
+<div class="code"><span class="cap">el índice único que falla por el segundo NULL</span><button class="cp">copiar</button><pre>-- FALLA: clientes 6 y 7 tienen Cedula NULL
+CREATE UNIQUE NONCLUSTERED INDEX UQ_Cliente_Cedula ON dbo.Cliente(Cedula);
+-- Msg 1505: ... duplicate key ...
+
+-- Solución T-SQL: índice único filtrado (2008+)
+CREATE UNIQUE NONCLUSTERED INDEX UQ_Cliente_Cedula
+    ON dbo.Cliente(Cedula) WHERE Cedula IS NOT NULL;</pre></div>
+<p><b>PostgreSQL:</b> acepta varios NULL; desde PG 15 existe <code>UNIQUE NULLS NOT DISTINCT</code> para replicar el comportamiento de SQL Server. <b>Spark/Delta:</b> no hay unicidad forzada — la deduplicación es responsabilidad del pipeline (módulo 12).</p>
+<h3>e) <code>ORDER BY</code> y NULL</h3>
+<p>SQL Server no soporta <code>NULLS FIRST/LAST</code>: NULL siempre primero en <code>ASC</code>. Se emula:</p>
+<div class="code"><button class="cp">copiar</button><pre>SELECT ClienteId, LimiteCredito
+FROM dbo.Cliente
+ORDER BY CASE WHEN LimiteCredito IS NULL THEN 1 ELSE 0 END, LimiteCredito;  -- NULLs al final</pre></div>`},
+
+{id:"06", min:30, t:"Comparación null-safe", html:`
+<p>El problema aparece siempre en lo mismo: detectar si una fila cambió entre staging y destino (SCD2, MERGE, conciliaciones). <code>A &lt;&gt; B</code> deja escapar todos los cambios que involucran NULL.</p>
+<div class="code bad"><span class="cap">caso mínimo</span><button class="cp">copiar</button><pre>DECLARE @viejo varchar(10) = NULL, @nuevo varchar(10) = 'WEB';
+SELECT CASE WHEN @viejo &lt;&gt; @nuevo THEN 'cambió' ELSE 'igual' END;  -- 'igual'  &lt;-- FALSO</pre></div>
+<div class="code good"><span class="cap">1 · SQL Server 2022+ / Azure SQL</span><button class="cp">copiar</button><pre>SELECT CASE WHEN @viejo IS DISTINCT FROM @nuevo THEN 'cambió' ELSE 'igual' END;</pre></div>
+<div class="code good"><span class="cap">2 · pre-2022, multi-columna, sin sentinelas</span><button class="cp">copiar</button><pre>SELECT d.ClienteId
+FROM dbo.Cliente d
+JOIN dbo.ClienteExterno s ON s.Cedula = d.Cedula
+WHERE NOT EXISTS (SELECT d.Nombre, d.Ciudad, d.Segmento
+                  INTERSECT
+                  SELECT s.Nombre, NULL,     NULL);</pre></div>
+<div class="code"><span class="cap">3 · explícita (verbosa pero portable)</span><button class="cp">copiar</button><pre>WHERE (d.Nombre &lt;&gt; s.Nombre)
+   OR (d.Nombre IS NULL     AND s.Nombre IS NOT NULL)
+   OR (d.Nombre IS NOT NULL AND s.Nombre IS NULL)</pre></div>
+<div class="code bad"><span class="cap">4 · sentinela · evítalo</span><button class="cp">copiar</button><pre>WHERE ISNULL(d.Ciudad,'#') &lt;&gt; ISNULL(s.Ciudad,'#')   -- falla el día que '#' exista en los datos</pre></div>
+<div class="rule"><b>por qué la 2 es el idioma T-SQL</b>Compara <b>muchas columnas a la vez</b> sin repetir cada una tres veces, es null-safe y funciona desde 2008. Su costo: el optimizador la resuelve con concatenación + distinct por fila, así que en volúmenes grandes conviene medirla contra la 3 o contra un <code>HASHBYTES</code> de la fila — con la precaución de que el hash también necesita un separador que no exista en los datos y un tratamiento explícito de NULL.</div>
+<p><b>PostgreSQL:</b> <code>IS DISTINCT FROM</code> de siempre, y se puede comparar registros completos: <code>(d.*) IS DISTINCT FROM (s.*)</code>. <b>Spark SQL:</b> <code>a &lt;=&gt; b</code> (null-safe equal) e <code>IS [NOT] DISTINCT FROM</code>; <code>&lt;=&gt;</code> sirve además en el <code>ON</code> de un join y sí empareja NULL con NULL.</p>`},
+
+{id:"07", min:45, t:"Conversión implícita y precedencia de tipos", html:`
+<p>Cuando comparas dos tipos distintos, <b>el de menor precedencia se convierte al de mayor</b>. Extracto de la lista de SQL Server, de mayor a menor:</p>
+<div class="code"><span class="cap">precedencia de tipos</span><button class="cp">copiar</button><pre>sql_variant &gt; xml &gt; datetimeoffset &gt; datetime2 &gt; datetime &gt; smalldatetime &gt; date &gt; time
+&gt; float &gt; real &gt; decimal &gt; money &gt; smallmoney &gt; bigint &gt; int &gt; smallint &gt; tinyint &gt; bit
+&gt; nvarchar (incl. max) &gt; nchar &gt; varchar (incl. max) &gt; char &gt; varbinary &gt; binary</pre></div>
+<h3>a) <code>nvarchar</code> gana a <code>varchar</code></h3>
+<div class="code"><button class="cp">copiar</button><pre>-- Ingenua: la COLUMNA es la que se convierte -> predicado no SARGable
+SELECT Nombre FROM dbo.ClienteMasivo WHERE Cedula = N'0000123456001';
+-- Correcta:
+SELECT Nombre FROM dbo.ClienteMasivo WHERE Cedula =  '0000123456001';</pre></div>
+<div class="rule"><b>matiz por colación</b>Con colaciones <b>Windows</b> el optimizador puede aplicar <em>range through convert</em> y conservar el Index Seek pese a la conversión. Con colaciones <b>SQL heredadas</b> (<code>SQL_Latin1_General_CP1_CI_AS</code>) no puede, y degrada a Index Scan. Por eso el mismo código "funciona rápido" en un servidor y se arrastra en otro. No lo asumas: revisa el plan.</div>
+<h3>b) El sentido de la conversión decide si duele</h3>
+<div class="code good"><button class="cp">copiar</button><pre>-- Sin daño: int tiene MAYOR precedencia, se convierte el literal, la columna queda intacta
+SELECT COUNT(*) FROM dbo.VentaHist WHERE ClienteId = '123';</pre></div>
+<p>Una conversión implícita no es mala por sí misma: es mala <b>cuando cae del lado de la columna</b>.</p>
+<h3>c) Excepción documentada</h3>
+<div class="code"><button class="cp">copiar</button><pre>-- Puede hacer seek (SQL Server 2008+ especializa datetime -&gt; date), pero depende del motor:
+WHERE CAST(Fecha AS date) = '2023-06-01'
+-- Siempre seek, y portable:
+WHERE Fecha &gt;= '2023-06-01' AND Fecha &lt; '2023-06-02'</pre></div>
+<h3>d) Trampas de tipo del día a día</h3>
+<div class="code"><button class="cp">copiar</button><pre>SELECT 1/2 AS DivisionEntera,          -- 0
+       1/2.0 AS DivisionDecimal;       -- 0.500000
+
+DECLARE @c varchar(3) = NULL;
+SELECT ISNULL(@c,'ABCDEFG')   AS ConIsNull,    -- 'ABC'  &lt;- trunca al tipo del 1er argumento
+       COALESCE(@c,'ABCDEFG') AS ConCoalesce;  -- 'ABCDEFG'
+
+SELECT N'Cliente: ' + Ciudad       AS ConMas,     -- NULL para el cliente 5
+       CONCAT(N'Cliente: ', Ciudad) AS ConConcat  -- 'Cliente: '
+FROM dbo.Cliente WHERE ClienteId = 5;</pre></div>
+<div class="engines"><p class="kicker">otros motores</p>
+<div class="engine"><b class="eng">PostgreSQL</b><p>No tiene lista de precedencia equivalente: resuelve por categorías y es mucho más estricto — muchas comparaciones exigen <code>CAST</code> explícito.</p></div>
+<div class="engine"><b class="eng">Spark SQL</b><p>Aplica <em>type coercion</em> propio; con <code>spark.sql.ansi.enabled=true</code> (por defecto en Databricks SQL) las conversiones inseguras lanzan error en vez de devolver NULL. Y ojo: <code>1/2</code> en Spark devuelve <b>0.5</b>, no 0. Es una de las diferencias que más rompe migraciones.</p></div>
+</div>`},
+
+{id:"08", min:35, t:"Colaciones", html:`
+<p>Una colación define tres cosas: el <b>conjunto de caracteres</b> (para <code>varchar</code>), las <b>reglas de comparación</b> y el <b>orden de clasificación</b>. Se resuelve por columna; el <code>COLLATE</code> de la expresión gana sobre el de la columna, que gana sobre el de la base, que gana sobre el de la instancia.</p>
+<p>Sufijos: <code>CI</code>/<code>CS</code> (caso), <code>AI</code>/<code>AS</code> (acentos), <code>_SC</code> (caracteres suplementarios), <code>_UTF8</code> (2019+, almacena UTF-8 en <code>varchar</code>), <code>_BIN2</code> (comparación binaria pura).</p>
+<div class="code"><span class="cap">misma consulta, tres colaciones, tres respuestas</span><button class="cp">copiar</button><pre>SELECT 'CI_AS' AS Colacion, COUNT(*) AS Coinciden
+FROM dbo.Cliente WHERE Nombre COLLATE Latin1_General_100_CI_AS = N'JOSE PEREZ'
+UNION ALL
+SELECT 'CS_AS', COUNT(*)
+FROM dbo.Cliente WHERE Nombre COLLATE Latin1_General_100_CS_AS = N'JOSE PEREZ'
+UNION ALL
+SELECT 'CI_AI', COUNT(*)
+FROM dbo.Cliente WHERE Nombre COLLATE Latin1_General_100_CI_AI = N'JOSE PEREZ';
+-- CI_AS -&gt; 1   CS_AS -&gt; 1   CI_AI -&gt; 2  ('José Pérez' y 'JOSE PEREZ' colapsan)</pre></div>
+<div class="code"><span class="cap">y lo mismo aplica a DISTINCT, GROUP BY, JOIN y a la unicidad de un índice</span><button class="cp">copiar</button><pre>SELECT COUNT(DISTINCT Nombre COLLATE Latin1_General_100_CI_AS) AS Distintos_CI_AS,
+       COUNT(DISTINCT Nombre COLLATE Latin1_General_100_CI_AI) AS Distintos_CI_AI
+FROM dbo.Cliente;</pre></div>
+<h3>Tres cosas que muerden en producción</h3>
+<ul class="plain">
+<li><b>Error 468 — conflicto de colación.</b> <em>Cannot resolve the collation conflict…</em> Se resuelve con <code>COLLATE</code> explícito en un lado, pero ese <code>COLLATE</code> sobre la columna <b>anula el seek</b> igual que cualquier función. Si el join es caliente, la solución no es el <code>COLLATE</code>: es homogeneizar la colación de las columnas.</li>
+<li><b>Las tablas temporales heredan la colación de <code>tempdb</code></b>, no la de tu base. Defensa estándar en cualquier script de carga: <code>CREATE TABLE #Staging (Cedula varchar(13) COLLATE DATABASE_DEFAULT, …)</code>.</li>
+<li><b>Comparar texto ≠ comparar bytes.</b> En <code>char</code>/<code>varchar</code> los espacios finales se ignoran en <code>=</code> (padding ANSI) pero <b>no</b> en <code>LIKE</code>.</li>
+</ul>
+<div class="code"><span class="cap">el par que explica la mitad de los "el WHERE lo encuentra pero el LIKE no"</span><button class="cp">copiar</button><pre>SELECT CASE WHEN 'ANA' = 'ANA   ' THEN 'iguales' ELSE 'distintos' END;   -- iguales
+SELECT CASE WHEN 'ANA   ' LIKE 'ANA' THEN 'match' ELSE 'no match' END;   -- no match
+SELECT ClienteId, DATALENGTH(Nombre) FROM dbo.Cliente WHERE ClienteId IN (3,4);</pre></div>
+<div class="engines"><p class="kicker">otros motores</p>
+<div class="engine"><b class="eng">PostgreSQL</b><p>Colaciones ICU o libc por columna; <b>no hay CI por defecto</b>. Desde PG 12 hay colaciones no deterministas (<code>deterministic=false</code>) que permiten CI/AI, con restricciones en <code>LIKE</code> y algunos índices; la alternativa clásica es <code>citext</code> o <code>lower(unaccent(x))</code> con índice funcional.</p></div>
+<div class="engine"><b class="eng">Spark SQL</b><p>La comparación de strings es binaria y sensible a mayúsculas y acentos: normaliza y guarda la columna normalizada. Databricks incorporó colaciones en runtimes recientes — confirma la disponibilidad en tu DBR antes de diseñar sobre ello.</p></div>
+</div>`},
+
+{id:"09", min:30, t:"Determinismo y orden", html:`
+<div class="rule"><b>la frase completa</b>Sin <code>ORDER BY</code> en la consulta más externa <b>no hay ningún orden garantizado</b>. Ni siquiera "casi siempre". Cambia el plan — paralelismo, otro índice, estadísticas nuevas, particionamiento — y cambia el orden, sin aviso y sin error.</div>
+<div class="code bad"><span class="cap">cuatro lugares donde la gente cree que hay orden</span><button class="cp">copiar</button><pre>-- 1) TOP sin ORDER BY: "las 3 primeras" no significa nada
+SELECT TOP (3) * FROM dbo.Venta;
+
+-- 2) ORDER BY dentro de vista/CTE/derivada: no ordena el resultado externo.
+--    T-SQL solo lo permite con TOP/OFFSET, y aun así define QUÉ filas entran, no en qué orden salen.
+CREATE VIEW dbo.vVentasOrdenadas AS
+    SELECT TOP (100) PERCENT * FROM dbo.Venta ORDER BY Fecha;  -- el ORDER BY se descarta
+GO
+SELECT * FROM dbo.vVentasOrdenadas;   -- orden arbitrario
+DROP VIEW dbo.vVentasOrdenadas;
+
+-- 3) INSERT ... SELECT ... ORDER BY no garantiza el orden físico de las filas.
+--    (La única garantía documentada es el orden de asignación de valores IDENTITY.)
+
+-- 4) ROW_NUMBER con ORDER BY no único: el ganador cambia entre ejecuciones
+SELECT ClienteId, Fecha,
+       ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Fecha) AS rn  -- ventas 7 y 8: misma fecha
+FROM dbo.Venta WHERE ClienteId = 3;
+-- Determinista:  ORDER BY Fecha, VentaId</pre></div>
+<p>El caso 4 es el que rompe cargas: una deduplicación con <code>ROW_NUMBER</code> sin desempate único <b>no es idempotente</b>, así que reprocesar el mismo archivo puede dejar una fila distinta a la vez anterior.</p>
+<div class="rule"><b>regla</b>Todo <code>ORDER BY</code> de un <code>ROW_NUMBER</code> usado para elegir un ganador debe terminar en una columna única.</div>
+<h3>Paginación estable</h3>
+<div class="split">
+<div class="code bad"><span class="cap">inestable</span><button class="cp">copiar</button><pre>SELECT ClienteId, Nombre FROM dbo.Cliente
+ORDER BY Nombre COLLATE Latin1_General_100_CI_AI
+OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY;</pre></div>
+<div class="code good"><span class="cap">estable</span><button class="cp">copiar</button><pre>SELECT ClienteId, Nombre FROM dbo.Cliente
+ORDER BY Nombre COLLATE Latin1_General_100_CI_AI, ClienteId
+OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY;</pre></div>
+</div>
+<p>En T-SQL <code>OFFSET/FETCH</code> <b>exige</b> <code>ORDER BY</code> desde 2012; en PostgreSQL y Spark <code>LIMIT</code> sin <code>ORDER BY</code> es legal — y por eso es más peligroso. Tampoco es determinista <b>cuántas veces</b> se evalúa una expresión: <code>NEWID()</code>, <code>RAND()</code> o una UDF escalar pueden evaluarse una vez por fila, varias o menos de lo que crees según el plan.</p>`},
+
+{id:"10", min:25, t:"Conjunto vs multiconjunto", html:`
+<table class="t">
+<tr><th>Operador</th><th>Elimina duplicados</th><th>NULL = NULL</th><th>¿En SQL Server?</th></tr>
+<tr><td><code>UNION</code></td><td class="yes">Sí</td><td class="yes">Sí</td><td>Sí</td></tr>
+<tr><td><code>UNION ALL</code></td><td class="no">No</td><td>n/a</td><td>Sí</td></tr>
+<tr><td><code>INTERSECT</code></td><td class="yes">Sí</td><td class="yes">Sí</td><td>Sí</td></tr>
+<tr><td><code>EXCEPT</code></td><td class="yes">Sí</td><td class="yes">Sí</td><td>Sí</td></tr>
+<tr><td><code>INTERSECT ALL</code> / <code>EXCEPT ALL</code></td><td class="no">No</td><td class="yes">Sí</td><td class="no">No (sí en PostgreSQL y Spark)</td></tr>
+</table>
+<div class="code"><span class="cap">INTERSECT y EXCEPT emparejan NULL con NULL</span><button class="cp">copiar</button><pre>SELECT Ciudad FROM dbo.Cliente
+INTERSECT
+SELECT Ciudad FROM dbo.Cliente WHERE ClienteId = 5;   -- devuelve una fila: NULL</pre></div>
+<p>Ese comportamiento es justo el que explota el truco null-safe del tema 6.</p>
+<h3><code>EXCEPT</code> vs <code>NOT IN</code> vs <code>NOT EXISTS</code></h3>
+<div class="code"><button class="cp">copiar</button><pre>-- (a) NOT IN con subconsulta que contiene NULL -&gt; conjunto vacío, siempre
+SELECT c.ClienteId FROM dbo.Cliente c
+WHERE c.Cedula NOT IN (SELECT c2.Cedula FROM dbo.Cliente c2 WHERE c2.ClienteId &gt; 8);
+
+-- (b) NOT EXISTS: semántica de anti-join, inmune al problema
+SELECT c.ClienteId FROM dbo.Cliente c
+WHERE NOT EXISTS (SELECT 1 FROM dbo.Cliente c2
+                  WHERE c2.ClienteId &gt; 8 AND c2.Cedula = c.Cedula);
+
+-- (c) EXCEPT: null-safe, PERO elimina duplicados del lado izquierdo
+SELECT Cedula FROM dbo.Cliente
+EXCEPT
+SELECT Cedula FROM dbo.Cliente WHERE ClienteId &gt; 8;</pre></div>
+<p>Por qué (a) devuelve vacío: <code>x NOT IN (a,b,NULL)</code> se expande a <code>x&lt;&gt;a AND x&lt;&gt;b AND x&lt;&gt;NULL</code>; el último término es UNKNOWN y <code>TRUE AND UNKNOWN = UNKNOWN</code> → ninguna fila pasa.</p>
+<div class="rule"><b>regla operativa</b><code>NOT IN</code> solo sobre columnas <code>NOT NULL</code>. En cualquier otro caso, <code>NOT EXISTS</code>.</div>
+<p>Y el costo: <code>UNION</code> implica una operación de distinción (Sort Distinct o Hash Match Aggregate) con su reserva de memoria. Si los conjuntos son disjuntos por construcción — el caso típico de "histórico + del día" —, <code>UNION ALL</code> da el mismo resultado por mucho menos.</p>`}
+];
+
+/* ══════════ ejercicios ══════════ */
+const EJERCICIOS = [
+{id:"01", niv:"fácil", t:"Predecir sin ejecutar", temas:"tema 4, 5", enun:`
+<p>Sin ejecutar, di cuántas filas devuelve cada consulta y por qué. Luego verifica.</p>
+<div class="code"><button class="cp">copiar</button><pre>-- A
+SELECT COUNT(*) FROM dbo.Venta WHERE Descuento &lt; 100;
+-- B
+SELECT COUNT(*) FROM dbo.Venta WHERE Descuento &gt;= 100 OR Descuento &lt; 100;
+-- C
+SELECT COUNT(*) FROM dbo.Venta WHERE NOT (Descuento &gt;= 100);
+-- D
+SELECT COUNT(*) FROM dbo.Cliente WHERE Ciudad IN ('QUITO', NULL);</pre></div>`,
+sol:`<ul class="plain">
+<li><b>A = 4.</b> Las 12 filas con <code>Descuento</code> NULL evalúan a UNKNOWN y se descartan; de las 8 con valor, las menores a 100 son 50, 75, 30 y 25.</li>
+<li><b>B = 8.</b> Parece tautología, pero solo lo es para filas con valor: <code>UNKNOWN OR UNKNOWN = UNKNOWN</code>. Devuelve exactamente las filas con descuento no nulo.</li>
+<li><b>C = 4.</b> <code>NOT UNKNOWN = UNKNOWN</code>: los NULL siguen fuera. <code>NOT (x &gt;= 100)</code> <b>no</b> es el complemento de <code>x &gt;= 100</code> con NULL presente.</li>
+<li><b>D = 2.</b> <code>IN</code> se expande a <code>Ciudad='QUITO' OR Ciudad=NULL</code>; el segundo término es UNKNOWN y <code>TRUE OR UNKNOWN = TRUE</code>, así que no daña. Con <code>NOT IN</code> sí lo haría.</li>
+</ul>
+<p><b>La lección:</b> el conjunto de filas se parte en <b>tres</b>, no en dos. Cualquier razonamiento binario sobre una columna anulable está mal.</p>`},
+
+{id:"02", niv:"fácil", t:"Rescatar el alias", temas:"tema 2, 3", enun:`
+<p>Esta consulta no compila. Escríbela de tres formas que sí funcionen, sin repetir la expresión más de una vez en cada versión.</p>
+<div class="code bad"><button class="cp">copiar</button><pre>SELECT v.VentaId,
+       v.Cantidad * v.PrecioUnit - ISNULL(v.Descuento, 0) AS Neto
+FROM dbo.Venta v
+WHERE Neto &gt; 1000
+ORDER BY Neto DESC;</pre></div>`,
+sol:`<div class="code good"><span class="cap">(a) CTE</span><button class="cp">copiar</button><pre>WITH calc AS (
+    SELECT v.VentaId, v.Cantidad * v.PrecioUnit - ISNULL(v.Descuento,0) AS Neto
+    FROM dbo.Venta v
+)
+SELECT VentaId, Neto FROM calc WHERE Neto &gt; 1000 ORDER BY Neto DESC;</pre></div>
+<div class="code good"><span class="cap">(b) CROSS APPLY (VALUES)</span><button class="cp">copiar</button><pre>SELECT v.VentaId, x.Neto
+FROM dbo.Venta v
+CROSS APPLY (VALUES (v.Cantidad * v.PrecioUnit - ISNULL(v.Descuento,0))) AS x(Neto)
+WHERE x.Neto &gt; 1000
+ORDER BY x.Neto DESC;</pre></div>
+<div class="code good"><span class="cap">(c) derivada</span><button class="cp">copiar</button><pre>SELECT d.VentaId, d.Neto
+FROM (SELECT VentaId, Cantidad * PrecioUnit - ISNULL(Descuento,0) AS Neto FROM dbo.Venta) AS d
+WHERE d.Neto &gt; 1000
+ORDER BY d.Neto DESC;</pre></div>
+<p>Las tres producen el <b>mismo plan</b>: el optimizador aplana CTE, derivada y APPLY. La elección es de legibilidad, no de rendimiento — y vale decirlo porque mucha gente evita la CTE "por costo" sin haber mirado un plan. Verifícalo: los tres planes deben ser idénticos.</p>
+<p>Nota: el <code>ORDER BY Neto DESC</code> original <b>sí</b> era válido (paso 7). El que fallaba era solo el <code>WHERE</code>.</p>`},
+
+{id:"03", niv:"medio", t:"La constraint que no protege", temas:"tema 4", enun:`
+<p>Se pidió: <em>"el límite de crédito, si existe, debe ser positivo y menor a 100 000; y ningún cliente CORP puede tener límite nulo"</em>. Un compañero escribió:</p>
+<div class="code bad"><button class="cp">copiar</button><pre>ALTER TABLE dbo.Cliente ADD CONSTRAINT CK_Cliente_Limite
+    CHECK (LimiteCredito &gt; 0 AND LimiteCredito &lt; 100000);</pre></div>
+<p>Explica qué reglas del pedido <b>no</b> quedan cubiertas, escribe la versión correcta y demuestra con un <code>INSERT</code> que la ingenua deja pasar datos inválidos.</p>`,
+sol:`<p>Fallas: (1) un <code>LimiteCredito</code> NULL evalúa a UNKNOWN y <code>CHECK</code> solo rechaza FALSE → los NULL pasan, lo cual <b>sí</b> es lo pedido para no-CORP; pero (2) la regla de CORP no está expresada en ningún lado, así que un CORP sin límite también pasa.</p>
+<div class="code good"><button class="cp">copiar</button><pre>ALTER TABLE dbo.Cliente ADD CONSTRAINT CK_Cliente_Limite
+    CHECK (
+        (LimiteCredito IS NULL OR (LimiteCredito &gt; 0 AND LimiteCredito &lt; 100000))
+        AND NOT (Segmento = 'CORP' AND LimiteCredito IS NULL)
+    );</pre></div>
+<p>Cuidado con el segundo término: si <code>Segmento</code> es NULL, <code>Segmento='CORP'</code> es UNKNOWN, <code>UNKNOWN AND TRUE = UNKNOWN</code>, <code>NOT UNKNOWN = UNKNOWN</code> → pasa. Aquí es correcto (no sabemos si es CORP, no bloqueamos), pero es exactamente el razonamiento que hay que hacer <b>al escribir</b> la constraint, no descubrir después.</p>
+<div class="code bad"><span class="cap">demostración con la constraint ingenua activa</span><button class="cp">copiar</button><pre>INSERT dbo.Cliente VALUES (98,'0900000000098',N'Corp Sin Limite','QUITO','CORP',NULL,'2024-06-01'); -- pasa</pre></div>
+<p><b>Extra:</b> si agregas la constraint con <code>WITH NOCHECK</code>, las filas existentes no se validan <b>y</b> queda marcada como no confiable (<code>sys.check_constraints.is_not_trusted = 1</code>), con lo que el optimizador deja de usarla para simplificar predicados. Se recupera con <code>ALTER TABLE … WITH CHECK CHECK CONSTRAINT …</code>.</p>`},
+
+{id:"04", niv:"medio", t:"Detección de cambios null-safe", temas:"tema 6, 8", enun:`
+<p>Compara <code>dbo.Cliente</code> (core) con <code>dbo.ClienteExterno</code> (buró) por <code>Cedula</code> y devuelve los clientes cuyo <code>Nombre</code> cambió, considerando que cualquiera de los dos lados puede ser NULL en atributos futuros. Escribe tres versiones: (a) explícita, (b) <code>EXISTS</code>+<code>INTERSECT</code>, (c) SQL Server 2022. Explica por qué <code>ISNULL(a,'')&lt;&gt;ISNULL(b,'')</code> es mala idea.</p>`,
+sol:`<div class="code good"><span class="cap">(a) explícita</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre AS NombreCore, e.Nombre AS NombreBuro
+FROM dbo.Cliente c
+JOIN dbo.ClienteExterno e ON e.Cedula = c.Cedula
+WHERE (c.Nombre &lt;&gt; e.Nombre)
+   OR (c.Nombre IS NULL     AND e.Nombre IS NOT NULL)
+   OR (c.Nombre IS NOT NULL AND e.Nombre IS NULL);</pre></div>
+<div class="code good"><span class="cap">(b) EXISTS + INTERSECT · escala a N columnas</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, e.Nombre
+FROM dbo.Cliente c
+JOIN dbo.ClienteExterno e ON e.Cedula = c.Cedula
+WHERE NOT EXISTS (SELECT c.Nombre INTERSECT SELECT e.Nombre);</pre></div>
+<div class="code good"><span class="cap">(c) SQL Server 2022+</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, e.Nombre
+FROM dbo.Cliente c
+JOIN dbo.ClienteExterno e ON e.Cedula = c.Cedula
+WHERE c.Nombre IS DISTINCT FROM e.Nombre;</pre></div>
+<p>Con este dataset y colación <code>CI_AS</code>, el cliente 1 (<code>José Pérez</code> vs <code>JOSE PEREZ</code>) aparece como cambio y el 3 también; bajo <code>CI_AI</code> <b>ninguno</b> aparecería. Ese es el segundo aprendizaje: <em>"cambió el nombre"</em> no es una pregunta bien planteada hasta que dices bajo qué colación.</p>
+<p><b>Por qué el sentinela es mala idea:</b> <code>ISNULL(a,'') &lt;&gt; ISNULL(b,'')</code> trata la cadena vacía y el NULL como el mismo valor. En un maestro donde <code>''</code> es un dato real ("nombre vacío por error de captura"), un cambio de <code>''</code> a NULL deja de detectarse y la SCD2 pierde la versión. Con <code>'#'</code> pasa lo mismo el día que alguien cargue ese carácter. El sentinela no elimina el problema: lo mueve a un valor que nadie vigila.</p>`},
+
+{id:"05", niv:"difícil", t:"Página estable bajo colación", temas:"combina temas 5 · 8 · 9", enun:`
+<p>Necesitas paginar el maestro ordenado por nombre, insensible a mayúsculas <b>y</b> acentos, 2 filas por página. Un compañero entregó esto:</p>
+<div class="code bad"><button class="cp">copiar</button><pre>DECLARE @Pagina int = 1;
+SELECT ClienteId, Nombre, Ciudad
+FROM dbo.Cliente
+ORDER BY Nombre COLLATE Latin1_General_100_CI_AI
+OFFSET (@Pagina - 1) * 2 ROWS FETCH NEXT 2 ROWS ONLY;</pre></div>
+<p>(a) Muestra que puede repetir u omitir filas entre páginas. (b) Corrígelo. (c) ¿Qué pasa con los clientes de <code>Ciudad</code> NULL si además ordenas por ciudad? (d) ¿Qué cambia si el índice de apoyo se creó con otra colación?</p>`,
+sol:`<p><b>(a)</b> Bajo <code>CI_AI</code>, <code>Ana Solís</code> (3) y <code>Ana Solis&nbsp;&nbsp;</code> (4) son equivalentes para el ordenamiento — igual que <code>Elena Ñuñez</code>/<code>Elena Nunez</code> y <code>José Pérez</code>/<code>JOSE PEREZ</code>. Con empates el motor no garantiza cuál va primero, y ese criterio puede diferir <b>entre ejecuciones</b>. Recorriendo página 1 y 2 en dos ejecuciones distintas puedes ver dos veces al cliente 3 y nunca al 4.</p>
+<div class="code good"><span class="cap">(b) desempate por clave única, siempre al final</span><button class="cp">copiar</button><pre>SELECT ClienteId, Nombre, Ciudad
+FROM dbo.Cliente
+ORDER BY Nombre COLLATE Latin1_General_100_CI_AI, ClienteId
+OFFSET (@Pagina - 1) * 2 ROWS FETCH NEXT 2 ROWS ONLY;</pre></div>
+<p>Para volumen, la solución robusta no es <code>OFFSET</code> sino paginación por <em>keyset</em> (<code>WHERE (Nombre, ClienteId) &gt; (@ultNombre, @ultId)</code>), que evita releer las N filas anteriores en cada página. Módulo 10.</p>
+<p><b>(c)</b> En SQL Server los NULL van <b>primero</b> en <code>ASC</code>: los clientes sin ciudad encabezarían el listado, que casi nunca es lo que quiere el negocio. Se emula con <code>ORDER BY CASE WHEN Ciudad IS NULL THEN 1 ELSE 0 END, Ciudad, ClienteId</code>. Ese <code>CASE</code> no es SARGable, pero en un <code>ORDER BY</code> eso solo importa si esperabas evitar el Sort apoyándote en el índice — y con esa expresión ya no puedes.</p>
+<p><b>(d)</b> El <code>COLLATE</code> obliga a ordenar por una regla distinta a la del índice, así que el índice <b>no puede satisfacer el orden</b>: aparece un operador <b>Sort</b> explícito con su reserva de memoria y su riesgo de <em>spill</em>. Si esta paginación es caliente, la solución de diseño es que la columna esté almacenada en la colación con la que se consulta, o mantener una columna normalizada indexada.</p>`},
+
+{id:"06", niv:"difícil", t:"División relacional con NULL y conjuntos", temas:"combina temas 1 · 5 · 7 · 10", enun:`
+<p>Requerimiento: <em>"lista los clientes que en 2023 compraron <b>todos</b> los productos de la categoría CREDITO por canales digitales (WEB o APP); las ventas sin canal registrado no cuentan."</em></p>
+<p>(a) Escríbela. (b) ¿Por qué <code>WHERE Canal &lt;&gt; 'AGENCIA'</code> sería incorrecto? (c) Hazla SARGable por fecha. (d) Versión con <code>EXCEPT</code>: ¿en qué se diferencia ante un cliente sin ninguna venta? (e) ¿Qué pasa si el catálogo no tiene productos de esa categoría?</p>`,
+sol:`<div class="code good"><span class="cap">(a) + (c)</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre
+FROM dbo.Cliente c
+WHERE EXISTS (SELECT 1 FROM dbo.Producto WHERE Categoria = 'CREDITO')   -- protege el caso (e)
+  AND NOT EXISTS (
+        SELECT 1 FROM dbo.Producto p
+        WHERE p.Categoria = 'CREDITO'
+          AND NOT EXISTS (
+                SELECT 1 FROM dbo.Venta v
+                WHERE v.ClienteId  = c.ClienteId
+                  AND v.ProductoId = p.ProductoId
+                  AND v.Canal IN ('WEB','APP')      -- (b)
+                  AND v.Fecha &gt;= '2023-01-01'       -- (c)
+                  AND v.Fecha &lt;  '2024-01-01'
+              )
+      );</pre></div>
+<p><b>(b)</b> <code>Canal &lt;&gt; 'AGENCIA'</code> descarta las filas con canal NULL — lo cual <em>coincidentalmente</em> cumple el requisito, pero por la razón equivocada: si mañana aparece el canal <code>'CALL'</code>, la consulta lo incluiría sin que nadie lo decidiera. <code>IN ('WEB','APP')</code> expresa la regla de negocio; <code>&lt;&gt; 'AGENCIA'</code> expresa su complemento accidental. Escribe el predicado positivo.</p>
+<p><b>(c)</b> <code>YEAR(v.Fecha)=2023</code> habría dado el mismo resultado y un scan. Nota el <code>&lt;</code> en el límite superior: <code>BETWEEN '2023-01-01' AND '2023-12-31'</code> perdería las ventas del 31 después de medianoche — la venta 20 del dataset, a las 23:59, es exactamente esa fila.</p>
+<div class="code good"><span class="cap">(d) con EXCEPT</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre
+FROM dbo.Cliente c
+WHERE NOT EXISTS (
+        SELECT p.ProductoId FROM dbo.Producto p WHERE p.Categoria = 'CREDITO'
+        EXCEPT
+        SELECT v.ProductoId FROM dbo.Venta v
+        WHERE v.ClienteId = c.ClienteId
+          AND v.Canal IN ('WEB','APP')
+          AND v.Fecha &gt;= '2023-01-01' AND v.Fecha &lt; '2024-01-01'
+      );</pre></div>
+<p>Se lee mejor: <em>"no queda ningún producto de CREDITO por fuera de lo que compró este cliente"</em>. Ante un cliente sin ventas ambas lo excluyen <b>mientras el divisor no esté vacío</b>. <code>EXCEPT</code> además deduplica y es null-safe, lo que aquí no cambia nada porque <code>ProductoId</code> es <code>NOT NULL</code> — pero si el divisor tuviera NULL, <code>EXCEPT</code> los emparejaría y <code>NOT IN</code> no.</p>
+<p><b>(e)</b> Sin productos CREDITO, la división relacional devuelve <b>todo el universo</b>: el doble <code>NOT EXISTS</code> daría los 12 clientes, incluidos los que nunca compraron nada, porque "no existe ningún producto que le falte" es trivialmente cierto. De ahí el <code>EXISTS</code> de guarda. Es el caso borde que revienta los tests el día que el catálogo llega vacío por un problema de carga.</p>`}
+];
+
+/* ══════════ examen ══════════ */
+const EXAMEN = [
+["¿Por qué un alias del SELECT no puede usarse en el WHERE, pero sí en el ORDER BY?",
+ "Porque el orden lógico procesa WHERE (paso 2) antes que SELECT (paso 5): al enlazar el WHERE el alias todavía no existe en el ámbito de nombres, y el error es de <em>binding</em>, no de ejecución. ORDER BY es el paso 7, opera sobre el resultado ya proyectado, y por eso sí lo ve."],
+["¿El orden lógico describe cómo ejecuta el motor la consulta?",
+ "No. Describe el resultado correcto. El motor puede reordenar operaciones — pushdown de predicados, reordenamiento de joins, agrupar antes de filtrar — mientras el resultado sea equivalente al que produciría el orden lógico."],
+["¿Por qué <code>WHERE col &lt;&gt; 'X'</code> puede devolver menos filas de las esperadas?",
+ "Porque las filas con col NULL evalúan a UNKNOWN y WHERE solo conserva TRUE. Se corrige con <code>OR col IS NULL</code> o, en SQL Server 2022+, con <code>IS DISTINCT FROM</code>."],
+["Un <code>CHECK (importe &gt; 0)</code> ¿impide insertar NULL?",
+ "No. CHECK rechaza solo FALSE; un NULL da UNKNOWN y la fila pasa. Si NULL no es válido hay que declarar la columna NOT NULL o incluir <code>IS NOT NULL</code> en la condición."],
+["¿Cuántos NULL admite un índice UNIQUE?",
+ "En SQL Server, <b>uno</b>: trata los NULL como iguales entre sí. En PostgreSQL, ilimitados por defecto (NULLS DISTINCT), y desde PG 15 se puede pedir NULLS NOT DISTINCT. Solución T-SQL cuando quieres varios: índice único <b>filtrado</b> con <code>WHERE col IS NOT NULL</code>."],
+["<code>NOT IN</code> y <code>NOT EXISTS</code>, ¿son intercambiables?",
+ "Solo cuando la columna de la subconsulta es NOT NULL. Si puede haber NULL, NOT IN devuelve el conjunto vacío (<code>x &lt;&gt; NULL</code> es UNKNOWN y contamina el AND), mientras NOT EXISTS implementa un anti-join correcto. NOT EXISTS produce además el plan más limpio."],
+["Una conversión implícita, ¿siempre es un problema de rendimiento?",
+ "No. Duele cuando el tipo de <b>menor</b> precedencia es el de la columna indexada, porque entonces la conversión cae sobre la columna y el predicado deja de ser SARGable. Si el convertido es el parámetro o el literal, el índice se sigue usando. Se detecta como CONVERT_IMPLICIT sobre la columna más el warning PlanAffectingConvert."],
+["¿Qué cambia si el ORDER BY lleva un COLLATE distinto al del índice?",
+ "El índice deja de poder satisfacer el orden: aparece un operador Sort con su reserva de memoria y su riesgo de spill a tempdb. Lo mismo aplica a un COLLATE sobre la columna en un JOIN o un WHERE: anula el seek, igual que cualquier función."],
+["Sin ORDER BY, ¿en qué orden salen las filas?",
+ "En ninguno garantizado. El orden observado es efecto secundario del plan y cambia con el paralelismo, el índice elegido, las estadísticas o la versión del motor. Corolario: un ROW_NUMBER cuyo ORDER BY tiene empates no es determinista, y una deduplicación construida sobre él no es idempotente."],
+["¿Cuándo usar UNION y cuándo UNION ALL?",
+ "UNION ALL por defecto; UNION solo cuando de verdad necesitas eliminar duplicados y no puedes garantizar conjuntos disjuntos. UNION agrega un operador de distinción (Sort o Hash Aggregate) que es bloqueante y consume reserva de memoria. Nota: los operadores de conjunto tratan NULL = NULL como verdadero, y eso los hace útiles como comparación null-safe."]
+];
+
+/* ══════════ render ══════════ */
+const $ = s => document.querySelector(s);
+const estado = new Map(TEMAS.map(t => [t.id, false]));
+
+function nodo({id, t, meta, bodyHtml, cls}){
+  const el = document.createElement("article");
+  el.className = "node" + (cls ? " " + cls : "");
+  el.dataset.id = id;
+  el.innerHTML =
+    '<div class="node-inner">' +
+      '<button class="node-head" aria-expanded="false">' +
+        '<span class="idx">' + id + '</span>' +
+        '<span class="ttl">' + t + '</span>' +
+        '<span class="meta">' + meta + '</span>' +
+        '<span class="caret">&rsaquo;</span>' +
+      '</button>' +
+      '<div class="body">' + bodyHtml + '</div>' +
+    '</div>';
+  el.querySelector(".node-head").addEventListener("click", () => {
+    const open = el.classList.toggle("open");
+    el.querySelector(".node-head").setAttribute("aria-expanded", open);
+  });
+  return el;
+}
+
+const cont = $("#temas");
+TEMAS.forEach(t => {
+  const el = nodo({
+    id: "→ " + t.id, t: t.t,
+    meta: '<span>' + t.min + ' min</span>',
+    bodyHtml: t.html +
+      '<div style="margin-top:16px;padding-top:13px;border-top:1px dashed var(--hair)">' +
+        '<label class="chk"><input type="checkbox" data-tema="' + t.id + '"><span>Tema ' + t.id + ' cubierto</span></label>' +
+      '</div>'
+  });
+  el.querySelector("input[data-tema]").addEventListener("change", e => {
+    estado.set(t.id, e.target.checked);
+    el.classList.toggle("done", e.target.checked);
+    refrescar();
+  });
+  cont.appendChild(el);
+});
+
+const ce = $("#ejercicios");
+EJERCICIOS.forEach(x => {
+  const el = nodo({
+    id: "→ " + x.id, t: x.t,
+    meta: '<span>' + x.niv + '</span><span>' + x.temas + '</span>',
+    bodyHtml: x.enun +
+      '<div style="margin-top:14px"><button class="reveal" data-t="#sol' + x.id + '">ver solución</button></div>' +
+      '<div class="hidden" id="sol' + x.id + '" style="margin-top:12px">' + x.sol + '</div>'
+  });
+  ce.appendChild(el);
+});
+
+const ex = $("#examen");
+EXAMEN.forEach((q, i) => {
+  const n = i + 1;
+  const d = document.createElement("div");
+  d.className = "qa";
+  d.innerHTML =
+    '<p class="q"><span>' + String(n).padStart(2,"0") + '</span>' + q[0] + '</p>' +
+    '<button class="reveal" data-t="#ans' + n + '">ver respuesta</button>' +
+    '<div class="hidden ans" id="ans' + n + '">' + q[1] + '</div>';
+  ex.appendChild(d);
+});
+
+/* barra de costo */
+function refrescar(){
+  const track = $("#track");
+  track.innerHTML = "";
+  let done = 0, total = 0;
+  TEMAS.forEach(t => {
+    total += t.min;
+    const ok = estado.get(t.id);
+    if(ok) done += t.min;
+    const s = document.createElement("button");
+    s.className = "seg";
+    s.style.flex = t.min;
+    s.dataset.done = ok ? "1" : "0";
+    s.title = t.id + " · " + t.t + " — " + t.min + " min";
+    s.innerHTML = '<span class="fill" style="right:' + (ok ? 0 : 100) + '%"></span><span class="tag">' + t.id + '</span>';
+    s.addEventListener("click", () => {
+      mostrar("temas");
+      const n = document.querySelector('.node[data-id="→ ' + t.id + '"]');
+      n.classList.add("open");
+      n.querySelector(".node-head").setAttribute("aria-expanded","true");
+      n.scrollIntoView({behavior:"smooth", block:"center"});
+    });
+    track.appendChild(s);
+  });
+  const pct = Math.round(done / total * 100);
+  $("#pct").textContent = pct + " %";
+  $("#pctBig").textContent = pct + " %";
+}
+refrescar();
+
+/* navegación por secciones */
+function mostrar(id){
+  document.querySelectorAll("section.sec").forEach(s => s.classList.toggle("on", id === "todo" || s.id === "sec-" + id));
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.s === id));
+  $("#todo").textContent = id === "todo" ? "ver por secciones" : "ver todo";
+}
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+  mostrar(c.dataset.s);
+  window.scrollTo({top:0, behavior:"smooth"});
+}));
+$("#todo").addEventListener("click", () => mostrar($("#todo").textContent === "ver todo" ? "todo" : "modelo"));
+
+/* revelar soluciones y respuestas */
+document.addEventListener("click", e => {
+  const b = e.target.closest(".reveal");
+  if(!b) return;
+  const t = document.querySelector(b.dataset.t);
+  const on = t.classList.toggle("show");
+  b.textContent = on
+    ? b.textContent.replace("ver","ocultar")
+    : b.textContent.replace("ocultar","ver");
+});
+
+/* copiar bloques de código */
+const toast = $("#toast");
+function flash(msg){
+  toast.textContent = msg;
+  toast.classList.add("on");
+  setTimeout(() => toast.classList.remove("on"), 1400);
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".cp");
+  if(!b) return;
+  const pre = b.parentElement.querySelector("pre");
+  try{
+    await navigator.clipboard.writeText(pre.textContent);
+    flash("copiado");
+  }catch(err){
+    const r = document.createRange();
+    r.selectNodeContents(pre);
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(r);
+    flash("selecciónalo con Ctrl+C");
+  }
+});
+
+/* prompt del siguiente módulo */
+const PROMPT02 = `Contexto del estudiante: trabaja a diario con SQL Server (T-SQL), procesos de carga y datos en Azure/Databricks. Ya escribe consultas complejas; no necesita explicaciones de nivel introductorio. Ya completó el módulo 01 (semántica del lenguaje y orden lógico de ejecución), así que puedes dar por conocidos: orden lógico de las cláusulas, lógica de tres valores, comparación null-safe, precedencia de tipos, colaciones y determinismo del orden.
+
+Actúa como instructor senior de bases de datos. Desarrolla una clase completa y a profundidad del siguiente módulo.
+
+MÓDULO 02 — Joins a fondo y control de cardinalidad
+Resultado esperado: elegir entre JOIN, EXISTS y APPLY con criterio, y detectar cuándo un join está multiplicando filas.
+
+Temas:
+1. Inner, left/right/full outer, cross: semántica real
+2. ON vs WHERE en outer joins (el filtro que anula el LEFT)
+3. Semi join y anti join: EXISTS / NOT EXISTS
+4. La trampa de NOT IN con NULLs
+5. Self joins y comparación de filas contiguas
+6. Non-equi joins y joins por rangos de fechas
+7. Solapamiento de intervalos y calendarios
+8. CROSS APPLY / OUTER APPLY y LATERAL
+9. Top-N por grupo con APPLY vs window function
+10. Diagnóstico de explosión de filas por granularidad distinta
+
+Formato de la clase:
+1. Modelo mental primero: qué problema resuelve el tema y cómo lo piensa el motor internamente.
+2. Explicación tema por tema, cada uno con ejemplo ejecutable en T-SQL (SQL Server 2019+) y equivalencia en PostgreSQL y Spark SQL cuando difiera.
+3. Reutiliza el dataset del módulo 01 (dbo.Cliente, dbo.Producto, dbo.Venta, dbo.ClienteExterno, dbo.ClienteMasivo, dbo.VentaHist) y agrega solo las tablas nuevas que necesites, con su script.
+4. Al menos tres comparaciones "consulta ingenua vs consulta correcta" mostrando el plan esperado y por qué cambia el costo.
+5. Errores comunes y resultados silenciosamente incorrectos, con el caso mínimo que los reproduce.
+6. Seis ejercicios de dificultad creciente con solución comentada; los dos últimos deben exigir combinar varios temas.
+7. Un mini-proyecto de cierre con datos realistas y criterios de aceptación verificables.
+8. Diez preguntas de autoevaluación tipo entrevista técnica, con respuesta modelo breve.
+
+Sé preciso y técnico. Cita el comportamiento por versión de motor cuando importe. No resumas: prefiere profundidad sobre cobertura superficial.`;
+
+const dl = $("#dl");
+$("#next").addEventListener("click", () => {
+  $("#dlTitle").textContent = "Prompt · módulo 02 (joins y cardinalidad)";
+  $("#dlText").value = PROMPT02;
+  $("#dlMsg").textContent = "";
+  dl.showModal();
+});
+$("#dlClose").addEventListener("click", () => dl.close());
+$("#dlCopy").addEventListener("click", async () => {
+  const ta = $("#dlText");
+  try{
+    await navigator.clipboard.writeText(ta.value);
+    $("#dlMsg").textContent = "Copiado.";
+  }catch(e){
+    ta.removeAttribute("readonly"); ta.select();
+    $("#dlMsg").textContent = "El navegador bloqueó el portapapeles: el texto quedó seleccionado, usa Ctrl+C.";
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL a profundidad · plan de estudio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E7EAF0;
+    --card:#FFFFFF;
+    --tint:#F3F5F9;
+    --ink:#101A33;
+    --slate:#5A688F;
+    --hair:#C9D0DE;
+    --seek:#12715C;
+    --cost:#A31A56;
+    --warn:#8A5A12;
+    --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+    --body:"IBM Plex Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+    --r:3px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:15px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    background-image:linear-gradient(to right,rgba(16,26,51,.035) 1px,transparent 1px);
+    background-size:28px 100%;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:34px 20px 90px}
+
+  /* ── cabecera ── */
+  .plan-call{
+    font-family:var(--mono);font-size:12.5px;color:var(--slate);
+    letter-spacing:.01em;margin:0 0 18px;
+  }
+  .plan-call b{color:var(--cost);font-weight:600}
+  h1{
+    font-family:var(--display);
+    font-size:clamp(40px,7.5vw,72px);
+    font-weight:800;line-height:.94;letter-spacing:-.028em;
+    margin:0 0 14px;
+  }
+  h1 em{font-style:normal;color:var(--cost)}
+  .lede{max-width:56ch;color:#28324F;font-size:16.5px;margin:0 0 26px}
+  .stats{
+    display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--hair);
+    background:var(--card);border-radius:var(--r);overflow:hidden;
+  }
+  .stat{flex:1 1 130px;padding:12px 14px;border-right:1px solid var(--hair)}
+  .stat:last-child{border-right:0}
+  .stat .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--slate);display:block}
+  .stat .v{font-family:var(--display);font-size:25px;font-weight:700;letter-spacing:-.02em;display:block;line-height:1.2}
+
+  /* ── barra de costo global (elemento firma) ── */
+  .costbar{margin:22px 0 8px}
+  .costbar .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .track{display:flex;gap:2px;height:34px}
+  .seg{
+    position:relative;background:var(--card);border:1px solid var(--hair);
+    border-radius:2px;overflow:hidden;cursor:pointer;
+  }
+  .seg .fill{position:absolute;inset:0 100% 0 0;background:var(--seek);transition:right .45s cubic-bezier(.2,.7,.3,1)}
+  .seg .tag{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:10.5px;color:var(--slate);mix-blend-mode:multiply}
+  .seg:hover{border-color:var(--ink)}
+  .seg[data-done="1"] .tag{color:#fff;mix-blend-mode:normal}
+
+  /* ── filtros ── */
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:30px 0 22px;padding-top:22px;border-top:1px solid var(--hair)}
+  .bar .cap{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--slate);margin-right:4px}
+  .chip{
+    font-family:var(--mono);font-size:12px;padding:6px 11px;border:1px solid var(--hair);
+    background:var(--card);color:var(--slate);border-radius:99px;cursor:pointer;
+  }
+  .chip:hover{border-color:var(--ink);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .bar .spacer{flex:1}
+  .ghost{
+    font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--ink);
+    background:transparent;color:var(--ink);border-radius:var(--r);cursor:pointer;
+  }
+  .ghost:hover{background:var(--ink);color:#fff}
+
+  /* ── árbol del plan ── */
+  .phase{margin:0 0 34px}
+  .phase-head{display:flex;align-items:baseline;gap:12px;margin-bottom:2px}
+  .phase-head .n{font-family:var(--mono);font-size:12px;color:var(--cost);letter-spacing:.06em}
+  .phase-head h2{font-family:var(--display);font-size:21px;font-weight:700;letter-spacing:-.015em;margin:0}
+  .phase-head .c{font-family:var(--mono);font-size:11.5px;color:var(--slate);margin-left:auto;white-space:nowrap}
+  .phase-note{font-size:13.5px;color:var(--slate);margin:0 0 14px;max-width:62ch}
+  .branch{border-left:1px solid var(--hair);margin-left:9px;padding-left:0}
+
+  .node{position:relative;margin:0 0 8px 0}
+  .node::before{content:"";position:absolute;left:0;top:26px;width:17px;height:1px;background:var(--hair)}
+  .node-inner{margin-left:17px;background:var(--card);border:1px solid var(--hair);border-radius:var(--r)}
+  .node.open .node-inner{border-color:var(--ink)}
+  .node-head{
+    width:100%;display:flex;align-items:center;gap:14px;padding:13px 15px;
+    background:none;border:0;text-align:left;cursor:pointer;font:inherit;color:inherit;
+  }
+  .node-head:focus-visible{outline:2px solid var(--cost);outline-offset:-2px}
+  .idx{font-family:var(--mono);font-size:12px;color:var(--slate);min-width:22px}
+  .node.done .idx{color:var(--seek)}
+  .ttl{font-family:var(--display);font-size:17.5px;font-weight:700;letter-spacing:-.012em;flex:1;min-width:0}
+  .meta{font-family:var(--mono);font-size:11.5px;color:var(--slate);white-space:nowrap;display:flex;gap:10px;align-items:center}
+  .pista{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:3px 7px;border-radius:99px;border:1px solid currentColor}
+  .p-lenguaje{color:#2F4B8F}.p-analitica{color:var(--cost)}.p-motor{color:var(--warn)}.p-produccion{color:var(--seek)}
+  .mini{width:64px;height:6px;background:var(--tint);border:1px solid var(--hair);border-radius:99px;overflow:hidden;flex:none}
+  .mini i{display:block;height:100%;width:0;background:var(--seek);transition:width .35s ease}
+  .caret{font-family:var(--mono);color:var(--slate);transition:transform .2s ease}
+  .node.open .caret{transform:rotate(90deg)}
+
+  .body{display:none;padding:0 15px 16px 51px;border-top:1px solid var(--hair)}
+  .node.open .body{display:block;animation:in .22s ease both}
+  @keyframes in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+  .goal{font-size:13.5px;color:#28324F;margin:13px 0 14px;padding-left:11px;border-left:2px solid var(--cost);max-width:70ch}
+  .goal b{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);display:block;font-weight:600;margin-bottom:2px}
+  ul.temas{list-style:none;margin:0;padding:0;columns:2;column-gap:26px}
+  ul.temas li{break-inside:avoid;margin:0 0 5px}
+  ul.temas label{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;cursor:pointer;padding:2px 0}
+  ul.temas input{
+    appearance:none;width:14px;height:14px;margin:4px 0 0;flex:none;
+    border:1px solid var(--slate);border-radius:2px;background:var(--card);cursor:pointer;
+  }
+  ul.temas input:checked{background:var(--seek);border-color:var(--seek)}
+  ul.temas input:checked+span{color:var(--slate);text-decoration:line-through;text-decoration-color:var(--hair)}
+  ul.temas input:focus-visible{outline:2px solid var(--cost);outline-offset:2px}
+  .node-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px;padding-top:13px;border-top:1px dashed var(--hair)}
+  .node-foot .hint{font-family:var(--mono);font-size:11px;color:var(--slate);margin-left:auto}
+  .solid{
+    font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--cost);
+    background:var(--cost);color:#fff;border-radius:var(--r);cursor:pointer;
+  }
+  .solid:hover{background:#8C1449;border-color:#8C1449}
+
+  /* ── panel de prompt ── */
+  dialog{
+    border:1px solid var(--ink);border-radius:var(--r);padding:0;max-width:760px;width:92vw;
+    background:var(--card);color:var(--ink)
+  }
+  dialog::backdrop{background:rgba(16,26,51,.45)}
+  .dl-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--hair)}
+  .dl-head h3{font-family:var(--display);font-size:17px;margin:0;font-weight:700}
+  .dl-head .x{margin-left:auto;background:none;border:0;font-family:var(--mono);font-size:15px;cursor:pointer;color:var(--slate)}
+  dialog textarea{
+    width:100%;height:46vh;border:0;padding:16px;font-family:var(--mono);font-size:12.5px;
+    line-height:1.6;resize:vertical;color:var(--ink);background:var(--tint)
+  }
+  dialog textarea:focus{outline:0}
+  .dl-foot{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--hair)}
+  .dl-foot .msg{font-family:var(--mono);font-size:11.5px;color:var(--seek)}
+
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:11.5px;color:var(--slate)}
+
+  @media (max-width:720px){
+    ul.temas{columns:1}
+    .meta .mini{display:none}
+    .body{padding-left:20px}
+    body{background-image:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="plan-call">EXPLAIN (ANALYZE, BUFFERS) <b>plan_de_estudio_sql</b>;</p>
+
+  <h1>SQL a<br>profundidad<em>.</em></h1>
+  <p class="lede">Un plan de 16 módulos que arranca donde terminan los tutoriales: semántica del lenguaje, funciones de ventana con frames, estadísticas y estimación de cardinalidad, lectura de planes, concurrencia y cargas idempotentes. Marca los temas que ya dominas y copia el prompt de cada módulo cuando quieras que un LLM te genere la clase.</p>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="costbar">
+    <div class="lbl"><span>costo estimado por módulo · avance real</span><span id="pct">0 %</span></div>
+    <div class="track" id="track"></div>
+  </div>
+
+  <div class="bar">
+    <span class="cap">pista</span>
+    <button class="chip" data-f="todas" aria-pressed="true">todas</button>
+    <button class="chip" data-f="lenguaje" aria-pressed="false">lenguaje</button>
+    <button class="chip" data-f="analitica" aria-pressed="false">analítica</button>
+    <button class="chip" data-f="motor" aria-pressed="false">motor</button>
+    <button class="chip" data-f="produccion" aria-pressed="false">producción</button>
+    <span class="spacer"></span>
+    <button class="ghost" id="expandAll">abrir todo</button>
+    <button class="ghost" id="fullPrompt">copiar plan completo</button>
+  </div>
+
+  <main id="plan"></main>
+
+  <footer>
+    Motor de referencia: SQL Server / T-SQL, con equivalencias en PostgreSQL y Spark SQL.<br>
+    El avance vive solo en esta pestaña: si recargas, los checks se reinician.
+  </footer>
+</div>
+
+<dialog id="dl">
+  <div class="dl-head">
+    <h3 id="dlTitle">Prompt</h3>
+    <button class="x" id="dlClose" aria-label="Cerrar">✕</button>
+  </div>
+  <textarea id="dlText" spellcheck="false" readonly></textarea>
+  <div class="dl-foot">
+    <button class="solid" id="dlCopy">Copiar al portapapeles</button>
+    <span class="msg" id="dlMsg"></span>
+  </div>
+</dialog>
+
+<script>
+const PLAN = [
+ {
+  n:"Fase 00", nombre:"Cimientos que casi nadie repasa",
+  nota:"Antes de optimizar hay que saber qué pide realmente la consulta. Casi todos los bugs sutiles de SQL viven aquí.",
+  modulos:[
+   {
+    id:"01", pista:"lenguaje", horas:5,
+    titulo:"Semántica del lenguaje y orden lógico de ejecución",
+    goal:"Predecir qué devuelve una consulta sin ejecutarla, y explicar por qué un alias del SELECT no sirve en el WHERE.",
+    temas:[
+      "Álgebra relacional mínima: proyección, selección, producto, división",
+      "Orden lógico: FROM → WHERE → GROUP BY → HAVING → SELECT → DISTINCT → ORDER BY → OFFSET/FETCH",
+      "Alcance de alias y por qué ORDER BY sí los ve",
+      "Lógica de tres valores: TRUE / FALSE / UNKNOWN",
+      "NULL en filtros, agregados, UNIQUE, CHECK y comparaciones",
+      "IS DISTINCT FROM y comparaciones seguras con NULL",
+      "Conversión implícita y precedencia de tipos",
+      "Colaciones, sensibilidad a mayúsculas y acentos",
+      "Determinismo: por qué sin ORDER BY no hay orden garantizado",
+      "Conjunto vs multiconjunto: UNION vs UNION ALL, INTERSECT, EXCEPT"
+    ]
+   },
+   {
+    id:"02", pista:"lenguaje", horas:6,
+    titulo:"Joins a fondo y control de cardinalidad",
+    goal:"Elegir entre JOIN, EXISTS y APPLY con criterio, y detectar cuándo un join está multiplicando filas.",
+    temas:[
+      "Inner, left/right/full outer, cross: semántica real",
+      "ON vs WHERE en outer joins (el filtro que anula el LEFT)",
+      "Semi join y anti join: EXISTS / NOT EXISTS",
+      "La trampa de NOT IN con NULLs",
+      "Self joins y comparación de filas contiguas",
+      "Non-equi joins y joins por rangos de fechas",
+      "Solapamiento de intervalos y calendarios",
+      "CROSS APPLY / OUTER APPLY y LATERAL",
+      "Top-N por grupo con APPLY vs window function",
+      "Diagnóstico de explosión de filas por granularidad distinta"
+    ]
+   }
+  ]
+ },
+ {
+  n:"Fase 01", nombre:"SQL analítico",
+  nota:"El bloque que convierte SQL en una herramienta de análisis: ventanas, frames y los patrones que se repiten en todo reporte serio.",
+  modulos:[
+   {
+    id:"03", pista:"analitica", horas:6,
+    titulo:"Funciones de ventana I: partición, orden y ranking",
+    goal:"Resolver con una sola pasada lo que hoy resuelves con subconsultas y self joins.",
+    temas:[
+      "Anatomía de OVER(): PARTITION BY y ORDER BY",
+      "Dónde puede y no puede aparecer una window function",
+      "ROW_NUMBER, RANK, DENSE_RANK, NTILE y sus diferencias",
+      "Deduplicación con ROW_NUMBER + CTE",
+      "Agregados como ventana: SUM/AVG/COUNT OVER",
+      "Porcentaje sobre el total y sobre el grupo",
+      "Top-N por partición y desempates estables",
+      "QUALIFY (Databricks/Snowflake) vs subconsulta filtrada",
+      "Ventanas vs GROUP BY: cuándo cada una",
+      "Costo real: el operador Sort que introduce cada ventana"
+    ]
+   },
+   {
+    id:"04", pista:"analitica", horas:7,
+    titulo:"Funciones de ventana II: frames y series de tiempo",
+    goal:"Escribir acumulados, medias móviles y comparativas contra el periodo anterior sin errores silenciosos de frame.",
+    temas:[
+      "ROWS vs RANGE vs GROUPS: la diferencia que cambia resultados",
+      "UNBOUNDED PRECEDING, CURRENT ROW, FOLLOWING",
+      "El frame por defecto (RANGE UNBOUNDED PRECEDING) y sus empates",
+      "Acumulados, saldos corrientes y balances",
+      "Medias y sumas móviles de N periodos",
+      "LAG y LEAD con offset y valor por defecto",
+      "FIRST_VALUE, LAST_VALUE, NTH_VALUE y el error clásico de LAST_VALUE",
+      "PERCENT_RANK, CUME_DIST, PERCENTILE_CONT / PERCENTILE_DISC",
+      "Cláusula WINDOW con nombre para reutilizar definiciones",
+      "Huecos en la serie: unir contra un calendario antes de la ventana"
+    ]
+   },
+   {
+    id:"05", pista:"analitica", horas:7,
+    titulo:"Patrones analíticos que se repiten siempre",
+    goal:"Reconocer el patrón detrás del pedido de negocio y escribirlo de memoria.",
+    temas:[
+      "Gaps and islands: rachas, días consecutivos, estados continuos",
+      "Sesiones de usuario por umbral de inactividad",
+      "Cohortes y curvas de retención",
+      "Comparativos YoY / MoM y variaciones",
+      "Deduplicación con criterio de supervivencia de registro",
+      "GROUPING SETS, ROLLUP, CUBE y GROUPING_ID",
+      "Subtotales y totales generales en una sola pasada",
+      "PIVOT / UNPIVOT y pivot dinámico con SQL dinámico",
+      "Agregados condicionales: CASE dentro de SUM, FILTER",
+      "Matrices de cruce y tablas de contingencia"
+    ]
+   },
+   {
+    id:"06", pista:"analitica", horas:5,
+    titulo:"CTEs, recursión y jerarquías",
+    goal:"Modelar estructuras jerárquicas y decidir con datos si una CTE conviene sobre una tabla temporal.",
+    temas:[
+      "CTE vs subconsulta vs tabla temporal: legibilidad y materialización",
+      "El mito de que la CTE 'guarda' el resultado",
+      "CTEs múltiples y encadenadas",
+      "CTE recursiva: ancla, parte recursiva y terminación",
+      "Explosión de jerarquías: organigramas, BOM, categorías",
+      "Rutas, niveles y ordenamiento jerárquico",
+      "Generación de series de fechas y calendarios",
+      "MAXRECURSION y control de recursiones infinitas",
+      "Alternativas: path enumeration, closure table, hierarchyid, ltree",
+      "Costo de la recursión frente a un join iterativo"
+    ]
+   }
+  ]
+ },
+ {
+  n:"Fase 02", nombre:"El motor por dentro",
+  nota:"Aquí está el núcleo de lo que pediste: qué le cuesta a la base responder y cómo leerlo en el plan.",
+  modulos:[
+   {
+    id:"07", pista:"motor", horas:8,
+    titulo:"Almacenamiento e índices",
+    goal:"Diseñar el índice correcto para una consulta concreta y justificar por qué el motor lo usaría.",
+    temas:[
+      "Páginas, extents y cómo se guarda una fila",
+      "Heap vs índice clustered: consecuencias en lecturas y escrituras",
+      "Estructura B-tree: raíz, intermedios, hojas",
+      "Índices nonclustered, key lookup y bookmark lookup",
+      "Índices cubridores e INCLUDE",
+      "Orden de columnas en la clave y selectividad",
+      "Índices filtrados y parciales",
+      "Columnstore, rowgroups y compresión para analítica",
+      "Fragmentación, fill factor, rebuild vs reorganize",
+      "Equivalencias: GIN, GiST, BRIN, hash en PostgreSQL; Z-order y liquid clustering en Delta",
+      "Costo de mantener índices en cargas masivas"
+    ]
+   },
+   {
+    id:"08", pista:"motor", horas:6,
+    titulo:"Estadísticas y estimación de cardinalidad",
+    goal:"Explicar por qué el optimizador estimó 1 fila y llegaron 400.000, y qué hacer al respecto.",
+    temas:[
+      "Qué es una estadística: histograma, densidad, muestreo",
+      "Lectura de un histograma paso a paso",
+      "Actualización automática y umbrales de invalidación",
+      "Estimación en predicados, joins y agregaciones",
+      "Correlación entre columnas y estadísticas multicolumna",
+      "Sesgo de datos y valores atípicos",
+      "Parameter sniffing: cómo aparece y cómo se mitiga",
+      "Plan cacheado bueno para un parámetro y pésimo para otro",
+      "OPTIMIZE FOR, RECOMPILE, variables locales: efectos reales",
+      "Diagnóstico: estimado vs real fila por fila"
+    ]
+   },
+   {
+    id:"09", pista:"motor", horas:9,
+    titulo:"Planes de ejecución: leer el costo",
+    goal:"Abrir un plan real, ubicar el operador caro y decir en una frase qué hay que cambiar.",
+    temas:[
+      "Plan estimado vs plan real y por qué difieren",
+      "Cómo se lee el árbol: flujo de datos y sentido de lectura",
+      "Scan vs seek vs lookup: cuándo un scan es lo correcto",
+      "Nested loops, hash match y merge join: perfil de cada uno",
+      "Sort, spool, aggregate (stream vs hash)",
+      "Costo relativo del operador y por qué es una estimación, no tiempo",
+      "Advertencias: spill a tempdb, conversión implícita, índice sugerido",
+      "SET STATISTICS IO / TIME y lectura de lecturas lógicas",
+      "EXPLAIN (ANALYZE, BUFFERS) en PostgreSQL",
+      "Query Store, plan cache y detección de regresiones de plan",
+      "Spark UI, stages y Adaptive Query Execution"
+    ]
+   },
+   {
+    id:"10", pista:"motor", horas:9,
+    titulo:"Optimización y reescritura de consultas",
+    goal:"Convertir una consulta lenta en una rápida con una reescritura, no con un hint.",
+    temas:[
+      "SARGability: predicados que sí pueden usar índice",
+      "Funciones sobre la columna, conversiones y comodines iniciales",
+      "Predicate pushdown y proyección temprana",
+      "Reescritura de subconsultas correlacionadas",
+      "EXISTS vs JOIN vs IN: rendimiento y semántica",
+      "Paginación keyset vs OFFSET/FETCH en tablas grandes",
+      "DML por lotes para evitar bloqueos y crecimiento de log",
+      "Tabla temporal vs variable tabla vs CTE: estadísticas y estimación",
+      "Paralelismo, DOP, costo de umbral y memory grants",
+      "Hints: cuáles existen y por qué casi nunca son la respuesta",
+      "Motores distribuidos: shuffle vs broadcast join, data skew, particiones",
+      "Método de trabajo: medir, cambiar una cosa, volver a medir"
+    ]
+   }
+  ]
+ },
+ {
+  n:"Fase 03", nombre:"Escritura, concurrencia y producción",
+  nota:"Lo que separa una consulta que funciona en tu sesión de un proceso que corre todas las noches sin despertar a nadie.",
+  modulos:[
+   {
+    id:"11", pista:"produccion", horas:8,
+    titulo:"Transacciones, aislamiento y concurrencia",
+    goal:"Elegir nivel de aislamiento con conocimiento de causa y diagnosticar un deadlock real.",
+    temas:[
+      "ACID en la práctica, no en la definición",
+      "Anomalías: lectura sucia, no repetible, fantasma, write skew",
+      "Los cuatro niveles estándar y qué anomalía permite cada uno",
+      "Bloqueos: modos, granularidad y compatibilidad",
+      "Escalamiento de bloqueos y su efecto en cargas grandes",
+      "MVCC, snapshot isolation y READ COMMITTED SNAPSHOT",
+      "Costo del versionado en tempdb / en el vacuum de PostgreSQL",
+      "Deadlocks: cómo se detectan, cómo se leen, cómo se previenen",
+      "Bloqueo optimista con rowversion / xmin",
+      "Transacciones largas, log de transacciones y puntos de guardado",
+      "Patrón de reintentos ante fallos transitorios"
+    ]
+   },
+   {
+    id:"12", pista:"produccion", horas:8,
+    titulo:"DML avanzado y patrones de carga",
+    goal:"Escribir una carga incremental idempotente que se pueda reprocesar sin duplicar ni perder datos.",
+    temas:[
+      "MERGE: sintaxis, trampas conocidas y cuándo evitarlo",
+      "UPSERT idiomático por motor (INSERT ... ON CONFLICT, INSERT+UPDATE)",
+      "Cargas incrementales, watermarks y control de reprocesos",
+      "Idempotencia: la propiedad que salva el pipeline nocturno",
+      "Detección de cambios: hash de fila, checksums, CDC",
+      "SCD tipo 1, 2 y 3: implementación y consultas históricas",
+      "Borrado y archivado por lotes con ventana de bloqueo corta",
+      "Particionamiento y partition switching para cargas instantáneas",
+      "Staging, control de duplicados y filas rechazadas",
+      "Transacciones en cargas: atomicidad por lote vs por archivo",
+      "TRUNCATE, DELETE, DROP+CREATE: efectos en log y en lectores"
+    ]
+   },
+   {
+    id:"13", pista:"produccion", horas:6,
+    titulo:"Programabilidad: procedimientos, funciones y SQL dinámico",
+    goal:"Escribir procedimientos que no sabotean al optimizador ni abren la puerta a inyección.",
+    temas:[
+      "Procedimientos: parámetros, valores de retorno, contratos",
+      "Funciones escalares y el costo oculto de ejecutarlas por fila",
+      "Inline TVF vs multi-statement TVF: diferencia de estimación",
+      "Scalar UDF inlining y sus condiciones",
+      "Triggers: casos legítimos, efectos colaterales y orden de disparo",
+      "SQL dinámico seguro: sp_executesql, parámetros, QUOTENAME",
+      "Inyección SQL: vectores reales y defensas",
+      "TRY/CATCH, THROW y propagación de errores",
+      "XACT_ABORT, transacciones anidadas y savepoints",
+      "SET NOCOUNT, opciones de sesión y planes distintos por opciones",
+      "Tipos tabla como parámetro para cargas desde aplicación"
+    ]
+   },
+   {
+    id:"14", pista:"produccion", horas:6,
+    titulo:"Modelado analítico y vistas materializadas",
+    goal:"Decidir el grano de una tabla de hechos y defenderlo frente a un pedido de negocio.",
+    temas:[
+      "Normalización vs modelo estrella: para qué sirve cada uno",
+      "Grano de la tabla de hechos: la decisión que ordena todo lo demás",
+      "Dimensiones conformadas y claves subrogadas",
+      "Hechos transaccionales, snapshots periódicos y acumulativos",
+      "Aditivo, semiaditivo y no aditivo: reglas de agregación",
+      "Tablas puente para relaciones muchos a muchos",
+      "Vistas indexadas / vistas materializadas: requisitos y costo de mantenimiento",
+      "Tablas temporales de sistema (system-versioned) e historial",
+      "Agregados precalculados y cuándo se justifican",
+      "Diseño para el motor: rowstore, columnstore y lakehouse"
+    ]
+   }
+  ]
+ },
+ {
+  n:"Fase 04", nombre:"Confianza en los datos",
+  nota:"Cierre del plan: cómo pruebas que lo que produces es correcto y cómo lo vigilas en el tiempo.",
+  modulos:[
+   {
+    id:"15", pista:"produccion", horas:6,
+    titulo:"Calidad, pruebas y observabilidad",
+    goal:"Montar una malla de controles que detecte el error antes de que lo detecte el usuario.",
+    temas:[
+      "Constraints como contrato: PK, FK, UNIQUE, CHECK, NOT NULL",
+      "Constraints confiables vs no confiables y su efecto en el plan",
+      "Reconciliación de cargas: conteos, sumas de control, cuadres",
+      "Pruebas de datos: unicidad, integridad, frescura, rangos, nulos",
+      "Pruebas unitarias de SQL (tSQLt, dbt tests, pgTAP)",
+      "Datos de prueba reproducibles y aislamiento entre pruebas",
+      "Versionado de esquema y migraciones seguras",
+      "Consultas lentas: Query Store, pg_stat_statements, DMVs",
+      "Presupuestos de rendimiento y detección de regresiones",
+      "Bitácoras de proceso: qué corrió, cuánto tardó, cuántas filas"
+    ]
+   },
+   {
+    id:"16", pista:"lenguaje", horas:6,
+    titulo:"Tipos especiales, seguridad y el resto del lenguaje",
+    goal:"Manejar JSON, texto, tiempo y geografía sin salir de SQL, y controlar quién ve qué.",
+    temas:[
+      "JSON en la base: OPENJSON, JSON_VALUE, jsonb y sus índices",
+      "XML y XQuery: lo mínimo que aún se usa",
+      "Arrays y structs en Spark SQL: explode y acceso anidado",
+      "Fechas, horas, zonas horarias y aritmética de calendario",
+      "Tipos de intervalo y duraciones",
+      "Búsqueda de texto completo y similitud de cadenas",
+      "Datos geoespaciales: puntos, distancias, índices espaciales",
+      "Secuencias vs identity: huecos, concurrencia y control",
+      "Seguridad a nivel de fila (RLS) y enmascaramiento dinámico",
+      "Permisos, roles y principio de mínimo privilegio",
+      "Cifrado en reposo y en columna: qué protege y qué no"
+    ]
+   }
+  ]
+ }
+];
+
+const MODULOS = PLAN.flatMap(f => f.modulos.map(m => ({...m, fase:f.nombre})));
+const estado = new Map(MODULOS.map(m => [m.id, new Set()]));
+let filtro = "todas";
+
+const PISTA_LBL = {lenguaje:"lenguaje", analitica:"analítica", motor:"motor", produccion:"producción"};
+const $ = s => document.querySelector(s);
+
+/* ── prompts ── */
+const CONTEXTO = `Contexto del estudiante: trabaja a diario con SQL Server (T-SQL), procesos de carga y datos en Azure/Databricks. Ya escribe consultas complejas; no necesita explicaciones de nivel introductorio.`;
+
+const SPEC = `FORMATO DE ENTREGA (obligatorio)
+
+Entrega la clase como UN ÚNICO ARCHIVO HTML AUTOCONTENIDO, no como texto en el chat ni como markdown. Sin dependencias externas salvo Google Fonts. Sin frameworks, sin build. Nómbralo modulo-NN-slug.html.
+
+PROHIBIDO usar localStorage, sessionStorage o cualquier almacenamiento del navegador. El avance vive en memoria durante la sesión y se reinicia al recargar; dilo en el footer.
+
+1) TOKENS VISUALES — cópialos literalmente:
+:root{
+  --paper:#E7EAF0; --card:#FFFFFF; --tint:#F3F5F9;
+  --ink:#101A33; --slate:#5A688F; --hair:#C9D0DE;
+  --seek:#12715C; --cost:#A31A56; --warn:#8A5A12;
+  --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:3px;
+}
+Fuentes: https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap
+Uso del color: --seek (verde) = completado, eficiente, consulta correcta. --cost (vino) = acento de marca, coste alto, consulta ingenua, error. --warn (ámbar) solo advertencias. No introduzcas colores nuevos.
+El body lleva retícula vertical tenue: background-image:linear-gradient(to right,rgba(16,26,51,.035) 1px,transparent 1px); background-size:28px 100%. Contenedor max-width:1080px; margin:0 auto; padding:34px 20px 90px.
+
+2) METÁFORA DE DISEÑO: todo el proyecto se lee como un plan de ejecución de SQL. Los temas son nodos de un árbol (conector dibujado con border-left en .branch y un ::before de 17px en .node) y el progreso se mide en COSTE, no en cantidad de ítems. Mantén ese vocabulario en la redacción: coste estimado, avance ponderado, nodo, operador.
+
+3) ESTRUCTURA OBLIGATORIA, EN ESTE ORDEN:
+   a. Migaja mono (.plan-call): plan_de_estudio_sql > módulo NN > fase XX · nombre de la fase.
+   b. H1 en dos líneas con --display a 800, letter-spacing:-.028em, y un <em> final con un punto en color --cost.
+   c. Lede de 2-3 líneas: resultado esperado del módulo y motores de referencia.
+   d. .stats: fila de 5-6 celdas con .k (etiqueta mono en versalitas) y .v (número en display). Incluye siempre temas, costo estimado y avance.
+   e. .costbar: barra de segmentos flex proporcionales a los minutos de cada tema; cada segmento se rellena de --seek al marcar el tema, es clicable y salta a su nodo.
+   f. .bar de navegación: chips mono redondeados, uno por sección, más un botón "ver todo" y otro "prompt módulo NN+1".
+   g. Secciones <section class="sec"> visibles de a una: §0 Dataset · §1 Modelo mental · §2 Los N temas · §3 Ingenua vs correcta · §4 Errores silenciosos · §5 Ejercicios · §6 Mini-proyecto · §7 Autoevaluación. Cada una con .sec-head (.n mono en --cost, h2 en display, .c a la derecha) y una .sec-note de una o dos líneas.
+   h. Footer mono: número de módulo, coste, aviso de que el avance no persiste y nombre del módulo siguiente.
+
+4) COMPONENTES CON SUS CLASES EXACTAS:
+   .branch + .node + .node-head + .body  -> acordeón de temas y ejercicios; .node.open y .node.done cambian borde e índice.
+   .card                                  -> contenedor blanco con borde --hair.
+   .code (+ .bad / .good)                 -> bloque de SQL con <span class="cap"> de etiqueta mono y <button class="cp">copiar</button> que aparece al hover.
+   .split                                 -> grid de dos columnas para ingenua vs correcta; colapsa a una en móvil.
+   table.t (+ .yes / .no)                 -> tabla de comparación; th mono en versalitas con borde inferior --ink.
+   .rule                                  -> caja de regla o advertencia con borde izquierdo --cost y <b> de etiqueta mono.
+   .err (+ .fix)                          -> entrada del catálogo de errores: h4, repro mínimo y línea de solución en --seek.
+   .qa + .reveal + .hidden/.show          -> pregunta con respuesta oculta.
+   .chk                                   -> checkbox custom de 14px que alimenta la barra de coste.
+   dialog#dl + .toast                     -> panel del prompt siguiente y aviso de copiado.
+
+5) COMPORTAMIENTO JS REQUERIDO: acordeones con aria-expanded; checkbox por tema que recalcula la barra y el porcentaje ponderado por minutos; botón copiar en CADA bloque de código con navigator.clipboard y respaldo que selecciona el texto si el navegador lo bloquea; soluciones y respuestas ocultas tras un botón .reveal que alterna ver/ocultar; navegación por chips que muestra una sección a la vez más "ver todo"; y un botón final que abre un <dialog> con el prompt completo del módulo siguiente, listo para copiar.
+
+6) CONTENIDO EN DATOS, NO EN MARCADO: declara el contenido al inicio del <script> en tres arrays — TEMAS (id, minutos, título, html), EJERCICIOS (id, nivel, temas que combina, enunciado, solución) y EXAMEN (pares pregunta/respuesta) — y renderízalo con JS. Dentro de los bloques <pre> escapa el signo menor-que como entidad HTML.
+
+7) CONTINUIDAD ENTRE MÓDULOS: reutiliza el dataset del módulo 01 (dbo.Cliente, dbo.Producto, dbo.Venta, dbo.ClienteExterno, dbo.ClienteMasivo, dbo.VentaHist); en §0 incluye solo las tablas NUEVAS que necesite este módulo con su script y una nota de qué se asume ya creado. Da por conocido lo cubierto antes y cita por número cuando dependa de ello ("ver módulo 01, tema 5") en vez de reexplicarlo. El prompt que genera el <dialog> debe incluir la lista de lo ya cubierto. Mantén minutos por tema que sumen el coste del módulo declarado en el roadmap.
+
+8) PISO DE CALIDAD: responsive hasta 380px (el .split colapsa, la retícula de fondo se apaga, los botones de copiar quedan visibles), foco de teclado visible, @media (prefers-reduced-motion: reduce) que desactiva animaciones y transiciones, y lang="es" en el html.`;
+
+function promptModulo(m){
+  return `${CONTEXTO}
+
+Actúa como instructor senior de bases de datos relacionales. Desarrolla una clase completa y a profundidad del siguiente módulo de su plan de estudio.
+
+MÓDULO ${m.id} — ${m.titulo}
+Resultado esperado: ${m.goal}
+
+Temas que debe cubrir la clase:
+${m.temas.map((t,i)=>`${i+1}. ${t}`).join("\n")}
+
+Formato de la clase:
+1. Modelo mental primero: qué problema resuelve el tema y cómo lo piensa el motor internamente.
+2. Explicación tema por tema, cada uno con un ejemplo ejecutable en T-SQL (SQL Server 2019+) y la equivalencia en PostgreSQL y Spark SQL cuando difiera.
+3. Un dataset de ejemplo reproducible al inicio (scripts CREATE TABLE + INSERT) que se use en todos los ejemplos.
+4. Al menos tres comparaciones "consulta ingenua vs consulta correcta" mostrando el plan de ejecución esperado y por qué cambia el costo.
+5. Errores comunes y resultados silenciosamente incorrectos, con el caso mínimo que los reproduce.
+6. Seis ejercicios de dificultad creciente con solución comentada; los dos últimos deben exigir combinar varios temas del módulo.
+7. Un mini-proyecto de cierre con datos realistas y criterios de aceptación verificables.
+8. Diez preguntas de autoevaluación tipo entrevista técnica, con respuesta modelo breve.
+
+Sé preciso y técnico. Cita el comportamiento por versión de motor cuando importe. No resumas: prefiere profundidad sobre cobertura superficial.
+
+${SPEC}`;
+}
+
+function promptPlan(){
+  const cuerpo = PLAN.map(f => {
+    const mods = f.modulos.map(m =>
+      `  ${m.id}. ${m.titulo} (${m.horas} h)\n     Resultado: ${m.goal}\n     Temas: ${m.temas.join("; ")}`
+    ).join("\n");
+    return `${f.n} — ${f.nombre}\n${mods}`;
+  }).join("\n\n");
+
+  return `${CONTEXTO}
+
+Este es su plan de estudio de SQL a profundidad. Úsalo como temario maestro para generar el curso completo, módulo por módulo, respetando el orden y el resultado esperado de cada uno.
+
+${cuerpo}
+
+Instrucciones: cuando te pida un módulo, desarrolla una clase completa con dataset reproducible, ejemplos ejecutables en T-SQL con equivalencias en PostgreSQL y Spark SQL, comparaciones de planes de ejecución, errores comunes, ejercicios con solución y un mini-proyecto de cierre. Mantén coherencia de dataset y notación entre módulos.
+
+Cada módulo se entrega como un archivo HTML con la estructura e identidad visual que se detalla abajo, para que los 16 se lean como partes del mismo proyecto.
+
+${SPEC}`;
+}
+
+/* ── render ── */
+function render(){
+  const plan = $("#plan");
+  plan.innerHTML = "";
+  PLAN.forEach(f => {
+    const visibles = f.modulos.filter(m => filtro === "todas" || m.pista === filtro);
+    if(!visibles.length) return;
+    const horas = visibles.reduce((a,m)=>a+m.horas,0);
+    const sec = document.createElement("section");
+    sec.className = "phase";
+    sec.innerHTML = `
+      <div class="phase-head">
+        <span class="n">${f.n}</span>
+        <h2>${f.nombre}</h2>
+        <span class="c">costo=${horas} h · ${visibles.length} módulos</span>
+      </div>
+      <p class="phase-note">${f.nota}</p>
+      <div class="branch"></div>`;
+    const branch = sec.querySelector(".branch");
+    visibles.forEach(m => branch.appendChild(nodo(m)));
+    plan.appendChild(sec);
+  });
+  refrescar();
+}
+
+function nodo(m){
+  const el = document.createElement("article");
+  el.className = "node";
+  el.dataset.id = m.id;
+  el.innerHTML = `
+    <div class="node-inner">
+      <button class="node-head" aria-expanded="false">
+        <span class="idx">→ ${m.id}</span>
+        <span class="ttl">${m.titulo}</span>
+        <span class="meta">
+          <span class="pista p-${m.pista}">${PISTA_LBL[m.pista]}</span>
+          <span class="mini"><i></i></span>
+          <span class="cnt">0/${m.temas.length} · ${m.horas} h</span>
+        </span>
+        <span class="caret">›</span>
+      </button>
+      <div class="body">
+        <p class="goal"><b>Al terminar deberías poder</b>${m.goal}</p>
+        <ul class="temas">
+          ${m.temas.map((t,i)=>`<li><label><input type="checkbox" data-i="${i}"><span>${t}</span></label></li>`).join("")}
+        </ul>
+        <div class="node-foot">
+          <button class="solid" data-act="prompt">Copiar prompt del módulo</button>
+          <button class="ghost" data-act="all">Marcar todo</button>
+          <span class="hint">${m.temas.length} temas · costo estimado ${m.horas} h</span>
+        </div>
+      </div>
+    </div>`;
+
+  el.querySelector(".node-head").addEventListener("click", () => {
+    const abierto = el.classList.toggle("open");
+    el.querySelector(".node-head").setAttribute("aria-expanded", abierto);
+  });
+  el.querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const s = estado.get(m.id);
+      cb.checked ? s.add(+cb.dataset.i) : s.delete(+cb.dataset.i);
+      refrescar();
+    });
+  });
+  el.querySelector('[data-act="prompt"]').addEventListener("click", e => {
+    e.stopPropagation();
+    abrirPrompt(`Módulo ${m.id} · ${m.titulo}`, promptModulo(m));
+  });
+  el.querySelector('[data-act="all"]').addEventListener("click", e => {
+    e.stopPropagation();
+    const s = estado.get(m.id);
+    const todo = s.size === m.temas.length;
+    el.querySelectorAll("input[type=checkbox]").forEach((cb,i) => {
+      cb.checked = !todo;
+      todo ? s.delete(i) : s.add(i);
+    });
+    refrescar();
+  });
+  return el;
+}
+
+function refrescar(){
+  // nodos visibles
+  document.querySelectorAll(".node").forEach(el => {
+    const m = MODULOS.find(x => x.id === el.dataset.id);
+    const hechos = estado.get(m.id).size;
+    const p = hechos / m.temas.length;
+    el.querySelector(".mini i").style.width = (p*100)+"%";
+    el.querySelector(".cnt").textContent = `${hechos}/${m.temas.length} · ${m.horas} h`;
+    el.classList.toggle("done", p === 1);
+  });
+
+  const totalTemas = MODULOS.reduce((a,m)=>a+m.temas.length,0);
+  const hechosTemas = MODULOS.reduce((a,m)=>a+estado.get(m.id).size,0);
+  const totalHoras = MODULOS.reduce((a,m)=>a+m.horas,0);
+  const horasHechas = MODULOS.reduce((a,m)=>a+m.horas*(estado.get(m.id).size/m.temas.length),0);
+  const pct = totalHoras ? Math.round(horasHechas/totalHoras*100) : 0;
+
+  $("#stats").innerHTML = `
+    <div class="stat"><span class="k">módulos</span><span class="v">${MODULOS.length}</span></div>
+    <div class="stat"><span class="k">temas</span><span class="v">${totalTemas}</span></div>
+    <div class="stat"><span class="k">costo estimado</span><span class="v">${totalHoras} h</span></div>
+    <div class="stat"><span class="k">temas cubiertos</span><span class="v">${hechosTemas}</span></div>
+    <div class="stat"><span class="k">avance ponderado</span><span class="v">${pct} %</span></div>`;
+  $("#pct").textContent = pct + " %";
+
+  const track = $("#track");
+  track.innerHTML = "";
+  MODULOS.forEach(m => {
+    const p = estado.get(m.id).size / m.temas.length;
+    const s = document.createElement("button");
+    s.className = "seg";
+    s.style.flex = m.horas;
+    s.dataset.done = p === 1 ? "1" : "0";
+    s.title = `${m.id} · ${m.titulo} — ${m.horas} h · ${Math.round(p*100)} %`;
+    s.innerHTML = `<span class="fill" style="right:${100-p*100}%"></span><span class="tag">${m.id}</span>`;
+    s.addEventListener("click", () => {
+      const nodo = document.querySelector(`.node[data-id="${m.id}"]`);
+      if(!nodo){ filtro = "todas"; document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed", c.dataset.f==="todas")); render(); }
+      const n = document.querySelector(`.node[data-id="${m.id}"]`);
+      n.classList.add("open");
+      n.querySelector(".node-head").setAttribute("aria-expanded","true");
+      n.scrollIntoView({behavior:"smooth", block:"center"});
+    });
+    track.appendChild(s);
+  });
+}
+
+/* ── panel de prompt ── */
+const dl = $("#dl");
+function abrirPrompt(titulo, texto){
+  $("#dlTitle").textContent = titulo;
+  $("#dlText").value = texto;
+  $("#dlMsg").textContent = "";
+  dl.showModal();
+}
+$("#dlClose").addEventListener("click", () => dl.close());
+$("#dlCopy").addEventListener("click", async () => {
+  const ta = $("#dlText");
+  try{
+    await navigator.clipboard.writeText(ta.value);
+    $("#dlMsg").textContent = "Copiado.";
+  }catch(e){
+    ta.removeAttribute("readonly"); ta.select();
+    $("#dlMsg").textContent = "El navegador bloqueó el portapapeles: el texto quedó seleccionado, usa Ctrl+C.";
+  }
+});
+
+/* ── controles ── */
+document.querySelectorAll(".chip").forEach(c => {
+  c.addEventListener("click", () => {
+    filtro = c.dataset.f;
+    document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === c));
+    render();
+  });
+});
+$("#expandAll").addEventListener("click", e => {
+  const abrir = e.target.textContent === "abrir todo";
+  document.querySelectorAll(".node").forEach(n => {
+    n.classList.toggle("open", abrir);
+    n.querySelector(".node-head").setAttribute("aria-expanded", abrir);
+  });
+  e.target.textContent = abrir ? "cerrar todo" : "abrir todo";
+});
+$("#fullPrompt").addEventListener("click", () => abrirPrompt("Plan completo · temario maestro", promptPlan()));
+
+render();
+</script>
+</body>
+</html>
