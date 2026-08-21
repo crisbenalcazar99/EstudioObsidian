@@ -98,9 +98,16 @@
   .card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);padding:16px 18px;margin:0 0 14px}
   h3{font-family:var(--display);font-size:16px;font-weight:700;margin:20px 0 8px;letter-spacing:-.01em}
   h3:first-child{margin-top:0}
+  .card h3:not(:first-of-type),
+  .body h3:not(:first-of-type){border-top:1px dashed var(--hair);padding-top:16px}
+  h3 .tag-letter{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;
+    margin-right:8px;vertical-align:middle;border-radius:50%;background:var(--tint);border:1px solid var(--hair);
+    font-family:var(--mono);font-size:12px;color:var(--cost);font-weight:700}
   .kicker{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);margin:0 0 6px}
   .rule{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 14px;max-width:72ch}
   .rule > b:first-child{display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);font-weight:600;margin:0 0 4px}
+  .rule.warn{border-left-color:var(--warn)}
+  .rule.warn > b:first-child{color:var(--warn)}
 
   .engines{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 14px;max-width:72ch}
   .engines .kicker{margin:0 0 8px}
@@ -175,6 +182,24 @@
 
   footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:11.5px;color:var(--slate)}
 
+  .finder{display:flex;align-items:center;gap:10px;margin:0 0 20px;background:var(--card);
+    border:1px solid var(--hair);border-radius:var(--r);padding:10px 14px}
+  .finder input{flex:1;border:0;background:transparent;font-family:var(--body);font-size:15px;color:var(--ink);outline:none}
+  .finder input::placeholder{color:var(--slate)}
+  .finder .cnt{font-family:var(--mono);font-size:11px;color:var(--slate);white-space:nowrap}
+  .gset{margin:0 0 22px}
+  .gset:last-child{margin-bottom:0}
+  .gset > h3{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--cost);font-weight:600;margin:0 0 8px;padding-bottom:7px;border-bottom:1px solid var(--hair);
+    border-top:0!important;padding-top:0!important;display:block}
+  .terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 24px}
+  .term{padding:10px 0;border-bottom:1px solid var(--hair)}
+  .term .tt{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--cost)}
+  .term .tg{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--slate);margin-left:8px}
+  .term p{margin:4px 0 0;font-size:13.5px;line-height:1.55;color:#28324F;max-width:56ch}
+  .term.off,.gset.off{display:none}
+  .g-empty{color:var(--slate);font-family:var(--mono);font-size:13px;padding:16px 0;display:none}
+
   @media (max-width:760px){
     .split{grid-template-columns:1fr}
     body{background-image:none}
@@ -194,7 +219,7 @@
 
   <div class="stats">
     <div class="stat"><span class="k">temas</span><span class="v">10</span></div>
-    <div class="stat"><span class="k">costo estimado</span><span class="v">5 h</span></div>
+    <div class="stat"><span class="k">costo estimado</span><span class="v">5.7 h</span></div>
     <div class="stat"><span class="k">planes comparados</span><span class="v">4</span></div>
     <div class="stat"><span class="k">errores catalogados</span><span class="v">15</span></div>
     <div class="stat"><span class="k">ejercicios</span><span class="v">6</span></div>
@@ -216,6 +241,7 @@
     <button class="chip" data-s="ejercicios" aria-pressed="false">ejercicios</button>
     <button class="chip" data-s="proyecto" aria-pressed="false">proyecto</button>
     <button class="chip" data-s="examen" aria-pressed="false">examen</button>
+    <button class="chip" data-s="glosario" aria-pressed="false">glosario</button>
     <span class="spacer"></span>
     <button class="ghost" id="todo">ver todo</button>
     <button class="ghost" id="next">prompt módulo 02</button>
@@ -751,8 +777,78 @@ WHERE t.text LIKE '%ConciliacionClientes%';</pre></div>
   <div class="card" id="examen"></div>
 </section>
 
+<!-- ══════════════════════ GLOSARIO ══════════════════════ -->
+<section class="sec" id="sec-glosario">
+  <div class="sec-head"><span class="n">§ 8</span><h2>Glosario técnico</h2><span class="c">términos usados en el módulo, agrupados por tema</span></div>
+  <p class="sec-note">Jerga de plan de ejecución, de lógica/modelado y de motores distintos a T-SQL, tal como aparece en las secciones de arriba. Escribe para filtrar.</p>
+
+  <div class="finder">
+    <input type="search" id="gq" placeholder="Filtrar: seek, colación, SARGable, anti-join…" aria-label="Filtrar términos">
+    <span class="cnt" id="gcnt"></span>
+  </div>
+
+  <div class="card" id="glist">
+
+    <div class="gset">
+      <h3>Planes de ejecución y optimización</h3>
+      <div class="terms">
+        <div class="term"><span class="tt">Index Seek</span><span class="tg">plan</span><p>El motor usa la estructura ordenada del índice para saltar directo a las filas que cumplen el predicado, sin leer las que no aplican. Solo es posible cuando el predicado es SARGable. Tema 07e, comparación 3.1.</p></div>
+        <div class="term"><span class="tt">Index Scan</span><span class="tg">plan</span><p>El motor recorre todo el índice o la tabla, fila por fila, y filtra después. Ocurre cuando el predicado no es SARGable: función o cálculo sobre la columna, conversión de tipo del lado equivocado, o colación distinta a la del índice.</p></div>
+        <div class="term"><span class="tt">SARGable</span><span class="tg">predicado</span><p><em>Search ARGument ABLE</em>: un predicado que el optimizador puede usar directamente para limitar el recorrido del índice (Seek) en vez de evaluarlo fila por fila después de leer todo (Scan). Tema 07e.</p></div>
+        <div class="term"><span class="tt">Range through convert</span><span class="tg">optimizador</span><p><code>GetRangeThroughConvert</code>: truco del optimizador para conservar el Index Seek pese a una conversión implícita, calculando el rango de valores de la columna que corresponde al literal convertido en vez de traducir cada fila. Solo funciona si la conversión no cambia el orden de clasificación — con colaciones Windows sí, con colaciones SQL heredadas no. Tema 07a.</p></div>
+        <div class="term"><span class="tt">PlanAffectingConvert</span><span class="tg">warning</span><p>Aviso que SQL Server agrega al plan (triángulo amarillo sobre el <code>SELECT</code> en SSMS) cuando una conversión implícita puede degradar el rendimiento. Se busca en el XML del plan con <code>LIKE '%PlanAffectingConvert%'</code>.</p></div>
+        <div class="term"><span class="tt">CONVERT_IMPLICIT</span><span class="tg">plan</span><p>Cómo aparece, en las propiedades de un operador del plan, la conversión de tipo que el motor insertó solo. Si está aplicada a la columna (no al literal), el predicado dejó de ser SARGable.</p></div>
+        <div class="term"><span class="tt">Predicate / Seek Predicate</span><span class="tg">plan</span><p>Un plan distingue el filtro que definió el rango de un Seek (<em>Seek Predicate</em>, barato) del filtro evaluado fila por fila sobre lo ya leído (<em>Predicate</em>, residual). Ver el mismo filtro en el rol de <em>Predicate</em> es señal de que se está leyendo de más.</p></div>
+        <div class="term"><span class="tt">Predicate pushdown</span><span class="tg">optimizador</span><p>Reescritura que mueve un filtro lo más cerca posible del origen de los datos (antes de un join, dentro de una vista), reduciendo cuánto hay que procesar después. Es lo que separa el orden lógico (qué es correcto) del orden físico (cómo se ejecuta).</p></div>
+        <div class="term"><span class="tt">Hash Match (Aggregate)</span><span class="tg">operador</span><p>Operador de plan que agrupa o deduplica filas construyendo una tabla hash en memoria. Aparece detrás de <code>UNION</code>, <code>DISTINCT</code> o <code>GROUP BY</code> cuando ningún índice entrega ya el orden necesario.</p></div>
+        <div class="term"><span class="tt">Sort spill (a tempdb)</span><span class="tg">riesgo</span><p>Cuando un operador Sort o Hash necesita más memoria de la que el optimizador reservó, escribe a disco (<code>tempdb</code>) para terminar. Señal de una estimación de filas equivocada o de una reserva de memoria insuficiente.</p></div>
+        <div class="term"><span class="tt">Estadísticas / histograma</span><span class="tg">optimizador</span><p>Resumen que el motor mantiene sobre la distribución de valores de una columna, usado para estimar cuántas filas cumplirán un predicado. Una función sobre la columna (<code>YEAR(Fecha)</code>) impide usarlo: la estimación se vuelve una conjetura fija.</p></div>
+        <div class="term"><span class="tt">DMV</span><span class="tg">sistema</span><p><em>Dynamic Management View</em>: vistas del sistema (<code>sys.dm_exec_query_stats</code>, <code>sys.dm_exec_query_plan</code>, …) que exponen el estado interno del motor. Sirven para cazar patrones como <code>PlanAffectingConvert</code> en todo el caché de planes.</p></div>
+        <div class="term"><span class="tt">Materialización</span><span class="tg">concepto</span><p>Forzar que un resultado intermedio se calcule y guarde por completo antes de seguir, en vez de dejar que el optimizador lo aplane dentro del plan general.</p></div>
+      </div>
+    </div>
+
+    <div class="gset">
+      <h3>Lógica y modelado</h3>
+      <div class="terms">
+        <div class="term"><span class="tt">UNKNOWN</span><span class="tg">lógica</span><p>El tercer valor de la lógica de tres valores de SQL, junto a TRUE/FALSE. Cualquier comparación con NULL da UNKNOWN, y <code>WHERE</code>, <code>HAVING</code>, <code>ON</code> y el <code>WHEN</code> de un <code>CASE</code> descartan las filas en UNKNOWN, no solo las FALSE. Tema 04.</p></div>
+        <div class="term"><span class="tt">Multiconjunto</span><span class="tg">concepto</span><p><em>Multiset</em>: lo que realmente devuelve una consulta SQL. Admite filas duplicadas y no tiene orden intrínseco, a diferencia de un conjunto matemático. Tema 10.</p></div>
+        <div class="term"><span class="tt">Idempotente</span><span class="tg">propiedad</span><p>Una operación que produce el mismo resultado sin importar cuántas veces se ejecute. Un <code>ROW_NUMBER</code> sin desempate único no es idempotente: reprocesar el mismo archivo puede dejar una fila ganadora distinta a la de la vez anterior.</p></div>
+        <div class="term"><span class="tt">Binding (algebrización)</span><span class="tg">fase</span><p>Fase donde el motor resuelve nombres, tipos, colaciones y permisos, antes de optimizar o ejecutar. Un alias del <code>SELECT</code> usado en el <code>WHERE</code> falla aquí, no en tiempo de ejecución.</p></div>
+        <div class="term"><span class="tt">Dependencia funcional</span><span class="tg">concepto</span><p>Si una columna determina unívocamente el valor de otra (p. ej. la clave primaria determina cualquier otra columna de su fila), el motor puede permitir proyectarla sin agregarla ni incluirla en el <code>GROUP BY</code>. PostgreSQL lo aplica al agrupar por la clave primaria; T-SQL no.</p></div>
+      </div>
+    </div>
+
+    <div class="gset">
+      <h3>Colaciones y comparación de texto</h3>
+      <div class="terms">
+        <div class="term"><span class="tt">Colación</span><span class="tg">concepto</span><p><em>Collation</em>: conjunto de caracteres, reglas de comparación y orden de clasificación de una columna de texto. Determina si dos cadenas se consideran iguales y en qué orden recorre un índice sobre ellas. Tema 08.</p></div>
+        <div class="term"><span class="tt">NULLS DISTINCT / NOT DISTINCT</span><span class="tg">modificador</span><p>Modificador de PostgreSQL 15+ para un índice o restricción <code>UNIQUE</code>: con <code>NULLS DISTINCT</code> (por defecto) admite varios NULL; con <code>NULLS NOT DISTINCT</code> replica el comportamiento de SQL Server, que solo admite uno.</p></div>
+      </div>
+    </div>
+
+    <div class="gset">
+      <h3>Joins y acceso a datos</h3>
+      <div class="terms">
+        <div class="term"><span class="tt">Anti-join / Semi-join</span><span class="tg">join</span><p>Un semi-join (<code>EXISTS</code>) devuelve las filas de un lado que tienen al menos una coincidencia del otro, sin duplicarlas aunque haya varias. Un anti-join (<code>NOT EXISTS</code>) devuelve las que no tienen ninguna. <code>NOT IN</code> sobre una columna anulable no es un anti-join limpio: puede devolver el conjunto vacío por culpa de un NULL.</p></div>
+        <div class="term"><span class="tt">Keyset pagination</span><span class="tg">técnica</span><p>Paginación que usa la última fila vista como filtro (<code>WHERE (Nombre, ClienteId) &gt; (@ultNombre, @ultId)</code>) en vez de <code>OFFSET</code>, evitando releer las filas de páginas anteriores en cada página nueva. Módulo 10.</p></div>
+      </div>
+    </div>
+
+    <div class="gset">
+      <h3>Cross-engine</h3>
+      <div class="terms">
+        <div class="term"><span class="tt">Type coercion</span><span class="tg">Spark</span><p>Nombre que usa Spark SQL para su propia lógica de conversión implícita de tipos, distinta de la lista de precedencia de SQL Server. Con <code>spark.sql.ansi.enabled=true</code> las conversiones inseguras lanzan error en vez de devolver NULL.</p></div>
+        <div class="term"><span class="tt">Shuffle</span><span class="tg">Spark</span><p>Redistribuir datos entre particiones a través de la red para poder agruparlos o compararlos (p. ej. en un <code>COUNT(DISTINCT …)</code>). Es la operación más cara del motor; cualquier cosa que la fuerce de más es un problema de rendimiento real.</p></div>
+      </div>
+    </div>
+
+  </div>
+  <p class="g-empty" id="gnone">Ningún término coincide con el filtro.</p>
+</section>
+
   <footer>
-    Módulo 01 de 16 · fase 00 · costo estimado 5 h<br>
+    Módulo 01 de 16 · fase 00 · costo estimado 5.7 h<br>
     El avance vive solo en esta pestaña: si recargas, los checks se reinician.<br>
     Siguiente: <b>módulo 02 — joins a fondo y control de cardinalidad</b>. El puente es el error 15: nace del orden lógico.
   </footer>
@@ -804,7 +900,7 @@ WHERE p.Categoria = 'CREDITO'
 GROUP BY v.ClienteId
 HAVING COUNT(DISTINCT v.ProductoId) =
        (SELECT COUNT(*) FROM dbo.Producto WHERE Categoria = 'CREDITO');</pre></div>
-<div class="rule"><b>trampa</b>La forma 1 devuelve también a los clientes <b>sin ninguna venta</b> si el divisor está vacío: división por conjunto vacío = todo el universo. Con el dataset, CREDITO tiene 3 productos y la respuesta correcta es el cliente 1 y el 6. Ejecuta ambas y compáralas.</div>
+<div class="rule warn"><b>trampa</b>La forma 1 devuelve también a los clientes <b>sin ninguna venta</b> si el divisor está vacío: división por conjunto vacío = todo el universo. Con el dataset, CREDITO tiene 3 productos y la respuesta correcta es el cliente 1 y el 6. Ejecuta ambas y compáralas.</div>
 <p><b>Spark:</b> idéntico, pero <code>COUNT(DISTINCT …)</code> es más caro (shuffle adicional); el <code>NOT EXISTS</code> correlacionado se traduce a un anti-join.</p>`},
 
 {id:"02", min:35, t:"Orden lógico paso a paso", html:`
@@ -897,13 +993,13 @@ ALTER TABLE dbo.Cliente DROP CONSTRAINT CK_Cliente_Limite;</pre></div>
 <p>Es el bug de modelado más frecuente en tablas de staging: la constraint "existe" y no valida nada.</p>`},
 
 {id:"05", min:45, t:"NULL en filtros, agregados y UNIQUE", html:`
-<h3>a) <code>&lt;&gt;</code> no es el complemento de <code>=</code></h3>
+<h3><span class="tag-letter">a)</span> <code>&lt;&gt;</code> no es el complemento de <code>=</code></h3>
 <div class="code"><button class="cp">copiar</button><pre>SELECT COUNT(*) FROM dbo.Cliente;                             -- 12
 SELECT COUNT(*) FROM dbo.Cliente WHERE Segmento =  'RETAIL';  --  3
 SELECT COUNT(*) FROM dbo.Cliente WHERE Segmento &lt;&gt; 'RETAIL';  --  6  (no 9)
 SELECT COUNT(*) FROM dbo.Cliente WHERE Segmento IS NULL;      --  3
 -- 3 + 6 + 3 = 12: la unión de "igual" y "distinto" NO cubre la tabla</pre></div>
-<h3>b) Los agregados ignoran NULL</h3>
+<h3><span class="tag-letter">b)</span> Los agregados ignoran NULL</h3>
 <div class="code"><button class="cp">copiar</button><pre>SET ANSI_WARNINGS ON;  -- necesario para ver el aviso 8153
 SELECT COUNT(*)             AS Filas,          -- 12
        COUNT(LimiteCredito) AS ConLimite,      --  8
@@ -912,7 +1008,7 @@ SELECT COUNT(*)             AS Filas,          -- 12
        SUM(LimiteCredito) / COUNT(*) AS SiNullFuera0  -- Suma / 12  &lt;- otro número
 FROM dbo.Cliente;</pre></div>
 <p>Warning esperado: <code>Msg 8153 — Null value is eliminated by an aggregate or other SET operation</code>. Ese aviso es información, no ruido: te dice que el denominador de tu promedio no es el que crees.</p>
-<h3>c) Agregado sobre conjunto vacío</h3>
+<h3><span class="tag-letter">c)</span> Agregado sobre conjunto vacío</h3>
 <div class="code"><button class="cp">copiar</button><pre>SELECT SUM(v.Cantidad) FROM dbo.Venta v WHERE v.ClienteId = 11;  -- NULL (cliente sin ventas)
 SELECT COUNT(*)        FROM dbo.Venta v WHERE v.ClienteId = 11;  -- 0
 
@@ -921,7 +1017,7 @@ SELECT c.ClienteId,
        (SELECT SUM(v.Cantidad) FROM dbo.Venta v WHERE v.ClienteId = c.ClienteId) AS Unidades,
        ISNULL((SELECT SUM(v.Cantidad) FROM dbo.Venta v WHERE v.ClienteId = c.ClienteId),0) AS UnidadesOk
 FROM dbo.Cliente c WHERE c.ClienteId IN (10, 11);</pre></div>
-<h3>d) Dónde SÍ se comportan los NULL como iguales</h3>
+<h3><span class="tag-letter">d)</span> Dónde SÍ se comportan los NULL como iguales</h3>
 <table class="t">
 <tr><th>Contexto</th><th>¿NULL = NULL?</th></tr>
 <tr><td><code>=</code>, <code>&lt;&gt;</code>, <code>IN</code>, <code>JOIN … ON</code></td><td class="no">No (UNKNOWN)</td></tr>
@@ -940,7 +1036,7 @@ CREATE UNIQUE NONCLUSTERED INDEX UQ_Cliente_Cedula ON dbo.Cliente(Cedula);
 CREATE UNIQUE NONCLUSTERED INDEX UQ_Cliente_Cedula
     ON dbo.Cliente(Cedula) WHERE Cedula IS NOT NULL;</pre></div>
 <p><b>PostgreSQL:</b> acepta varios NULL; desde PG 15 existe <code>UNIQUE NULLS NOT DISTINCT</code> para replicar el comportamiento de SQL Server. <b>Spark/Delta:</b> no hay unicidad forzada — la deduplicación es responsabilidad del pipeline (módulo 12).</p>
-<h3>e) <code>ORDER BY</code> y NULL</h3>
+<h3><span class="tag-letter">e)</span> <code>ORDER BY</code> y NULL</h3>
 <p>SQL Server no soporta <code>NULLS FIRST/LAST</code>: NULL siempre primero en <code>ASC</code>. Se emula:</p>
 <div class="code"><button class="cp">copiar</button><pre>SELECT ClienteId, LimiteCredito
 FROM dbo.Cliente
@@ -964,27 +1060,29 @@ WHERE NOT EXISTS (SELECT d.Nombre, d.Ciudad, d.Segmento
 <div class="rule"><b>por qué la 2 es el idioma T-SQL</b>Compara <b>muchas columnas a la vez</b> sin repetir cada una tres veces, es null-safe y funciona desde 2008. Su costo: el optimizador la resuelve con concatenación + distinct por fila, así que en volúmenes grandes conviene medirla contra la 3 o contra un <code>HASHBYTES</code> de la fila — con la precaución de que el hash también necesita un separador que no exista en los datos y un tratamiento explícito de NULL.</div>
 <p><b>PostgreSQL:</b> <code>IS DISTINCT FROM</code> de siempre, y se puede comparar registros completos: <code>(d.*) IS DISTINCT FROM (s.*)</code>. <b>Spark SQL:</b> <code>a &lt;=&gt; b</code> (null-safe equal) e <code>IS [NOT] DISTINCT FROM</code>; <code>&lt;=&gt;</code> sirve además en el <code>ON</code> de un join y sí empareja NULL con NULL.</p>`},
 
-{id:"07", min:45, t:"Conversión implícita y precedencia de tipos", html:`
+{id:"07", min:55, t:"Conversión implícita y precedencia de tipos", html:`
 <p>Cuando comparas dos tipos distintos, <b>el de menor precedencia se convierte al de mayor</b>. Extracto de la lista de SQL Server, de mayor a menor:</p>
 <div class="code"><span class="cap">precedencia de tipos</span><button class="cp">copiar</button><pre>sql_variant &gt; xml &gt; datetimeoffset &gt; datetime2 &gt; datetime &gt; smalldatetime &gt; date &gt; time
 &gt; float &gt; real &gt; decimal &gt; money &gt; smallmoney &gt; bigint &gt; int &gt; smallint &gt; tinyint &gt; bit
 &gt; nvarchar (incl. max) &gt; nchar &gt; varchar (incl. max) &gt; char &gt; varbinary &gt; binary</pre></div>
-<h3>a) <code>nvarchar</code> gana a <code>varchar</code></h3>
+<h3><span class="tag-letter">a)</span> <code>nvarchar</code> gana a <code>varchar</code></h3>
+<p>Un índice es una guía telefónica ordenada: buscas "Pérez" y vas directo a la P — eso es un <b>Seek</b>. Si tuvieras que leerla página por página hasta encontrarlo, sería un <b>Scan</b>. Aquí la columna guarda <code>varchar</code> pero el literal llega como <code>nvarchar</code> (la <code>N'…'</code> de abajo): es como llegar con el nombre escrito en otro alfabeto. El motor tiene que "traducir" antes de comparar, y al traducir pierde el orden alfabético que hacía rápida la búsqueda — se resigna a leer todo.</p>
 <div class="code"><button class="cp">copiar</button><pre>-- Ingenua: la COLUMNA es la que se convierte -> predicado no SARGable
 SELECT Nombre FROM dbo.ClienteMasivo WHERE Cedula = N'0000123456001';
 -- Correcta:
 SELECT Nombre FROM dbo.ClienteMasivo WHERE Cedula =  '0000123456001';</pre></div>
-<div class="rule"><b>matiz por colación</b>Con colaciones <b>Windows</b> el optimizador puede aplicar <em>range through convert</em> y conservar el Index Seek pese a la conversión. Con colaciones <b>SQL heredadas</b> (<code>SQL_Latin1_General_CP1_CI_AS</code>) no puede, y degrada a Index Scan. Por eso el mismo código "funciona rápido" en un servidor y se arrastra en otro. No lo asumas: revisa el plan.</div>
-<h3>b) El sentido de la conversión decide si duele</h3>
+<p>A veces el optimizador se salva solo: en vez de traducir fila por fila, calcula entre qué valores podría caer lo que buscas y mira solo ese rango. Pero para eso necesita estar seguro de que los dos alfabetos ordenan igual — y ahí entra la colación.</p>
+<div class="rule warn"><b>matiz por colación</b>Con colaciones <b>Windows</b> el optimizador puede aplicar <em>range through convert</em> y conservar el Index Seek pese a la conversión. Con colaciones <b>SQL heredadas</b> (<code>SQL_Latin1_General_CP1_CI_AS</code>) no puede, y degrada a Index Scan. Por eso el mismo código "funciona rápido" en un servidor y se arrastra en otro. No lo asumas: revisa el plan.</div>
+<h3><span class="tag-letter">b)</span> El sentido de la conversión decide si duele</h3>
 <div class="code good"><button class="cp">copiar</button><pre>-- Sin daño: int tiene MAYOR precedencia, se convierte el literal, la columna queda intacta
 SELECT COUNT(*) FROM dbo.VentaHist WHERE ClienteId = '123';</pre></div>
 <p>Una conversión implícita no es mala por sí misma: es mala <b>cuando cae del lado de la columna</b>.</p>
-<h3>c) Excepción documentada</h3>
+<h3><span class="tag-letter">c)</span> Excepción documentada</h3>
 <div class="code"><button class="cp">copiar</button><pre>-- Puede hacer seek (SQL Server 2008+ especializa datetime -&gt; date), pero depende del motor:
 WHERE CAST(Fecha AS date) = '2023-06-01'
 -- Siempre seek, y portable:
 WHERE Fecha &gt;= '2023-06-01' AND Fecha &lt; '2023-06-02'</pre></div>
-<h3>d) Trampas de tipo del día a día</h3>
+<h3><span class="tag-letter">d)</span> Trampas de tipo del día a día</h3>
 <div class="code"><button class="cp">copiar</button><pre>SELECT 1/2 AS DivisionEntera,          -- 0
        1/2.0 AS DivisionDecimal;       -- 0.500000
 
@@ -995,6 +1093,18 @@ SELECT ISNULL(@c,'ABCDEFG')   AS ConIsNull,    -- 'ABC'  &lt;- trunca al tipo de
 SELECT N'Cliente: ' + Ciudad       AS ConMas,     -- NULL para el cliente 5
        CONCAT(N'Cliente: ', Ciudad) AS ConConcat  -- 'Cliente: '
 FROM dbo.Cliente WHERE ClienteId = 5;</pre></div>
+<h3><span class="tag-letter">e)</span> La regla general: columna tocada, índice perdido</h3>
+<p>Vale la pena separarlo de la conversión de tipos, porque es la misma causa con un alcance más amplio. Un índice ordena por <code>Fecha</code>, no por <code>YEAR(Fecha)</code>: en cuanto envuelves la columna en una función o un cálculo, el motor tiene que resolver esa expresión fila por fila antes de poder comparar, y el orden que hacía posible el Seek deja de servir — igual que preguntarle a la guía telefónica "¿cuál es la tercera letra de este apellido?" en vez de "¿dónde está Pérez?": aunque siga ordenada, ya no te sirve para eso. Es el mismo mecanismo del caso <b>c)</b> de arriba, y el que ves con evidencia de plan real en la comparación 3.1 de la sección de planes. Por eso un predicado se llama <b>SARGable</b> (<em>Search ARGument ABLE</em>): que el motor pueda usarlo para saltar directo a las filas, en vez de leerlas todas y filtrar después.</p>
+<table class="t">
+<tr><th>Lento · columna tocada</th><th>Rápido · columna desnuda</th></tr>
+<tr><td><code>WHERE YEAR(Fecha) = 2025</code></td><td><code>WHERE Fecha &gt;= '2025-01-01' AND Fecha &lt; '2026-01-01'</code></td></tr>
+<tr><td><code>WHERE UPPER(Nombre) = 'ANA'</code></td><td><code>WHERE Nombre = 'Ana'</code> (si la colación ya ignora mayúsculas)</td></tr>
+<tr><td><code>WHERE Precio * 1.15 &gt; 1000</code></td><td><code>WHERE Precio &gt; 1000 / 1.15</code></td></tr>
+<tr><td><code>WHERE LEFT(Cedula, 4) = '0912'</code></td><td><code>WHERE Cedula LIKE '0912%'</code></td></tr>
+<tr><td><code>WHERE ISNULL(Estado,'') = 'A'</code></td><td><code>WHERE Estado = 'A'</code></td></tr>
+</table>
+<div class="rule"><b>regla general</b>Si la columna aparece dentro de una función o de un cálculo, el índice se pierde. El movimiento es simétrico: lleva el cálculo al lado del literal, no al lado de la columna. El literal se evalúa una sola vez; la columna se evaluaría una vez por fila.</div>
+<p>El <code>LIKE</code> tiene su propia trampa direccional: <code>'0912%'</code> es SARGable porque el índice puede saltar directo a donde empiezan los que arrancan con <code>0912</code>. <code>'%0912'</code> no lo es — el comodín al inicio impide saber por dónde arrancar, como pedirle a la guía todos los apellidos que terminan en "-ez".</p>
 <div class="engines"><p class="kicker">otros motores</p>
 <div class="engine"><b class="eng">PostgreSQL</b><p>No tiene lista de precedencia equivalente: resuelve por categorías y es mucho más estricto — muchas comparaciones exigen <code>CAST</code> explícito.</p></div>
 <div class="engine"><b class="eng">Spark SQL</b><p>Aplica <em>type coercion</em> propio; con <code>spark.sql.ansi.enabled=true</code> (por defecto en Databricks SQL) las conversiones inseguras lanzan error en vez de devolver NULL. Y ojo: <code>1/2</code> en Spark devuelve <b>0.5</b>, no 0. Es una de las diferencias que más rompe migraciones.</p></div>
@@ -1063,7 +1173,22 @@ OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY;</pre></div>
 </div>
 <p>En T-SQL <code>OFFSET/FETCH</code> <b>exige</b> <code>ORDER BY</code> desde 2012; en PostgreSQL y Spark <code>LIMIT</code> sin <code>ORDER BY</code> es legal — y por eso es más peligroso. Tampoco es determinista <b>cuántas veces</b> se evalúa una expresión: <code>NEWID()</code>, <code>RAND()</code> o una UDF escalar pueden evaluarse una vez por fila, varias o menos de lo que crees según el plan.</p>`},
 
-{id:"10", min:25, t:"Conjunto vs multiconjunto", html:`
+{id:"10", min:35, t:"Conjunto vs multiconjunto", html:`
+<h3>Qué hace cada operador</h3>
+<p><code>UNION</code>, <code>UNION ALL</code>, <code>INTERSECT</code> y <code>EXCEPT</code> combinan el resultado de dos <code>SELECT</code> <b>verticalmente</b> — apilando filas, no como un <code>JOIN</code> que las combina horizontalmente. Para poder apilarlas, ambos <code>SELECT</code> deben devolver el <b>mismo número de columnas</b> con tipos compatibles; los nombres de columna del resultado los pone el <b>primer</b> <code>SELECT</code>, aunque el segundo use otros alias.</p>
+<div class="code"><span class="cap">las mismas dos consultas, cuatro operadores</span><button class="cp">copiar</button><pre>-- A: ciudades de clientes RETAIL (4 filas: GUAYAQUIL, Guayaquil, NULL, QUITO)
+SELECT Ciudad FROM dbo.Cliente WHERE Segmento = 'RETAIL'
+-- B: ciudades de clientes PYME   (3 filas: QUITO, QUITO, CUENCA)
+SELECT Ciudad FROM dbo.Cliente WHERE Segmento = 'PYME'</pre></div>
+<table class="t">
+<tr><th>Operador</th><th>Qué devuelve</th><th>Resultado con A y B</th></tr>
+<tr><td><code>UNION ALL</code></td><td>Todas las filas de A y de B, tal cual, sin tocar nada.</td><td>7 filas (4 + 3)</td></tr>
+<tr><td><code>UNION</code></td><td>Todas las filas de A y de B, <b>sin duplicados</b>: es <code>UNION ALL</code> + <code>DISTINCT</code>.</td><td>4 filas — GUAYAQUIL y Guayaquil cuentan como una sola por la colación CI del tema 8</td></tr>
+<tr><td><code>INTERSECT</code></td><td>Solo lo que aparece <b>en A y en B a la vez</b>.</td><td>1 fila — QUITO</td></tr>
+<tr><td><code>EXCEPT</code></td><td>Lo de A que <b>no</b> aparece en B. No es simétrico: <code>A EXCEPT B</code> ≠ <code>B EXCEPT A</code>.</td><td>2 filas — GUAYAQUIL y NULL (QUITO se resta por estar también en B)</td></tr>
+</table>
+<p>Entonces: <code>UNION ALL</code> es la operación "cruda" — solo apila. Las otras tres son <code>UNION ALL</code> más una comparación entre las dos mitades (dedup, intersección o resta), y esa comparación es la que cuesta.</p>
+<h3>Detalle fino de cada uno</h3>
 <table class="t">
 <tr><th>Operador</th><th>Elimina duplicados</th><th>NULL = NULL</th><th>¿En SQL Server?</th></tr>
 <tr><td><code>UNION</code></td><td class="yes">Sí</td><td class="yes">Sí</td><td>Sí</td></tr>
@@ -1441,6 +1566,35 @@ $("#dlCopy").addEventListener("click", async () => {
     $("#dlMsg").textContent = "El navegador bloqueó el portapapeles: el texto quedó seleccionado, usa Ctrl+C.";
   }
 });
+
+/* buscador del glosario */
+(() => {
+  const q = $("#gq");
+  if(!q) return;
+  const sets = Array.from(document.querySelectorAll(".gset"));
+  const terms = Array.from(document.querySelectorAll(".term"));
+  const cnt = $("#gcnt");
+  const none = $("#gnone");
+  const norm = s => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+  terms.forEach(t => { t.dataset.k = norm(t.textContent); });
+  function run(){
+    const v = norm(q.value.trim());
+    let shown = 0;
+    terms.forEach(t => {
+      const ok = !v || t.dataset.k.indexOf(v) > -1;
+      t.classList.toggle("off", !ok);
+      if(ok) shown++;
+    });
+    sets.forEach(s => {
+      const any = s.querySelectorAll(".term:not(.off)").length > 0;
+      s.classList.toggle("off", !any);
+    });
+    cnt.textContent = shown + " de " + terms.length;
+    none.style.display = shown ? "none" : "block";
+  }
+  q.addEventListener("input", run);
+  run();
+})();
 </script>
 </body>
 </html>
