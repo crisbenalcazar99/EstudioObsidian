@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Módulo 03 · Funciones de ventana I: partición, orden y ranking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E7EAF0; --card:#FFFFFF; --tint:#F3F5F9;
+    --ink:#101A33; --slate:#5A688F; --hair:#C9D0DE;
+    --seek:#12715C; --cost:#A31A56; --warn:#8A5A12;
+    --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+    --body:"IBM Plex Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+    --r:3px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--body);
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+    background-image:linear-gradient(to right,rgba(16,26,51,.035) 1px,transparent 1px);
+    background-size:28px 100%;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:34px 20px 90px}
+  p{margin:0 0 12px}
+  a{color:var(--cost)}
+
+  .plan-call{font-family:var(--mono);font-size:12.5px;color:var(--slate);margin:0 0 18px}
+  .plan-call b{color:var(--cost);font-weight:600}
+  .plan-call a{text-decoration:none;border-bottom:1px solid var(--hair)}
+  h1{font-family:var(--display);font-size:clamp(34px,6vw,58px);font-weight:800;
+     line-height:.96;letter-spacing:-.028em;margin:0 0 14px}
+  h1 em{font-style:normal;color:var(--cost)}
+  .lede{max-width:60ch;color:#28324F;font-size:16.5px;margin:0 0 24px}
+
+  .stats{display:flex;flex-wrap:wrap;border:1px solid var(--hair);background:var(--card);border-radius:var(--r);overflow:hidden}
+  .stat{flex:1 1 120px;padding:12px 14px;border-right:1px solid var(--hair)}
+  .stat:last-child{border-right:0}
+  .stat .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--slate);display:block}
+  .stat .v{font-family:var(--display);font-size:25px;font-weight:700;letter-spacing:-.02em;display:block;line-height:1.2}
+
+  .costbar{margin:22px 0 4px}
+  .costbar .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
+    color:var(--slate);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .track{display:flex;gap:2px;height:30px}
+  .seg{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:2px;overflow:hidden;cursor:pointer;padding:0}
+  .seg .fill{position:absolute;inset:0 100% 0 0;background:var(--seek);transition:right .4s cubic-bezier(.2,.7,.3,1)}
+  .seg .tag{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:10.5px;color:var(--slate);mix-blend-mode:multiply}
+  .seg:hover{border-color:var(--ink)}
+  .seg[data-done="1"] .tag{color:#fff;mix-blend-mode:normal}
+
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:28px 0 24px;padding-top:20px;border-top:1px solid var(--hair)}
+  .bar .cap{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--slate);margin-right:4px}
+  .chip{font-family:var(--mono);font-size:12px;padding:6px 11px;border:1px solid var(--hair);
+    background:var(--card);color:var(--slate);border-radius:99px;cursor:pointer}
+  .chip:hover{border-color:var(--ink);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .bar .spacer{flex:1}
+  .ghost{font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--ink);
+    background:transparent;color:var(--ink);border-radius:var(--r);cursor:pointer}
+  .ghost:hover{background:var(--ink);color:#fff}
+  .solid{font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--cost);
+    background:var(--cost);color:#fff;border-radius:var(--r);cursor:pointer}
+  .solid:hover{background:#8C1449;border-color:#8C1449}
+
+  section.sec{display:none;margin:0 0 40px}
+  section.sec.on{display:block;animation:in .2s ease both}
+  @keyframes in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:2px}
+  .sec-head .n{font-family:var(--mono);font-size:12px;color:var(--cost);letter-spacing:.06em}
+  .sec-head h2{font-family:var(--display);font-size:23px;font-weight:700;letter-spacing:-.015em;margin:0}
+  .sec-head .c{font-family:var(--mono);font-size:11.5px;color:var(--slate);margin-left:auto;white-space:nowrap}
+  .sec-note{font-size:14px;color:var(--slate);margin:0 0 18px;max-width:66ch}
+
+  .branch{border-left:1px solid var(--hair);margin-left:9px}
+  .node{position:relative;margin:0 0 8px}
+  .node::before{content:"";position:absolute;left:0;top:26px;width:17px;height:1px;background:var(--hair)}
+  .node-inner{margin-left:17px;background:var(--card);border:1px solid var(--hair);border-radius:var(--r)}
+  .node.open .node-inner{border-color:var(--ink)}
+  .node-head{width:100%;display:flex;align-items:center;gap:14px;padding:13px 15px;background:none;
+    border:0;text-align:left;cursor:pointer;font:inherit;color:inherit}
+  .node-head:focus-visible{outline:2px solid var(--cost);outline-offset:-2px}
+  .idx{font-family:var(--mono);font-size:12px;color:var(--slate);min-width:26px}
+  .node.done .idx{color:var(--seek)}
+  .ttl{font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:-.012em;flex:1;min-width:0}
+  .meta{font-family:var(--mono);font-size:11.5px;color:var(--slate);white-space:nowrap;display:flex;gap:10px;align-items:center}
+  .caret{font-family:var(--mono);color:var(--slate);transition:transform .2s ease}
+  .node.open .caret{transform:rotate(90deg)}
+  .body{display:none;padding:15px 18px 18px;border-top:1px solid var(--hair)}
+  .node.open .body{display:block}
+  .body > :first-child{margin-top:0}
+
+  .card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);padding:16px 18px;margin:0 0 14px}
+  h3{font-family:var(--display);font-size:16px;font-weight:700;margin:20px 0 8px;letter-spacing:-.01em}
+  h3:first-child{margin-top:0}
+  .card h3:not(:first-of-type),
+  .body h3:not(:first-of-type){border-top:1px dashed var(--hair);padding-top:16px}
+  h3 .tag-letter{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;
+    margin-right:8px;vertical-align:middle;border-radius:50%;background:var(--tint);border:1px solid var(--hair);
+    font-family:var(--mono);font-size:12px;color:var(--cost);font-weight:700}
+  .kicker{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);margin:0 0 6px}
+  .rule{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 14px;max-width:72ch}
+  .rule > b:first-child{display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);font-weight:600;margin:0 0 4px}
+  .rule.warn{border-left-color:var(--warn)}
+  .rule.warn > b:first-child{color:var(--warn)}
+
+  .engines{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 14px;max-width:72ch}
+  .engines .kicker{margin:0 0 8px}
+  .engine{margin:0 0 10px;padding-bottom:10px;border-bottom:1px dashed var(--hair)}
+  .engine:last-child{margin:0;padding-bottom:0;border-bottom:0}
+  .engine .eng{display:inline-block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--cost);font-weight:600;margin:0 0 4px}
+  .engine p{margin:0;font-size:14.5px}
+
+  .code{position:relative;margin:12px 0;border:1px solid var(--hair);border-left:2px solid var(--slate);border-radius:2px;background:var(--tint)}
+  .code.bad{border-left-color:var(--cost)}
+  .code.good{border-left-color:var(--seek)}
+  .code .cap{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--slate);padding:7px 12px 0}
+  .code pre{margin:0;padding:10px 12px 12px;overflow:auto;font-family:var(--mono);font-size:12.4px;line-height:1.55;white-space:pre}
+  .code .cp{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:10.5px;padding:3px 8px;
+    border:1px solid var(--hair);background:var(--card);color:var(--slate);border-radius:99px;cursor:pointer;opacity:0}
+  .code:hover .cp,.code .cp:focus{opacity:1}
+  .code .cp:hover{border-color:var(--ink);color:var(--ink)}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+  .split .code{margin:0}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13.4px;margin:12px 0}
+  table.t th{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--slate);text-align:left;font-weight:600;border-bottom:1px solid var(--ink);padding:7px 10px 7px 0}
+  table.t td{border-bottom:1px solid var(--hair);padding:7px 10px 7px 0;vertical-align:top}
+  table.t td:first-child,table.t th:first-child{padding-left:0}
+  .yes{color:var(--seek);font-weight:600}
+  .no{color:var(--cost);font-weight:600}
+
+  ul.plain{margin:0 0 12px;padding-left:18px}
+  ul.plain li{margin:0 0 5px}
+  .temas-chk{list-style:none;margin:0;padding:0}
+  .temas-chk li{margin:0 0 4px}
+  .chk{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;cursor:pointer}
+  .chk input{appearance:none;width:14px;height:14px;margin:4px 0 0;flex:none;border:1px solid var(--slate);
+    border-radius:2px;background:var(--card);cursor:pointer}
+  .chk input:checked{background:var(--seek);border-color:var(--seek)}
+  .chk input:focus-visible{outline:2px solid var(--cost);outline-offset:2px}
+
+  .err{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 16px}
+  .err h4{font-family:var(--display);font-size:15px;margin:0 0 4px;font-weight:700}
+  .err .fix{font-size:13.4px;color:var(--seek)}
+  .err .fix b{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em}
+
+  .qa{border-bottom:1px solid var(--hair);padding:12px 0}
+  .qa:last-child{border-bottom:0}
+  .qa .q{font-weight:600;font-size:14.5px;margin:0 0 6px;display:flex;gap:10px}
+  .qa .q span{font-family:var(--mono);font-size:12px;color:var(--cost);flex:none}
+  .hidden{display:none}
+  .hidden.show{display:block;animation:in .2s ease both}
+  .reveal{font-family:var(--mono);font-size:11.5px;padding:4px 10px;border:1px dashed var(--hair);
+    background:none;color:var(--slate);border-radius:99px;cursor:pointer}
+  .reveal:hover{border-color:var(--ink);border-style:solid;color:var(--ink)}
+  .ans{margin-top:8px;font-size:13.8px;color:#28324F;max-width:76ch}
+
+  dialog{border:1px solid var(--ink);border-radius:var(--r);padding:0;max-width:760px;width:92vw;background:var(--card);color:var(--ink)}
+  dialog::backdrop{background:rgba(16,26,51,.45)}
+  .dl-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--hair)}
+  .dl-head h3{margin:0;font-size:17px}
+  .dl-head .x{margin-left:auto;background:none;border:0;font-family:var(--mono);font-size:15px;cursor:pointer;color:var(--slate)}
+  dialog textarea{width:100%;height:46vh;border:0;padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--tint);color:var(--ink);resize:vertical}
+  dialog textarea:focus{outline:0}
+  .dl-foot{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--hair)}
+  .dl-foot .msg{font-family:var(--mono);font-size:11.5px;color:var(--seek)}
+
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--ink);color:#fff;font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:99px;
+    transition:all .25s ease;pointer-events:none;z-index:9}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:11.5px;color:var(--slate)}
+
+  @media (max-width:760px){
+    .split{grid-template-columns:1fr}
+    body{background-image:none}
+    .body{padding:14px}
+    .code .cp{opacity:1}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="plan-call">plan_de_estudio_sql &rsaquo; <b>módulo 03</b> &rsaquo; fase 01 · sql analítico</p>
+
+  <h1>Funciones de ventana I:<br>partición, orden y ranking<em>.</em></h1>
+  <p class="lede">Resolver con una sola pasada lo que hoy resuelves con subconsultas correlacionadas y self joins. Motor de referencia: SQL Server 2019/2022, con equivalencias en PostgreSQL 14+ y Spark SQL / Databricks donde el comportamiento cambia — especialmente en <code>QUALIFY</code>, que no existe en T-SQL.</p>
+
+  <div class="stats">
+    <div class="stat"><span class="k">temas</span><span class="v">10</span></div>
+    <div class="stat"><span class="k">costo estimado</span><span class="v">6.0 h</span></div>
+    <div class="stat"><span class="k">planes comparados</span><span class="v">4</span></div>
+    <div class="stat"><span class="k">errores catalogados</span><span class="v">12</span></div>
+    <div class="stat"><span class="k">ejercicios</span><span class="v">6</span></div>
+    <div class="stat"><span class="k">avance</span><span class="v" id="pctBig">0 %</span></div>
+  </div>
+
+  <div class="costbar">
+    <div class="lbl"><span>costo estimado por tema · avance real</span><span id="pct">0 %</span></div>
+    <div class="track" id="track"></div>
+  </div>
+
+  <div class="bar">
+    <span class="cap">sección</span>
+    <button class="chip" data-s="dataset" aria-pressed="false">dataset</button>
+    <button class="chip" data-s="modelo" aria-pressed="true">modelo mental</button>
+    <button class="chip" data-s="temas" aria-pressed="false">10 temas</button>
+    <button class="chip" data-s="planes" aria-pressed="false">planes</button>
+    <button class="chip" data-s="errores" aria-pressed="false">errores</button>
+    <button class="chip" data-s="ejercicios" aria-pressed="false">ejercicios</button>
+    <button class="chip" data-s="proyecto" aria-pressed="false">proyecto</button>
+    <button class="chip" data-s="examen" aria-pressed="false">examen</button>
+    <span class="spacer"></span>
+    <button class="ghost" id="todo">ver todo</button>
+    <button class="ghost" id="next">prompt módulo 04</button>
+  </div>
+
+<!-- ══════════════════════ DATASET ══════════════════════ -->
+<section class="sec" id="sec-dataset">
+  <div class="sec-head"><span class="n">§ 0</span><h2>Dataset reproducible</h2><span class="c">solo la tabla nueva de este módulo</span></div>
+  <p class="sec-note">Este módulo reutiliza <code>dbo.Cliente</code>, <code>dbo.Producto</code>, <code>dbo.Venta</code>, <code>dbo.ClienteExterno</code>, <code>dbo.ClienteMasivo</code> y <code>dbo.VentaHist</code> del módulo 01 — asúmelos ya creados. La única tabla nueva es <code>dbo.VentaCargaDiaria</code>: un extracto diario con los reprocesos y duplicados típicos de una carga real, que usan el tema 4, la comparación 3.1 y el mini-proyecto.</p>
+
+  <div class="card">
+    <div class="code"><span class="cap">T-SQL · estructura</span><button class="cp">copiar</button><pre>USE CursoSQL;
+GO
+DROP TABLE IF EXISTS dbo.VentaCargaDiaria;
+GO
+
+CREATE TABLE dbo.VentaCargaDiaria
+(
+    CargaId    int           NOT NULL IDENTITY(1,1) CONSTRAINT PK_VentaCargaDiaria PRIMARY KEY,
+    VentaId    int           NOT NULL,
+    ClienteId  int           NOT NULL,
+    ProductoId int           NOT NULL,
+    Fecha      datetime2(0)  NOT NULL,
+    Cantidad   int           NOT NULL,
+    PrecioUnit decimal(12,2) NOT NULL,
+    Descuento  decimal(12,2) NULL,
+    Canal      varchar(10)   COLLATE Latin1_General_100_CI_AS NULL,
+    FechaCarga datetime2(0)  NOT NULL
+);
+GO</pre></div>
+
+    <div class="code"><span class="cap">T-SQL · datos</span><button class="cp">copiar</button><pre>-- carga "buena" del día: las 20 ventas del módulo 01, tal cual
+INSERT dbo.VentaCargaDiaria (VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal, FechaCarga)
+SELECT VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal, '2024-04-01 06:00:00'
+FROM dbo.Venta;
+
+-- reproceso: el job se reintentó y reinsertó el mismo extracto para dos ventas (duplicado exacto, otra hora)
+INSERT dbo.VentaCargaDiaria (VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal, FechaCarga)
+SELECT VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal, '2024-04-01 06:05:00'
+FROM dbo.Venta WHERE VentaId IN (15,16);
+
+-- duplicado exacto en el mismo instante de carga: un solo INSERT que corrió dos veces
+INSERT dbo.VentaCargaDiaria (VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal, FechaCarga)
+SELECT VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal, '2024-04-01 06:00:00'
+FROM dbo.Venta WHERE VentaId = 20;
+
+-- corrección real: la venta 18 volvió a llegar con la cantidad corregida (1 -> 2); no es ruido
+INSERT dbo.VentaCargaDiaria (VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal, FechaCarga)
+VALUES (18,10,101,'2024-01-09 09:45:00',2,300.00,25.00,'APP','2024-04-01 07:30:00');
+GO</pre></div>
+
+    <div class="rule"><b>por qué importa la mezcla</b>Hay tres tipos de "duplicado" distintos: dos filas idénticas en instantes distintos (ventas 15 y 16), dos filas idénticas en el <b>mismo</b> instante (venta 20) y una fila que no es duplicado sino corrección (venta 18, con otra <code>Cantidad</code>). Un dedup que solo mira <code>VentaId</code> sin un desempate correcto trata a los tres casos igual — y el tema 4 muestra por qué eso rompe la venta 18.</div>
+
+    <div class="rule"><b>equivalencias</b>PostgreSQL: mismo DDL, <code>text</code> por <code>nvarchar</code> y <code>timestamp</code> por <code>datetime2</code>. Spark / Delta Lake: <code>GENERATED ALWAYS AS IDENTITY</code> existe desde Delta Lake 2.3, pero una tabla de staging real casi nunca la usa — el archivo trae su propia clave o se numera al leer el volumen con <code>ROW_NUMBER()</code>, que es justo la técnica del tema 4.</div>
+  </div>
+</section>
+
+<!-- ══════════════════════ MODELO MENTAL ══════════════════════ -->
+<section class="sec on" id="sec-modelo">
+  <div class="sec-head"><span class="n">§ 1</span><h2>Modelo mental</h2><span class="c">léelo antes de tocar SQL</span></div>
+  <p class="sec-note">Una window function resuelve un problema concreto: necesitas un valor que depende de <em>otras filas</em> — la posición dentro de un grupo, el acumulado hasta hoy, el total del grupo — pero sin perder el detalle fila por fila que <code>GROUP BY</code> destruye.</p>
+
+  <div class="card">
+    <h3>GROUP BY colapsa; OVER() no</h3>
+    <p><code>GROUP BY</code> reduce N filas a un grupo, y en el camino pierde cualquier columna que no esté en la lista de agrupación ni agregada (módulo 01, orden lógico paso 3). Una window function calcula sobre el mismo grupo pero <b>conserva las N filas</b>: el valor se repite o varía fila por fila según la función, y el resto de columnas de la fila original sigue disponible. Esa es toda la diferencia; el resto del módulo es consecuencia de esta frase.</p>
+    <table class="t">
+      <tr><th></th><th>Filas de entrada</th><th>Filas de salida</th><th>Columnas no agregadas</th></tr>
+      <tr><td><code>GROUP BY</code></td><td>N</td><td>grupos (&le; N)</td><td class="no">se pierden</td></tr>
+      <tr><td><code>OVER(...)</code></td><td>N</td><td>N</td><td class="yes">se conservan</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Anatomía mínima de OVER()</h3>
+    <div class="code"><span class="cap">memorízalo</span><button class="cp">copiar</button><pre>funcion() OVER (
+    [PARTITION BY col, ...]   -- en qué "ventanas" se agrupan las filas, sin colapsarlas
+    [ORDER BY col, ...]       -- orden dentro de cada ventana: define el ranking y el frame por defecto
+    [ROWS|RANGE BETWEEN ...]  -- el frame: qué filas de la ventana ve la función (a fondo en el módulo 04)
+)</pre></div>
+    <p>Sin <code>PARTITION BY</code>, toda la tabla es una sola ventana. Sin <code>ORDER BY</code>, no hay ranking posible y los agregados ven <b>toda</b> la partición en cada fila, porque no hay frame que recortar. Con <code>ORDER BY</code> pero sin frame explícito, el frame por defecto cambia el resultado de un agregado — esa es la trampa central del tema 5, y el módulo 04 completo.</p>
+  </div>
+
+  <div class="card">
+    <h3>Qué hace el motor: un Sort antes, una pasada que no colapsa después</h3>
+    <p>Internamente no hay magia: el motor primero garantiza que las filas queden ordenadas por <code>PARTITION BY</code> + <code>ORDER BY</code> — con un operador <b>Sort</b> explícito si ningún índice ya trae ese orden, o reutilizando el orden de un índice si existe. Luego recorre las filas ordenadas calculando el valor de la función sobre el frame vigente en cada una, sin colapsar nada. El costo real de una window function casi siempre vive en el Sort, no en la función en sí — de ahí el tema 10.</p>
+    <div class="rule"><b>nemotecnia</b><code>GROUP BY</code> piensa en motor como "Aggregate que colapsa". <code>OVER()</code> piensa en motor como "Sort (si hace falta) + pasada que no colapsa".</div>
+  </div>
+
+  <div class="card">
+    <h3>El alias de una window function obedece la regla del módulo 01</h3>
+    <p>Una window function se evalúa en la fase 5 del orden lógico, junto con el resto del <code>SELECT</code> — <b>después</b> de <code>WHERE</code>, <code>GROUP BY</code> y <code>HAVING</code> (fases 2 a 4) y <b>antes</b> de <code>ORDER BY</code> (fase 7). Su alias es un alias de <code>SELECT</code> como cualquier otro: por la regla del módulo 01 tema 3, <b>solo es visible en <code>ORDER BY</code></b>. No puedes filtrarlo con <code>WHERE</code> ni con <code>HAVING</code> en el mismo nivel de consulta; necesitas envolver la consulta en una CTE o derivada, exactamente igual que con cualquier otro alias. Ese es el tema 2 completo.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════ TEMAS ══════════════════════ -->
+<section class="sec" id="sec-temas">
+  <div class="sec-head"><span class="n">§ 2</span><h2>Los diez temas</h2><span class="c">marca lo que ya dominas</span></div>
+  <p class="sec-note">Cada nodo trae el ejemplo ejecutable sobre <code>dbo.Venta</code> / <code>dbo.Cliente</code> / <code>dbo.VentaHist</code> y las diferencias de motor. El check alimenta la barra de costo de arriba.</p>
+  <div class="branch" id="temas"></div>
+</section>
+
+<!-- ══════════════════════ PLANES ══════════════════════ -->
+<section class="sec" id="sec-planes">
+  <div class="sec-head"><span class="n">§ 3</span><h2>Ingenua vs correcta</h2><span class="c">4 comparaciones con plan</span></div>
+  <p class="sec-note">Activa el plan real (Ctrl+M en SSMS) y <code>SET STATISTICS IO, TIME ON;</code> antes de cada par. En las dos primeras, mira el operador Sort y el <em>Number of Executions</em> de la rama interna; en las otras dos, compara cuántas veces se recorre la tabla completa.</p>
+
+  <div class="card">
+    <p class="kicker">3.1 · top-N por grupo</p>
+    <h3>Subconsulta correlacionada vs ROW_NUMBER</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT h1.VentaId, h1.ClienteId, h1.Fecha, h1.Monto
+FROM dbo.VentaHist h1
+WHERE (SELECT COUNT(*) FROM dbo.VentaHist h2
+       WHERE h2.ClienteId = h1.ClienteId AND h2.Monto &gt; h1.Monto) &lt; 2
+ORDER BY h1.ClienteId, h1.Monto DESC;</pre></div>
+      <div class="code good"><span class="cap">correcta</span><button class="cp">copiar</button><pre>WITH clasif AS (
+    SELECT VentaId, ClienteId, Fecha, Monto,
+           ROW_NUMBER() OVER (PARTITION BY ClienteId
+                               ORDER BY Monto DESC, VentaId) AS pos
+    FROM dbo.VentaHist
+)
+SELECT VentaId, ClienteId, Fecha, Monto
+FROM clasif WHERE pos &lt;= 2
+ORDER BY ClienteId, pos;</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Forma del plan</td><td>Nested Loops con subconsulta correlacionada</td><td>un <b>Sort</b> + una pasada de Window Spool</td></tr>
+      <tr><td>Number of Executions de la rama interna</td><td>una vez <b>por cada fila</b> de <code>VentaHist</code> (hasta 1 000 000)</td><td>0 — no hay rama repetida</td></tr>
+      <tr><td>Complejidad práctica</td><td>cercana a O(n²) por cliente</td><td>O(n log n), una sola vez</td></tr>
+      <tr><td>Legibilidad</td><td>hay que traducir "COUNT de mayores &lt; 2" a "top 2"</td><td>literal: <code>pos &lt;= 2</code></td></tr>
+    </table>
+    <p>La ingenua es la traducción literal de "dame las filas donde menos de dos sean mayores que yo" — matemáticamente correcta, pero el motor no tiene forma de saber que eso equivale a un top-N sin ejecutar la subconsulta fila por fila. El módulo 02 (tema 9) ya mostró <code>CROSS APPLY</code> como alternativa a esta misma subconsulta; <code>ROW_NUMBER</code> es la tercera forma de resolver el mismo problema, y normalmente la más barata cuando no hace falta reincidir con columnas de varias tablas por fila.</p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.2 · acumulado con y sin índice de apoyo</p>
+    <h3>Sort explícito vs índice compuesto que ya trae el orden</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua · sin índice de apoyo</span><button class="cp">copiar</button><pre>-- índices existentes: IX_VentaHist_Fecha(Fecha), IX_VentaHist_Cliente(ClienteId)
+-- ninguno cubre (ClienteId, Fecha) junto
+SELECT ClienteId, Fecha, Monto,
+       SUM(Monto) OVER (PARTITION BY ClienteId
+                         ORDER BY Fecha) AS Acumulado
+FROM dbo.VentaHist;</pre></div>
+      <div class="code good"><span class="cap">correcta · mismo query, índice nuevo</span><button class="cp">copiar</button><pre>CREATE NONCLUSTERED INDEX IX_VentaHist_Cliente_Fecha
+    ON dbo.VentaHist(ClienteId, Fecha) INCLUDE (Monto);
+
+SELECT ClienteId, Fecha, Monto,
+       SUM(Monto) OVER (PARTITION BY ClienteId
+                         ORDER BY Fecha) AS Acumulado
+FROM dbo.VentaHist;</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Operador</td><td>Scan + <b>Sort</b> explícito por (ClienteId, Fecha)</td><td>Index Scan sobre <code>IX_VentaHist_Cliente_Fecha</code>, sin Sort</td></tr>
+      <tr><td>Memory grant</td><td>proporcional a 1 000 000 filas; riesgo de <em>spill</em> a tempdb</td><td>mínimo</td></tr>
+      <tr><td>Qué cambió</td><td colspan="2">nada en el SQL — el índice compuesto ya entrega el orden que <code>PARTITION BY ... ORDER BY</code> necesita</td></tr>
+    </table>
+    <p>La consulta no cambia entre ambas columnas: lo que cambia es que ahora existe un índice cuya clave es exactamente <code>(ClienteId, Fecha)</code>, el mismo orden que pide la ventana. Esta es la comparación que el tema 10 promete: a veces la "consulta correcta" no es una reescritura, es un índice.</p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.3 · porcentaje por grupo</p>
+    <h3>Subconsulta correlacionada vs SUM() OVER(PARTITION BY)</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT VentaId, ClienteId, Canal, Monto,
+       CAST(Monto AS decimal(14,4))
+         / (SELECT SUM(h2.Monto) FROM dbo.VentaHist h2
+            WHERE h2.Canal = h1.Canal) AS PctCanal
+FROM dbo.VentaHist h1;</pre></div>
+      <div class="code good"><span class="cap">correcta</span><button class="cp">copiar</button><pre>SELECT VentaId, ClienteId, Canal, Monto,
+       CAST(Monto AS decimal(14,4))
+         / SUM(Monto) OVER (PARTITION BY Canal) AS PctCanal
+FROM dbo.VentaHist;</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Forma del plan</td><td>subconsulta correlacionada por <code>Canal</code>, reevaluada por fila</td><td>un Sort/Stream por <code>Canal</code>, agregado calculado una vez por partición</td></tr>
+      <tr><td>Trabajo repetido</td><td>el mismo <code>SUM</code> por canal se recalcula una y otra vez</td><td>se calcula una sola vez por valor de <code>Canal</code> y se reparte a cada fila</td></tr>
+    </table>
+    <p>Es el mismo error del módulo 01 (división entera silenciosa, catálogo de errores #13) más un problema nuevo: aquí el numerador y el denominador sí están bien tipados con <code>CAST</code>, pero el <b>cómo</b> se obtiene el denominador es lo caro. Cuatro valores distintos de <code>Canal</code> no justifican recalcular la suma un millón de veces.</p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.4 · cuartiles</p>
+    <h3>Cuatro consultas con OFFSET/FETCH vs un NTILE</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT ClienteId, LimiteCredito, 1 AS Cuartil
+FROM dbo.Cliente ORDER BY LimiteCredito DESC
+OFFSET 0 ROWS FETCH NEXT 3 ROWS ONLY
+UNION ALL
+SELECT ClienteId, LimiteCredito, 2
+FROM dbo.Cliente ORDER BY LimiteCredito DESC
+OFFSET 3 ROWS FETCH NEXT 3 ROWS ONLY
+UNION ALL
+SELECT ClienteId, LimiteCredito, 3
+FROM dbo.Cliente ORDER BY LimiteCredito DESC
+OFFSET 6 ROWS FETCH NEXT 3 ROWS ONLY
+UNION ALL
+SELECT ClienteId, LimiteCredito, 4
+FROM dbo.Cliente ORDER BY LimiteCredito DESC
+OFFSET 9 ROWS FETCH NEXT 3 ROWS ONLY;</pre></div>
+      <div class="code good"><span class="cap">correcta</span><button class="cp">copiar</button><pre>SELECT ClienteId, LimiteCredito,
+       NTILE(4) OVER (ORDER BY LimiteCredito DESC) AS Cuartil
+FROM dbo.Cliente;</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Operador</td><td><b>cuatro</b> Sorts independientes (uno por rama) + Concatenation</td><td>un solo Sort</td></tr>
+      <tr><td>Se rompe si...</td><td>cambia el número de filas: los <code>OFFSET</code> quedan mal a mano</td><td>nunca: <code>NTILE</code> se recalcula solo</td></tr>
+    </table>
+    <p>Cada rama de la <code>UNION ALL</code> ordena <b>toda</b> la tabla otra vez, porque <code>OFFSET/FETCH</code> exige el resultado ya ordenado antes de recortar (orden lógico, paso 8). Cuatro Sorts del mismo conjunto por el costo de uno, y encima frágil: si mañana hay 13 clientes en vez de 12, los cuatro <code>OFFSET</code> quedan desalineados y nadie se entera hasta que alguien audita los cuartiles a mano.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════ ERRORES ══════════════════════ -->
+<section class="sec" id="sec-errores">
+  <div class="sec-head"><span class="n">§ 4</span><h2>Errores comunes</h2><span class="c">12 · resultados silenciosamente incorrectos</span></div>
+  <p class="sec-note">Casi ninguno lanza un error de sintaxis: producen un número que parece razonable y no lo es. El caso mínimo de cada uno se reproduce en segundos sobre el dataset del módulo.</p>
+
+  <div class="card">
+    <div class="err"><h4>1 · RANK en un contrato de "exactamente top-N"</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT id, puntos, RANK() OVER (ORDER BY puntos DESC) AS rk
+FROM (VALUES (1,100),(2,90),(3,90),(4,90),(5,70)) AS t(id,puntos);
+-- filtrar rk &lt;= 2 devuelve 4 filas (1,2,3,4), no 2</pre></div>
+      <p class="fix"><b>fix ·</b> si el requisito es "exactamente N filas por grupo", usa <code>ROW_NUMBER</code> con un desempate único (tema 7). Usa <code>RANK</code> solo cuando el contrato es "todas las filas empatadas en la posición N inclusive".</p></div>
+
+    <div class="err"><h4>2 · ORDER BY dentro de OVER() convierte un total en un acumulado</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SUM(Cantidad*PrecioUnit) OVER (PARTITION BY ClienteId ORDER BY Fecha) AS Total
+-- no es el total del cliente: es el acumulado hasta esa fecha</pre></div>
+      <p class="fix"><b>fix ·</b> si necesitas el total de la partición y de todos modos quieres el <code>ORDER BY</code> (por ejemplo para mostrar filas ordenadas), fuerza <code>ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</code>, o quita el <code>ORDER BY</code> del <code>OVER()</code> y ponlo en la consulta externa. Ver tema 5.</p></div>
+
+    <div class="err"><h4>3 · Filtrar la ventana con WHERE en el mismo nivel</h4>
+      <div class="code"><button class="cp">copiar</button><pre>-- Msg 4108: Windowed functions can only appear in the SELECT or ORDER BY clauses
+SELECT ClienteId, VentaId
+FROM dbo.Venta
+WHERE ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Fecha) = 1;</pre></div>
+      <p class="fix"><b>fix ·</b> envuelve en CTE o derivada (tema 2); en Databricks/Snowflake, <code>QUALIFY</code> evita el envoltorio (tema 8).</p></div>
+
+    <div class="err"><h4>4 · NULLs en la columna de PARTITION BY forman su propia partición</h4>
+      <p class="fix"><b>fix ·</b> <code>PARTITION BY Ciudad</code> junta a todos los clientes con <code>Ciudad</code> NULL en una sola ventana, como si compartieran ciudad. Si esa no es la regla de negocio, filtra los NULL antes o normalízalos con <code>COALESCE</code> explícitamente — decide, no heredes el comportamiento por defecto.</p></div>
+
+    <div class="err"><h4>5 · NTILE reparte los empates de forma arbitraria entre buckets vecinos</h4>
+      <p class="fix"><b>fix ·</b> en el tema 3, los clientes 1 y 2 (mismo <code>LimiteCredito</code>) caen en cuartiles distintos porque <code>NTILE</code> reparte por <b>posición</b>, no por valor. Si el requisito es "mismo valor, mismo bucket siempre", <code>NTILE</code> no es la herramienta: define los cortes con <code>CASE WHEN</code> sobre el valor.</p></div>
+
+    <div class="err"><h4>6 · ROW_NUMBER sin desempate único: la fila "ganadora" cambia entre ejecuciones</h4>
+      <p class="fix"><b>fix ·</b> termina siempre el <code>ORDER BY</code> de la ventana con una columna única por partición. Es el mismo problema del módulo 01, catálogo de errores #12, aplicado ahora a deduplicación de cargas (tema 4).</p></div>
+
+    <div class="err"><h4>7 · DISTINCT después de numerar no elimina nada</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT DISTINCT ClienteId, VentaId,
+       ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Fecha) AS rn
+FROM dbo.Venta;  -- rn es distinto en cada fila: DISTINCT no colapsa nada</pre></div>
+      <p class="fix"><b>fix ·</b> si la intención era deduplicar, el <code>ROW_NUMBER</code> + filtro del tema 4 ya lo hace; el <code>DISTINCT</code> sobra. Si de verdad necesitas deduplicar por otras columnas, hazlo <b>antes</b> de numerar, no después.</p></div>
+
+    <div class="err"><h4>8 · COUNT(*) OVER() vs COUNT(columna) OVER()</h4>
+      <div class="code"><button class="cp">copiar</button><pre>COUNT(Descuento) OVER (PARTITION BY ClienteId) -- cuenta solo ventas CON descuento
+COUNT(*)         OVER (PARTITION BY ClienteId) -- cuenta todas las ventas del cliente</pre></div>
+      <p class="fix"><b>fix ·</b> el mismo problema del módulo 01 (catálogo de errores #5), ahora dentro de una ventana: decide explícitamente cuál de las dos preguntas estás haciendo.</p></div>
+
+    <div class="err"><h4>9 · Olvidar el DESC cuando "más alto" debería ser el puesto 1</h4>
+      <p class="fix"><b>fix ·</b> <code>RANK() OVER (ORDER BY Total)</code> sin <code>DESC</code> no falla: solo invierte el ranking sin avisar. Verifica siempre el primer y el último puesto contra un caso conocido antes de confiar en un ranking nuevo.</p></div>
+
+    <div class="err"><h4>10 · Dos OVER() con particiones de distinta granularidad, mezclados en un mismo % que "debería sumar 100"</h4>
+      <p class="fix"><b>fix ·</b> si vas a mostrar <code>PctCliente</code> y <code>PctCategoria</code> lado a lado, corre una consulta de control que verifique <code>SUM(PctTotal) = 1</code> por cada agrupación antes de publicar el reporte — no lo asumas por simetría visual.</p></div>
+
+    <div class="err"><h4>11 · Un JOIN que multiplica filas antes del OVER() infla todos los agregados de ventana</h4>
+      <p class="fix"><b>fix ·</b> si un <code>SUM() OVER()</code> sale "demasiado grande", sospecha primero de un join que multiplicó filas antes de llegar a la ventana — no del propio <code>OVER()</code>. Ver módulo 02, tema 10 (diagnóstico de explosión de filas por granularidad distinta).</p></div>
+
+    <div class="err"><h4>12 · Copiar QUALIFY literal de un script de Databricks a T-SQL</h4>
+      <p class="fix"><b>fix ·</b> error de sintaxis inmediato: la palabra clave no existe en SQL Server ni en PostgreSQL. Todo <code>QUALIFY</code> se traduce al patrón CTE + <code>WHERE</code> de los temas 4 y 8; no hay atajo de sintaxis.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════ EJERCICIOS ══════════════════════ -->
+<section class="sec" id="sec-ejercicios">
+  <div class="sec-head"><span class="n">§ 5</span><h2>Ejercicios</h2><span class="c">6 · los dos últimos combinan temas</span></div>
+  <p class="sec-note">Resuélvelos antes de abrir la solución. Los ejercicios 5 y 6 cruzan tres y cuatro temas del módulo respectivamente.</p>
+  <div class="branch" id="ejercicios"></div>
+</section>
+
+<!-- ══════════════════════ PROYECTO ══════════════════════ -->
+<section class="sec" id="sec-proyecto">
+  <div class="sec-head"><span class="n">§ 6</span><h2>Mini-proyecto</h2><span class="c">reporte de ventas con dedup, ranking y participación</span></div>
+  <p class="sec-note">La carga diaria del módulo trae reprocesos y una corrección real mezclados (§0). El reporte debe deduplicar antes de calcular nada, y cada número tiene que cuadrar con un control independiente. Siete criterios de aceptación ejecutables, incluidos uno de idempotencia y uno que verifica la corrección de la venta 18.</p>
+
+  <div class="card">
+    <h3>Entregable</h3>
+    <p>Un script que produzca <code>dbo.ReporteVentasAbril</code>, una fila por cliente con ventas ese mes:</p>
+    <table class="t">
+      <tr><th>Columna</th><th>Contenido</th></tr>
+      <tr><td><code>ClienteId</code>, <code>Nombre</code></td><td>identificación del cliente</td></tr>
+      <tr><td><code>TotalBruto</code></td><td>suma de <code>Cantidad*PrecioUnit</code> ya deduplicada</td></tr>
+      <tr><td><code>RankingCliente</code></td><td><code>RANK</code> por <code>TotalBruto DESC</code>: los empates comparten puesto</td></tr>
+      <tr><td><code>PctTotal</code></td><td>participación del cliente sobre el total general (decimal 0-1)</td></tr>
+      <tr><td><code>ProductoTopId</code>, <code>ProductoTopNombre</code>, <code>UnidadesProductoTop</code></td><td>producto con más unidades compradas por ese cliente, con desempate estable</td></tr>
+    </table>
+
+    <h3>Reglas obligatorias</h3>
+    <ul class="temas-chk" id="reglas">
+      <li><label class="chk"><input type="checkbox"><span>Deduplica <code>dbo.VentaCargaDiaria</code> por <code>VentaId</code> quedándote con la carga más reciente (<code>FechaCarga DESC</code>, luego <code>CargaId DESC</code>) <b>antes</b> de calcular cualquier total.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>El ranking usa <code>RANK</code>, no <code>ROW_NUMBER</code>: dos clientes con el mismo <code>TotalBruto</code> comparten puesto.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span><code>PctTotal</code> se calcula sobre el total ya deduplicado, nunca sobre el crudo de <code>VentaCargaDiaria</code>.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>El producto top por cliente usa un desempate único y estable (<code>ProductoId ASC</code> como último criterio).</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>El script es idempotente: dos ejecuciones seguidas producen exactamente el mismo contenido.</span></label></li>
+    </ul>
+
+    <h3>Criterios de aceptación</h3>
+    <div class="code"><span class="cap">cada consulta debe devolver OK</span><button class="cp">copiar</button><pre>-- AC1 · una fila por cliente, sin duplicados
+SELECT CASE WHEN COUNT(*) = COUNT(DISTINCT ClienteId) THEN 'OK' ELSE 'FALLA' END
+FROM dbo.ReporteVentasAbril;
+
+-- AC2 · cuadre de clientes: coincide con el universo deduplicado
+;WITH dedup AS (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY VentaId
+                                  ORDER BY FechaCarga DESC, CargaId DESC) AS rn
+    FROM dbo.VentaCargaDiaria
+)
+SELECT CASE WHEN (SELECT COUNT(*) FROM dbo.ReporteVentasAbril)
+               = (SELECT COUNT(DISTINCT ClienteId) FROM dedup WHERE rn = 1)
+            THEN 'OK' ELSE 'FALLA' END;
+
+-- AC3 · los porcentajes suman 1 (con tolerancia de redondeo)
+SELECT CASE WHEN ABS(SUM(PctTotal) - 1) &lt; 0.0005 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.ReporteVentasAbril;
+
+-- AC4 · control cruzado del total: mismo número calculado con MAX en vez de ROW_NUMBER
+;WITH dedup AS (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY VentaId
+                                  ORDER BY FechaCarga DESC, CargaId DESC) AS rn
+    FROM dbo.VentaCargaDiaria
+), control AS (
+    SELECT ClienteId, SUM(Cantidad*PrecioUnit) AS TotalControl
+    FROM dedup WHERE rn = 1 GROUP BY ClienteId
+)
+SELECT CASE WHEN NOT EXISTS (
+            SELECT 1 FROM dbo.ReporteVentasAbril r
+            JOIN control c ON c.ClienteId = r.ClienteId
+            WHERE r.TotalBruto &lt;&gt; c.TotalControl)
+            THEN 'OK' ELSE 'FALLA' END;
+
+-- AC5 · la corrección de la venta 18 quedó aplicada (Cantidad = 2, no 1)
+SELECT CASE WHEN TotalBruto = 2 * 300.00 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.ReporteVentasAbril WHERE ClienteId = 10;
+
+-- AC6 · el ranking no inventa huecos más allá de los que genera un empate real
+SELECT CASE WHEN COUNT(DISTINCT RankingCliente) = COUNT(DISTINCT TotalBruto)
+            THEN 'OK' ELSE 'FALLA' END
+FROM dbo.ReporteVentasAbril;
+
+-- AC7 · idempotencia
+SELECT CASE WHEN NOT EXISTS (SELECT * FROM dbo.ReporteVentasAbril
+                             EXCEPT SELECT * FROM dbo.ReporteVentasAbril_Snapshot)
+             AND NOT EXISTS (SELECT * FROM dbo.ReporteVentasAbril_Snapshot
+                             EXCEPT SELECT * FROM dbo.ReporteVentasAbril)
+            THEN 'OK' ELSE 'FALLA' END;</pre></div>
+    <p><b>AC4</b> es el más importante de leer: no compara el reporte contra sí mismo, sino contra una segunda deducción del mismo número escrita de forma independiente. Si ambas coinciden, el error de haber deduplicado mal en un solo lugar deja de ser invisible.</p>
+
+    <h3>Pistas de diseño</h3>
+    <button class="reveal" data-t="#pistas">mostrar pistas</button>
+    <div class="hidden" id="pistas">
+      <ul class="plain" style="margin-top:12px">
+        <li>El dedup es una sola CTE que se reutiliza (o se materializa en una tabla temporal) para <b>todo</b> el reporte: total, ranking y producto top deben partir del mismo conjunto ya deduplicado. Calcularlo dos veces con criterios ligeramente distintos es la forma más común de que AC4 falle.</li>
+        <li>El producto top por cliente es un segundo <code>ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY SUM(Cantidad) DESC, ProductoId)</code> sobre una agregación por <code>(ClienteId, ProductoId)</code> — dos pasadas de ventana encadenadas, como en el ejercicio 6.</li>
+        <li><code>PctTotal</code> necesita el total general una sola vez: <code>SUM(TotalBruto) OVER ()</code> sobre la tabla ya agregada por cliente, no una subconsulta repetida (comparación 3.3).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ EXAMEN ══════════════════════ -->
+<section class="sec" id="sec-examen">
+  <div class="sec-head"><span class="n">§ 7</span><h2>Autoevaluación</h2><span class="c">10 preguntas nivel entrevista</span></div>
+  <p class="sec-note">Responde en voz alta antes de revelar. Si no puedes explicarlo en dos frases, vuelve al tema correspondiente.</p>
+  <div class="card" id="examen"></div>
+</section>
+
+  <footer>
+    Módulo 03 de 16 · fase 01 · costo estimado 6.0 h<br>
+    El avance vive solo en esta pestaña: si recargas, los checks se reinician.<br>
+    Siguiente: <b>módulo 04 — funciones de ventana II: frames y series de tiempo</b>. El puente es el error 2: el frame por defecto ya asomó aquí como acumulado accidental; el módulo 04 lo hace explícito.
+  </footer>
+</div>
+
+<dialog id="dl">
+  <div class="dl-head"><h3 id="dlTitle">Prompt</h3><button class="x" id="dlClose" aria-label="Cerrar">✕</button></div>
+  <textarea id="dlText" spellcheck="false" readonly></textarea>
+  <div class="dl-foot"><button class="solid" id="dlCopy">Copiar al portapapeles</button><span class="msg" id="dlMsg"></span></div>
+</dialog>
+<div class="toast" id="toast">copiado</div>
+
+<script>
+/* ══════════ contenido de los 10 temas ══════════ */
+const TEMAS = [
+{id:"01", min:30, t:"Anatomía de OVER(): PARTITION BY y ORDER BY", html:`
+<p>Toda window function tiene la misma forma: una función, seguida de <code>OVER (...)</code> con hasta tres piezas opcionales. Sobre el dataset del módulo 01:</p>
+<div class="code"><span class="cap">T-SQL</span><button class="cp">copiar</button><pre>SELECT ClienteId, VentaId, Fecha, Cantidad * PrecioUnit AS Bruto,
+       ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Fecha) AS NroVentaCliente,
+       COUNT(*)     OVER (PARTITION BY ClienteId)                AS VentasDelCliente,
+       COUNT(*)     OVER ()                                       AS VentasTotales
+FROM dbo.Venta
+ORDER BY ClienteId, Fecha;</pre></div>
+<ul class="plain">
+<li><code>PARTITION BY ClienteId</code> parte las 20 filas de <code>Venta</code> en 10 ventanas, una por cliente con ventas. Ninguna fila se pierde ni se colapsa.</li>
+<li><code>ORDER BY Fecha</code> define el orden <b>dentro</b> de cada ventana: es lo que hace determinista a <code>NroVentaCliente</code> — siempre que <code>Fecha</code> no tenga empates dentro del mismo cliente (en este dataset no los tiene; el tema 7 muestra qué pasa cuando sí).</li>
+<li><code>OVER (PARTITION BY ClienteId)</code> sin <code>ORDER BY</code> no tiene ranking posible, pero sí agregado: <code>COUNT(*)</code> ve toda la partición porque no hay frase que recortar sin <code>ORDER BY</code>.</li>
+<li><code>OVER ()</code> vacío es el caso límite: toda la tabla es una sola ventana.</li>
+</ul>
+<div class="rule"><b>regla operativa</b>Sin <code>PARTITION BY</code>: una ventana. Sin <code>ORDER BY</code>: sin ranking, agregado sobre toda la partición. Ambos presentes: ranking determinista (si el <code>ORDER BY</code> no tiene empates) y frame por defecto activo en los agregados — tema 5.</div>
+<h3>Equivalencias</h3>
+<p>La sintaxis <code>OVER (PARTITION BY ... ORDER BY ...)</code> es ANSI SQL:2003 y es idéntica en PostgreSQL y Spark SQL / Databricks. La única diferencia real de esta sección es que T-SQL no tiene cláusula <code>WINDOW</code> con nombre (a fondo en el módulo 04): cada <code>OVER(...)</code> se repite completo. Postgres y Spark permiten declarar <code>WINDOW w AS (PARTITION BY ... ORDER BY ...)</code> una vez y referenciarla con <code>OVER w</code> en varias funciones. Otra diferencia menor: PostgreSQL soporta <code>FILTER (WHERE ...)</code> sobre funciones agregadas de ventana (<code>COUNT(*) FILTER (WHERE Canal='WEB') OVER (...)</code>); en T-SQL el equivalente es envolver el argumento en <code>CASE WHEN Canal='WEB' THEN 1 END</code> dentro de la propia función.</p>`},
+
+{id:"02", min:20, t:"Dónde puede y no puede aparecer una window function", html:`
+<p>El estándar (y los tres motores) coinciden: una window function solo puede aparecer en la lista del <code>SELECT</code> o en el <code>ORDER BY</code> de la consulta que la contiene. No en <code>WHERE</code>, no en <code>HAVING</code>, no en <code>GROUP BY</code>, no en el <code>ON</code> de un <code>JOIN</code>, y no anidada dentro de otra window function.</p>
+<div class="code bad"><span class="cap">no compila</span><button class="cp">copiar</button><pre>-- Msg 4108: Windowed functions can only appear in the SELECT or ORDER BY clauses.
+SELECT ClienteId, VentaId
+FROM dbo.Venta
+WHERE ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Fecha) = 1;</pre></div>
+<div class="code good"><span class="cap">correcta · CTE</span><button class="cp">copiar</button><pre>WITH numerado AS (
+    SELECT ClienteId, VentaId, Fecha,
+           ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Fecha) AS rn
+    FROM dbo.Venta
+)
+SELECT ClienteId, VentaId, Fecha
+FROM numerado
+WHERE rn = 1;</pre></div>
+<p>La razón es la misma del módulo 01, tema 3: el alias que nace en el <code>SELECT</code> (fase 5 del orden lógico) todavía no existe cuando el motor resuelve el <code>WHERE</code> (fase 2). No es una limitación arbitraria de sintaxis: es la consecuencia directa del orden lógico aplicada a un tipo de expresión nuevo. La solución también es la misma de siempre — CTE, derivada, o <code>CROSS APPLY (VALUES (...))</code> — porque todas viven en el <code>FROM</code> (fase 1), antes del <code>WHERE</code>.</p>
+<h3>Tampoco se anidan</h3>
+<div class="code bad"><span class="cap">no compila</span><button class="cp">copiar</button><pre>-- Msg 4109: Windowed functions cannot be used in the context of another windowed function
+SELECT SUM(ROW_NUMBER() OVER (ORDER BY Fecha)) OVER (PARTITION BY ClienteId)
+FROM dbo.Venta;</pre></div>
+<p>Si necesitas encadenar dos cálculos de ventana (numerar y luego agregar sobre lo numerado), la solución vuelve a ser la misma: calcula el primero en una CTE, y aplica el segundo sobre el resultado. Es exactamente el patrón del ejercicio 6.</p>
+<h3>Equivalencias</h3>
+<p>PostgreSQL y Spark SQL producen el mismo error de posición (<code>ERROR: window functions are not allowed in WHERE</code> / <code>AnalysisException</code>). La diferencia está en la salida: Databricks y Snowflake ofrecen <code>QUALIFY</code> como atajo de sintaxis para evitar el envoltorio en CTE — ver tema 8. PostgreSQL <b>no</b> tiene <code>QUALIFY</code>: usa el mismo patrón de CTE que T-SQL.</p>`},
+
+{id:"03", min:50, t:"ROW_NUMBER, RANK, DENSE_RANK, NTILE y sus diferencias", html:`
+<p>Las cuatro funciones de ranking comparten sintaxis y difieren solo en cómo tratan los empates. Sobre <code>dbo.Cliente</code>, que trae empates reales de <code>LimiteCredito</code> (5000, 8000 y 50000 se repiten) y tres clientes con <code>LimiteCredito</code> NULL:</p>
+<div class="code"><span class="cap">T-SQL</span><button class="cp">copiar</button><pre>SELECT ClienteId, LimiteCredito,
+       ROW_NUMBER() OVER (ORDER BY LimiteCredito DESC) AS rn,
+       RANK()        OVER (ORDER BY LimiteCredito DESC) AS rk,
+       DENSE_RANK()  OVER (ORDER BY LimiteCredito DESC) AS drk,
+       NTILE(4)      OVER (ORDER BY LimiteCredito DESC) AS cuartil
+FROM dbo.Cliente
+ORDER BY LimiteCredito DESC;</pre></div>
+<table class="t">
+<tr><th>Cliente</th><th>LimiteCredito</th><th>ROW_NUMBER</th><th>RANK</th><th>DENSE_RANK</th><th>NTILE(4)</th></tr>
+<tr><td>8</td><td>50000</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>9</td><td>50000</td><td>2</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>3</td><td>15000</td><td>3</td><td>3</td><td>2</td><td>1</td></tr>
+<tr><td>6</td><td>8000</td><td>4</td><td>4</td><td>3</td><td>2</td></tr>
+<tr><td>7</td><td>8000</td><td>5</td><td>4</td><td>3</td><td>2</td></tr>
+<tr><td>1</td><td>5000</td><td>6</td><td>6</td><td>4</td><td>2</td></tr>
+<tr><td>2</td><td>5000</td><td>7</td><td>6</td><td>4</td><td>3</td></tr>
+<tr><td>5</td><td>3000</td><td>8</td><td>8</td><td>5</td><td>3</td></tr>
+<tr><td>11</td><td>2000</td><td>9</td><td>9</td><td>6</td><td>3</td></tr>
+<tr><td>4</td><td>NULL</td><td>10</td><td>10</td><td>7</td><td>4</td></tr>
+<tr><td>10</td><td>NULL</td><td>11</td><td>10</td><td>7</td><td>4</td></tr>
+<tr><td>12</td><td>NULL</td><td>12</td><td>10</td><td>7</td><td>4</td></tr>
+</table>
+<div class="rule warn"><b>lo que el orden entre empatados no garantiza</b>Sin un desempate único, el orden <b>entre</b> filas empatadas (8/9, 6/7, 1/2, y las tres NULL) no está garantizado por el motor. <code>RANK</code> y <code>DENSE_RANK</code> dan el mismo resultado sin importar en qué orden caigan los empatados — pero <code>ROW_NUMBER</code> y <code>NTILE</code> sí dependen de ese orden: en otra ejecución, cliente 9 podría recibir <code>rn=1</code> en vez del cliente 8. Mira la fila del cliente 2 (<code>LimiteCredito</code>=5000): cayó en el cuartil 3, mientras su empate exacto, el cliente 1, cayó en el cuartil 2. <code>NTILE</code> reparte por <b>posición</b>, no por valor, así que un empate puede quedar partido entre dos buckets.</div>
+<table class="t">
+<tr><th>Función</th><th>Con empate</th><th>Deja huecos</th><th>Filas de salida distintas</th></tr>
+<tr><td><code>ROW_NUMBER</code></td><td class="no">ignora el empate, sigue contando</td><td class="no">nunca</td><td>siempre N (una por fila)</td></tr>
+<tr><td><code>RANK</code></td><td class="yes">mismo puesto para los empatados</td><td class="yes">sí, salta tantos como empatados hubo</td><td>= valores distintos</td></tr>
+<tr><td><code>DENSE_RANK</code></td><td class="yes">mismo puesto para los empatados</td><td class="no">nunca</td><td>= valores distintos</td></tr>
+<tr><td><code>NTILE(n)</code></td><td class="no">reparte por posición, no por valor</td><td class="no">nunca</td><td>n buckets, tamaño lo más parejo posible</td></tr>
+</table>
+<p><code>NTILE(n)</code> reparte el residuo de la división desde el primer bucket: con 13 filas y <code>NTILE(4)</code>, el primer bucket tendría 4 filas y los otros tres, 3 cada uno.</p>
+<h3>Equivalencias</h3>
+<p>Las cuatro funciones son ANSI SQL:2003 e idénticas en PostgreSQL y Spark SQL, empates y reparto de <code>NTILE</code> incluidos: el comportamiento de estas cuatro funciones no es una decisión de SQL Server, es parte del estándar.</p>`},
+
+{id:"04", min:40, t:"Deduplicación con ROW_NUMBER + CTE", html:`
+<p>El patrón "quédate con la fila más reciente por clave" es el caso de uso más común de <code>ROW_NUMBER</code> en un pipeline de carga. Sobre <code>dbo.VentaCargaDiaria</code> (§0), que trae 24 filas para 20 ventas reales:</p>
+<div class="code"><span class="cap">T-SQL</span><button class="cp">copiar</button><pre>WITH dedup AS (
+    SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY VentaId
+                               ORDER BY FechaCarga DESC, CargaId DESC) AS rn
+    FROM dbo.VentaCargaDiaria
+)
+SELECT VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal, FechaCarga
+FROM dedup
+WHERE rn = 1;</pre></div>
+<ul class="plain">
+<li><code>PARTITION BY VentaId</code> agrupa las 24 filas en 20 ventanas, una por venta real.</li>
+<li><code>ORDER BY FechaCarga DESC</code> pone primero la carga más reciente — la que debe ganar cuando hay reprocesos.</li>
+<li><code>CargaId DESC</code> es el desempate para el caso límite: la venta 20 llegó dos veces con el <b>mismo</b> <code>FechaCarga</code> exacto (un <code>INSERT</code> que corrió dos veces). Sin esta columna, cuál de las dos filas gana no está garantizado — y aunque aquí son idénticas, es el hábito que evita el error #6 del catálogo cuando algún día no lo sean.</li>
+<li><code>rn = 1</code> se filtra en la consulta externa, nunca en el <code>WHERE</code> de la CTE, por la regla del tema 2.</li>
+</ul>
+<p>El resultado son 20 filas: la venta 18 sale con <code>Cantidad = 2</code> (la corrección de las 07:30, no la original de 1), y las ventas 15, 16 y 20 salen una sola vez cada una pese a estar duplicadas en el origen.</p>
+<div class="rule"><b>por qué CTE y no DISTINCT</b><code>SELECT DISTINCT</code> sobre las columnas de negocio no sirve aquí: la venta 18 tiene dos filas con <code>Cantidad</code> distinta (1 y 2), así que <code>DISTINCT</code> las trataría como dos filas legítimamente diferentes y las dejaría <b>ambas</b> — exactamente el error #7 del catálogo, visto desde el otro lado.</div>
+<h3>Equivalencias</h3>
+<p>Idéntico en PostgreSQL. En Spark SQL / Databricks, el mismo <code>ROW_NUMBER</code> + filtro funciona igual, pero la forma nativa es <code>QUALIFY</code> (tema 8), que evita la CTE:</p>
+<div class="code"><span class="cap">Databricks / Spark SQL</span><button class="cp">copiar</button><pre>SELECT VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal, FechaCarga
+FROM venta_carga_diaria
+QUALIFY ROW_NUMBER() OVER (PARTITION BY VentaId
+                            ORDER BY FechaCarga DESC, CargaId DESC) = 1;</pre></div>`},
+
+{id:"05", min:45, t:"Agregados como ventana: SUM/AVG/COUNT OVER", html:`
+<p>Un agregado con <code>OVER()</code> no colapsa filas (modelo mental, §1), pero <b>qué exactamente</b> ve cada fila depende de si hay <code>ORDER BY</code> dentro del <code>OVER()</code>:</p>
+<div class="code"><span class="cap">T-SQL</span><button class="cp">copiar</button><pre>SELECT ClienteId, VentaId, Fecha, Cantidad * PrecioUnit AS Bruto,
+       SUM(Cantidad * PrecioUnit) OVER (PARTITION BY ClienteId)             AS TotalCliente,
+       SUM(Cantidad * PrecioUnit) OVER (PARTITION BY ClienteId ORDER BY Fecha) AS AcumuladoCliente,
+       AVG(Cantidad * PrecioUnit) OVER (PARTITION BY ClienteId)             AS PromedioCliente,
+       COUNT(*)                   OVER (PARTITION BY ClienteId)             AS NroVentas
+FROM dbo.Venta
+ORDER BY ClienteId, Fecha;</pre></div>
+<table class="t">
+<tr><th></th><th>OVER (PARTITION BY x)</th><th>OVER (PARTITION BY x ORDER BY y)</th></tr>
+<tr><td>Frame implícito</td><td>toda la partición (no hay <code>ORDER BY</code> que recortar)</td><td><code>RANGE UNBOUNDED PRECEDING TO CURRENT ROW</code></td></tr>
+<tr><td>Qué calcula</td><td class="yes">el total/promedio del grupo, igual en cada fila</td><td class="no">el acumulado hasta esa fila — <b>no</b> el total</td></tr>
+</table>
+<div class="rule warn"><b>la trampa que no lanza error</b>Agregar un <code>ORDER BY</code> a un <code>SUM() OVER(PARTITION BY ...)</code> — por ejemplo porque también querías las filas ordenadas — cambia el resultado de "total del grupo" a "acumulado hasta la fila", en silencio. Es el error #2 del catálogo, y el motivo por el que el módulo 04 dedica un tema entero al frame por defecto.</div>
+<p>Si necesitas <b>ambos</b> en la misma consulta (filas ordenadas por fecha <b>y</b> el total del cliente al lado), fuerza el frame completo en vez de quitar el <code>ORDER BY</code>:</p>
+<div class="code good"><span class="cap">total real, con ORDER BY presente</span><button class="cp">copiar</button><pre>SUM(Cantidad * PrecioUnit) OVER (
+    PARTITION BY ClienteId ORDER BY Fecha
+    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+) AS TotalCliente</pre></div>
+<h3>Equivalencias</h3>
+<p>El frame por defecto <code>RANGE UNBOUNDED PRECEDING TO CURRENT ROW</code> es una regla del estándar SQL:2003, no una decisión de SQL Server: PostgreSQL y Spark SQL tienen exactamente la misma trampa con el mismo frame por defecto. No es un comportamiento que cambie entre motores.</p>`},
+
+{id:"06", min:30, t:"Porcentaje sobre el total y sobre el grupo", html:`
+<p>Dos variantes de la misma idea, distinguidas solo por el <code>PARTITION BY</code> del denominador:</p>
+<div class="code"><span class="cap">T-SQL</span><button class="cp">copiar</button><pre>SELECT p.Categoria, p.Nombre, v.VentaId,
+       v.Cantidad * v.PrecioUnit AS Bruto,
+       CAST(v.Cantidad * v.PrecioUnit AS decimal(14,4))
+         / SUM(v.Cantidad * v.PrecioUnit) OVER ()                     AS PctTotal,
+       CAST(v.Cantidad * v.PrecioUnit AS decimal(14,4))
+         / SUM(v.Cantidad * v.PrecioUnit) OVER (PARTITION BY p.Categoria) AS PctCategoria
+FROM dbo.Venta v
+JOIN dbo.Producto p ON p.ProductoId = v.ProductoId;</pre></div>
+<ul class="plain">
+<li><code>OVER ()</code> vacío: el denominador es el bruto de <b>toda</b> la tabla — una sola ventana.</li>
+<li><code>OVER (PARTITION BY p.Categoria)</code>: el denominador es el bruto de la categoría de esa fila — tantas ventanas como categorías.</li>
+</ul>
+<div class="rule"><b>callback módulo 01</b>El <code>CAST</code> antes de dividir no es cosmético: sin él, <code>Cantidad * PrecioUnit</code> (ambos enteros o decimales exactos) dividido entre otro decimal exacto puede truncar según la precisión resultante y devolver 0 donde esperabas un porcentaje. Es la división entera silenciosa del módulo 01, catálogo de errores #13, reaplicada aquí.</div>
+<p>Con NULLs en la columna sumada, <code>SUM</code> los ignora (los excluye del cálculo, no los trata como 0) — igual que en un <code>GROUP BY</code> normal. En este dataset ni <code>Cantidad</code> ni <code>PrecioUnit</code> admiten NULL, así que no se manifiesta, pero conviene recordarlo antes de reutilizar el patrón sobre otra tabla.</p>
+<h3>Equivalencias</h3>
+<p>Idéntico en PostgreSQL. En Spark SQL, la división entre dos <code>DECIMAL</code> amplía automáticamente la precisión del resultado según reglas propias del motor; el <code>CAST</code> explícito sigue siendo la práctica correcta porque controla el resultado en vez de depender de esas reglas.</p>`},
+
+{id:"07", min:45, t:"Top-N por partición y desempates estables", html:`
+<p>El patrón "las N mejores filas de cada grupo" combina <code>ROW_NUMBER</code> con un <code>ORDER BY</code> que <b>nunca</b> deja empates sin resolver:</p>
+<div class="code"><span class="cap">T-SQL · top-2 ventas por cliente</span><button class="cp">copiar</button><pre>WITH clasif AS (
+    SELECT ClienteId, VentaId, Fecha, Cantidad * PrecioUnit AS Bruto,
+           ROW_NUMBER() OVER (PARTITION BY ClienteId
+                               ORDER BY Cantidad * PrecioUnit DESC, VentaId) AS pos
+    FROM dbo.Venta
+)
+SELECT ClienteId, VentaId, Fecha, Bruto, pos
+FROM clasif
+WHERE pos &lt;= 2
+ORDER BY ClienteId, pos;</pre></div>
+<p><code>VentaId</code> al final del <code>ORDER BY</code> es el desempate: si dos ventas del mismo cliente tuvieran exactamente el mismo <code>Bruto</code>, sin este desempate cuál de las dos cuenta como "top 2" no estaría garantizado entre ejecuciones.</p>
+<h3>Por qué ROW_NUMBER y no RANK aquí</h3>
+<p>Caso mínimo con cinco filas y un empate en la segunda posición:</p>
+<div class="code"><span class="cap">caso mínimo</span><button class="cp">copiar</button><pre>SELECT id, puntos,
+       ROW_NUMBER() OVER (ORDER BY puntos DESC, id) AS rn,
+       RANK()        OVER (ORDER BY puntos DESC)    AS rk
+FROM (VALUES (1,100),(2,90),(3,90),(4,90),(5,70)) AS t(id,puntos);</pre></div>
+<table class="t">
+<tr><th>id</th><th>puntos</th><th>rn</th><th>rk</th></tr>
+<tr><td>1</td><td>100</td><td>1</td><td>1</td></tr>
+<tr><td>2</td><td>90</td><td>2</td><td>2</td></tr>
+<tr><td>3</td><td>90</td><td>3</td><td>2</td></tr>
+<tr><td>4</td><td>90</td><td>4</td><td>2</td></tr>
+<tr><td>5</td><td>70</td><td>5</td><td>5</td></tr>
+</table>
+<p>Filtrar <code>rn &lt;= 2</code> devuelve exactamente 2 filas (id 1, 2). Filtrar <code>rk &lt;= 2</code> devuelve 4 (id 1, 2, 3, 4): el contrato "exactamente top-N" y el contrato "todos los empatados en el puesto N inclusive" son preguntas distintas, y elegir la función equivocada no avisa con un error — es el error #1 del catálogo.</p>
+<h3>Equivalencias</h3>
+<p>Idéntico en PostgreSQL y Spark SQL. En Databricks/Snowflake, este mismo patrón es el que <code>QUALIFY</code> acorta sin la CTE — ver tema 8. El módulo 02 (tema 9) ya resolvió el mismo problema de negocio con <code>CROSS APPLY</code>; aquí es la tercera herramienta para la misma pregunta, normalmente la más barata cuando no necesitas traer columnas adicionales de otra tabla por cada fila del top-N.</p>`},
+
+{id:"08", min:25, t:"QUALIFY (Databricks/Snowflake) vs subconsulta filtrada", html:`
+<p><code>QUALIFY</code> es, literalmente, "un <code>WHERE</code> para window functions": filtra sobre el resultado ya calculado de un <code>OVER()</code>, sin necesitar el envoltorio en CTE que exige el tema 2.</p>
+<div class="code"><span class="cap">Databricks / Spark SQL</span><button class="cp">copiar</button><pre>SELECT ClienteId, VentaId, Cantidad * PrecioUnit AS Bruto
+FROM venta
+QUALIFY ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Bruto DESC) &lt;= 2;</pre></div>
+<div class="code good"><span class="cap">T-SQL · mismo resultado</span><button class="cp">copiar</button><pre>WITH clasif AS (
+    SELECT ClienteId, VentaId, Cantidad * PrecioUnit AS Bruto,
+           ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Cantidad * PrecioUnit DESC) AS pos
+    FROM dbo.Venta
+)
+SELECT ClienteId, VentaId, Bruto
+FROM clasif
+WHERE pos &lt;= 2;</pre></div>
+<p><code>QUALIFY</code> no es una función nueva ni una sintaxis con semántica distinta: es exactamente el patrón CTE + <code>WHERE</code> de los temas 2, 4 y 7, con el envoltorio automatizado por el motor. Escribir ese CTE a mano en T-SQL no es una limitación del motor — es hacer explícito lo que <code>QUALIFY</code> hace implícito.</p>
+<div class="rule"><b>quién tiene QUALIFY y quién no</b><b>Lo tienen:</b> Databricks / Spark SQL, Snowflake, DuckDB. <b>No lo tienen:</b> SQL Server (ninguna versión hasta 2022) ni PostgreSQL (hasta la versión 17). Si ves <code>QUALIFY</code> en un script y tu motor de destino es T-SQL o Postgres, la traducción es siempre CTE + filtro — no hay atajo de sintaxis en ninguno de los dos.</div>
+<p>Copiar <code>QUALIFY</code> literalmente en T-SQL da error de sintaxis inmediato (error #12 del catálogo): la palabra clave no existe en el parser del motor, así que ni siquiera llega a la fase de binding.</p>`},
+
+{id:"09", min:25, t:"Ventanas vs GROUP BY: cuándo cada una", html:`
+<p>Tres preguntas distintas, tres herramientas. El módulo 02 (tema 9) ya comparó <code>APPLY</code> contra window function para top-N por grupo; aquí se cierra el mapa completo con <code>GROUP BY</code>:</p>
+<table class="t">
+<tr><th>Pregunta</th><th>Herramienta</th></tr>
+<tr><td>Un valor por grupo, sin el detalle</td><td><code>GROUP BY</code></td></tr>
+<tr><td>Un valor por grupo, con <b>todo</b> el detalle al lado</td><td>window function (<code>OVER (PARTITION BY ...)</code>)</td></tr>
+<tr><td>Top-N filas por grupo</td><td><code>ROW_NUMBER</code> + filtro (tema 7), o <code>CROSS APPLY</code> (módulo 02)</td></tr>
+<tr><td>Filtrar por un agregado de grupo</td><td><code>HAVING</code> si vas a colapsar; CTE con window function si necesitas conservar el detalle</td></tr>
+</table>
+<div class="code"><span class="cap">misma pregunta, dos herramientas, dos formas</span><button class="cp">copiar</button><pre>-- "total por cliente", SIN el detalle de cada venta
+SELECT ClienteId, SUM(Cantidad * PrecioUnit) AS Total
+FROM dbo.Venta
+GROUP BY ClienteId;
+
+-- "total por cliente", CON el detalle de cada venta al lado
+SELECT ClienteId, VentaId, Cantidad * PrecioUnit AS Bruto,
+       SUM(Cantidad * PrecioUnit) OVER (PARTITION BY ClienteId) AS Total
+FROM dbo.Venta;</pre></div>
+<p>Es tentador usar siempre la window function "por si acaso necesito el detalle después" — pero cuando el resultado final es de verdad una fila por grupo, <code>GROUP BY</code> suele producir un plan más simple (un <code>Stream Aggregate</code> sin necesidad de devolver ni materializar las filas de detalle) y comunica la intención con más claridad a quien lea la consulta después.</p>
+<div class="rule"><b>regla operativa</b>Pregúntate primero: ¿el resultado final tiene una fila por grupo, o una fila por detalle con un valor de grupo pegado al lado? La respuesta decide la herramienta antes de escribir una sola línea.</div>`},
+
+{id:"10", min:50, t:"Costo real: el operador Sort que introduce cada ventana", html:`
+<p>Una window function no es gratis: para calcular <code>PARTITION BY</code> + <code>ORDER BY</code> el motor necesita las filas físicamente ordenadas en ese orden. Si ningún índice ya las trae así, aparece un operador <b>Sort</b> explícito antes del cálculo.</p>
+<div class="code"><span class="cap">T-SQL · sobre dbo.VentaHist (1 000 000 filas)</span><button class="cp">copiar</button><pre>-- índices existentes: IX_VentaHist_Fecha(Fecha) INCLUDE(Monto,ClienteId)
+--                      IX_VentaHist_Cliente(ClienteId) INCLUDE(Fecha,Monto)
+-- ninguno tiene la clave compuesta (ClienteId, Fecha)
+SELECT ClienteId, Fecha, Monto,
+       SUM(Monto) OVER (PARTITION BY ClienteId ORDER BY Fecha) AS Acumulado
+FROM dbo.VentaHist;</pre></div>
+<p>Aunque hay un índice por <code>ClienteId</code> y otro por <code>Fecha</code>, <b>ninguno</b> sostiene el orden <code>(ClienteId, Fecha)</code> que pide la ventana: <code>IX_VentaHist_Cliente</code> ordena por <code>ClienteId</code>, pero dentro de cada cliente las filas no están garantizadas en orden de <code>Fecha</code> (esa columna solo va en el <code>INCLUDE</code>, no en la clave). El plan muestra un Sort explícito con reserva de memoria proporcional al millón de filas, y riesgo de <em>spill</em> a tempdb si la estimación se queda corta.</p>
+<div class="rule"><b>la solución no siempre es SQL</b>La comparación 3.2 muestra el antes y el después: crear <code>IX_VentaHist_Cliente_Fecha ON dbo.VentaHist(ClienteId, Fecha) INCLUDE (Monto)</code> elimina el Sort por completo con la <b>misma</b> consulta. A veces "la consulta correcta" es un índice, no una reescritura.</div>
+<h3>Varias ventanas, varios Sorts</h3>
+<p>Si una consulta usa dos <code>OVER()</code> con especificaciones de orden incompatibles (por ejemplo <code>PARTITION BY ClienteId ORDER BY Fecha</code> y <code>PARTITION BY Canal ORDER BY Monto</code>), el motor necesita <b>un Sort por cada especificación distinta</b> — no reutiliza el trabajo entre ellas. Agrupar tus funciones de ventana para que compartan el mismo <code>PARTITION BY</code>/<code>ORDER BY</code> cuando el negocio lo permite evita Sorts redundantes; cuando de verdad necesitas dos órdenes distintos, acepta el segundo Sort en vez de intentar forzar una sola pasada que no existe.</p>
+<h3>Leer el plan</h3>
+<p>En SSMS, busca el operador <b>Sort</b> justo antes de un <code>Segment</code>/<code>Window Spool</code>/<code>Sequence Project</code>: esa cadena es la señal inequívoca de una window function. Revisa su <em>Estimated Subtree Cost</em> y su <em>Memory Grant</em> — ahí vive casi siempre el costo real, no en la función agregada en sí.</p>
+<h3>Equivalencias</h3>
+<p>PostgreSQL expone lo mismo como un nodo <code>Sort</code> seguido de <code>WindowAgg</code> en <code>EXPLAIN</code>. En Spark SQL / Databricks el costo es potencialmente más severo: como el motor es distribuido, <code>PARTITION BY</code> generalmente exige un <em>shuffle</em> (<code>Exchange hashpartitioning</code>) que redistribuye los datos entre nodos por red <b>antes</b> del <code>Sort</code> local — el equivalente distribuido del mismo problema, pero con el costo de red sumado al del ordenamiento.</p>`}
+];
+
+/* ══════════ ejercicios ══════════ */
+const EJERCICIOS = [
+{id:"01", niv:"fácil", t:"Predecir la partición", temas:"tema 1, 3", enun:`
+<p>Sin ejecutar, sobre <code>dbo.Venta</code>: ¿cuántas ventanas crea <code>PARTITION BY ClienteId</code>? ¿Qué valor devuelve <code>COUNT(*) OVER ()</code> en cada fila? Para el cliente 6 (tres ventas: 100, 101, 102 el mismo día 2023-09-14/15), ¿qué garantiza y qué NO garantiza <code>ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Fecha)</code> sobre el orden entre sus tres ventas?</p>`,
+sol:`<ul class="plain">
+<li><b>10 ventanas</b>: hay 10 <code>ClienteId</code> distintos con al menos una fila en <code>Venta</code> (los clientes 11 y 12 no tienen ventas, así que no generan partición).</li>
+<li><b><code>COUNT(*) OVER ()</code> = 20</b> en las 20 filas: es una sola ventana, toda la tabla.</li>
+<li>Las tres ventas del cliente 6 tienen fechas <b>distintas</b> (12:10, 12:12 y 09:00 del día siguiente), así que <code>ORDER BY Fecha</code> sí las ordena sin ambigüedad: <code>ROW_NUMBER</code> garantiza 1, 2, 3 en ese orden cronológico, de forma determinista. Lo que <b>no</b> estaría garantizado es si dos de esas fechas fueran idénticas al segundo — ahí el orden entre ellas quedaría arbitrario sin un desempate adicional (tema 7).</li>
+</ul>`},
+
+{id:"02", niv:"fácil", t:"RANK vs DENSE_RANK con datos reales", temas:"tema 3", enun:`
+<p>Sobre <code>dbo.Cliente</code>, ejecuta <code>RANK()</code> y <code>DENSE_RANK()</code> por <code>LimiteCredito DESC</code>. Sin mirar la tabla del tema 3: ¿cuántos valores <b>distintos</b> de <code>RANK</code> esperas ver? ¿Y de <code>DENSE_RANK</code>? ¿Por qué el número de valores distintos de <code>DENSE_RANK</code> es siempre &le; al de <code>RANK</code>?</p>`,
+sol:`<p>Hay 7 valores distintos de <code>LimiteCredito</code> contando NULL como un valor propio para el ranking: 50000, 15000, 8000, 5000, 3000, 2000 y NULL. <code>DENSE_RANK</code> produce exactamente <b>7</b> valores distintos (1 a 7), uno por cada valor distinto de la columna. <code>RANK</code> produce también 7 valores distintos, pero <b>no consecutivos</b>: 1, 3, 4, 6, 8, 9, 10 — salta tantas posiciones como filas empatadas hubo en el grupo anterior. La cantidad de valores distintos de ambas funciones siempre coincide (una por cada valor distinto de la columna de orden); lo que cambia es si hay huecos numéricos entre ellos. <code>DENSE_RANK</code> nunca tiene huecos porque numera "valores distintos vistos hasta ahora"; <code>RANK</code> numera "filas vistas hasta ahora", así que un grupo de empatados infla el contador para el siguiente valor.</p>`},
+
+{id:"03", niv:"medio", t:"Sacar el ROW_NUMBER del WHERE", temas:"tema 2, 4", enun:`
+<p>Un compañero escribió esto para quedarse con la primera venta de cada cliente y no compila:</p>
+<div class="code bad"><button class="cp">copiar</button><pre>SELECT ClienteId, VentaId, Fecha
+FROM dbo.Venta
+WHERE ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Fecha) = 1;</pre></div>
+<p>(a) Explica exactamente por qué no compila, citando la fase del orden lógico. (b) Corrígelo. (c) Aplica el mismo patrón para deduplicar <code>dbo.VentaCargaDiaria</code>, quedándote con la carga <b>más reciente</b> de cada <code>VentaId</code>, con un desempate que cubra el caso de dos cargas en el mismo instante exacto.</p>`,
+sol:`<p><b>(a)</b> Una window function se evalúa en la fase 5 del orden lógico (junto al resto del <code>SELECT</code>). El <code>WHERE</code> es la fase 2: en ese punto el motor todavía no ha llegado a evaluar ninguna expresión del <code>SELECT</code>, así que <code>ROW_NUMBER()</code> no puede existir ahí todavía. SQL Server lo rechaza en tiempo de compilación con el Msg 4108, antes incluso de intentar ejecutar nada.</p>
+<div class="code good"><span class="cap">(b)</span><button class="cp">copiar</button><pre>WITH numerado AS (
+    SELECT ClienteId, VentaId, Fecha,
+           ROW_NUMBER() OVER (PARTITION BY ClienteId ORDER BY Fecha) AS rn
+    FROM dbo.Venta
+)
+SELECT ClienteId, VentaId, Fecha FROM numerado WHERE rn = 1;</pre></div>
+<div class="code good"><span class="cap">(c)</span><button class="cp">copiar</button><pre>WITH dedup AS (
+    SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY VentaId
+                               ORDER BY FechaCarga DESC, CargaId DESC) AS rn
+    FROM dbo.VentaCargaDiaria
+)
+SELECT VentaId, ClienteId, ProductoId, Fecha, Cantidad, PrecioUnit, Descuento, Canal, FechaCarga
+FROM dedup
+WHERE rn = 1;</pre></div>
+<p><code>CargaId DESC</code> cubre el caso de la venta 20 (dos filas con el mismo <code>FechaCarga</code> exacto): como <code>CargaId</code> es <code>IDENTITY</code>, siempre es único, así que el empate queda resuelto de forma determinista aunque las dos filas sean idénticas en todo lo demás.</p>`},
+
+{id:"04", niv:"medio", t:"Acumulado, total y porcentaje en la misma consulta", temas:"tema 5, 6", enun:`
+<p>Sobre <code>dbo.Venta</code>, escribe una sola consulta con, para cada venta: el bruto, el acumulado del cliente ordenado por fecha, el total del cliente (sin acumular) y el porcentaje de esa venta sobre el total del cliente. Luego escribe una consulta de control separada que verifique que, para cada uno de los 10 clientes con ventas, la suma de esos porcentajes da 1.</p>`,
+sol:`<div class="code good"><button class="cp">copiar</button><pre>WITH detalle AS (
+    SELECT ClienteId, VentaId, Fecha,
+           Cantidad * PrecioUnit AS Bruto,
+           SUM(Cantidad * PrecioUnit) OVER (PARTITION BY ClienteId ORDER BY Fecha) AS Acumulado,
+           SUM(Cantidad * PrecioUnit) OVER (PARTITION BY ClienteId
+               ORDER BY Fecha ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS TotalCliente
+    FROM dbo.Venta
+)
+SELECT *,
+       CAST(Bruto AS decimal(14,4)) / TotalCliente AS PctSobreTotalCliente
+FROM detalle
+ORDER BY ClienteId, Fecha;</pre></div>
+<p>Nota el <code>ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</code> en <code>TotalCliente</code>: como la CTE ya necesita <code>ORDER BY Fecha</code> para el acumulado, sin ese frame explícito el "total" heredaría el frame por defecto y saldría igual al acumulado — el error #2 del catálogo, evitado a propósito.</p>
+<div class="code"><span class="cap">control</span><button class="cp">copiar</button><pre>WITH detalle AS (
+    SELECT ClienteId,
+           Cantidad * PrecioUnit AS Bruto,
+           SUM(Cantidad * PrecioUnit) OVER (PARTITION BY ClienteId
+               ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS TotalCliente
+    FROM dbo.Venta
+)
+SELECT ClienteId, SUM(CAST(Bruto AS decimal(14,4)) / TotalCliente) AS SumaPct
+FROM detalle
+GROUP BY ClienteId
+HAVING ABS(SUM(CAST(Bruto AS decimal(14,4)) / TotalCliente) - 1) &gt; 0.0005;
+-- 0 filas si todo cuadra</pre></div>`},
+
+{id:"05", niv:"difícil", t:"Producto más vendido por categoría, con empates permitidos", temas:"combina temas 3 · 6 · 9", enun:`
+<p>Requerimiento: <em>"para cada categoría de producto, el/los producto(s) con más unidades vendidas en total, junto con su participación % dentro de la categoría. Si hay empate en primer lugar, deben aparecer todos los empatados."</em> (a) Escríbela. (b) Explica por qué <code>RANK</code> es la función correcta aquí y no <code>ROW_NUMBER</code>. (c) Explica por qué un <code>GROUP BY</code> simple no alcanza para resolver esto en una sola pasada.</p>`,
+sol:`<div class="code good"><span class="cap">(a)</span><button class="cp">copiar</button><pre>WITH porProducto AS (
+    SELECT p.Categoria, p.ProductoId, p.Nombre,
+           SUM(v.Cantidad) AS Unidades
+    FROM dbo.Venta v
+    JOIN dbo.Producto p ON p.ProductoId = v.ProductoId
+    GROUP BY p.Categoria, p.ProductoId, p.Nombre
+), clasif AS (
+    SELECT *,
+           RANK() OVER (PARTITION BY Categoria ORDER BY Unidades DESC) AS puesto,
+           CAST(Unidades AS decimal(14,4))
+             / SUM(Unidades) OVER (PARTITION BY Categoria) AS PctCategoria
+    FROM porProducto
+)
+SELECT Categoria, ProductoId, Nombre, Unidades, PctCategoria
+FROM clasif
+WHERE puesto = 1
+ORDER BY Categoria, ProductoId;</pre></div>
+<p><b>(b)</b> El requisito dice explícitamente "deben aparecer todos los empatados": ese es el contrato de <code>RANK</code>, no el de <code>ROW_NUMBER</code>. Si dos productos de SEGURO vendieran exactamente las mismas unidades y usaras <code>ROW_NUMBER</code>, uno de los dos desaparecería del reporte de forma arbitraria — un bug que además cambiaría de víctima entre ejecuciones (error #1 del catálogo).</p>
+<p><b>(c)</b> <code>GROUP BY Categoria, ProductoId</code> te da el total por producto, pero no te dice cuál es el <b>máximo dentro de su categoría</b> sin un segundo paso: necesitarías o bien un <code>MAX(Unidades) OVER (PARTITION BY Categoria)</code> comparado después (otra window function) o una subconsulta correlacionada por categoría (la ingenua de la comparación 3.1). El <code>GROUP BY</code> colapsa la granularidad de producto; comparar "este producto contra el mejor de su categoría" exige ver ambos niveles a la vez, que es precisamente lo que <code>RANK() OVER (PARTITION BY Categoria ...)</code> resuelve sin colapsar nada (tema 9).</p>`},
+
+{id:"06", niv:"difícil", t:"Dedup + top-N encadenados, y el índice que evita un segundo Sort", temas:"combina temas 1 · 4 · 7 · 10", enun:`
+<p>Sobre <code>dbo.VentaCargaDiaria</code>: (a) dedup a la carga más reciente por <code>VentaId</code> (tema 4); (b) sobre ese resultado ya deduplicado, calcula el top-2 por cliente por <code>Bruto</code> con desempate estable (tema 7) — sin volver a tocar <code>VentaCargaDiaria</code> directamente en el segundo paso; (c) en dos frases, ¿qué índice le pedirías al DBA para que el plan final no lleve un Sort <b>adicional</b> aparte del que ya exige el dedup?</p>`,
+sol:`<div class="code good"><span class="cap">(a) + (b) — dos window functions encadenadas, cada una en su propia CTE</span><button class="cp">copiar</button><pre>WITH dedup AS (
+    SELECT VentaId, ClienteId, Fecha, Cantidad * PrecioUnit AS Bruto,
+           ROW_NUMBER() OVER (PARTITION BY VentaId
+                               ORDER BY FechaCarga DESC, CargaId DESC) AS rn
+    FROM dbo.VentaCargaDiaria
+), limpio AS (
+    SELECT VentaId, ClienteId, Fecha, Bruto
+    FROM dedup WHERE rn = 1
+), clasif AS (
+    SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY ClienteId
+                               ORDER BY Bruto DESC, VentaId) AS pos
+    FROM limpio
+)
+SELECT ClienteId, VentaId, Fecha, Bruto, pos
+FROM clasif
+WHERE pos &lt;= 2
+ORDER BY ClienteId, pos;</pre></div>
+<p>Dos <code>ROW_NUMBER</code> no se pueden anidar en la misma expresión (tema 2), así que cada uno vive en su propia CTE, encadenadas: <code>limpio</code> es el punto de corte que garantiza que el segundo <code>ROW_NUMBER</code> ya no ve las filas duplicadas del origen.</p>
+<p><b>(c)</b> El primer <code>ROW_NUMBER</code> necesita las filas ordenadas por <code>(VentaId, FechaCarga DESC, CargaId DESC)</code> — un índice <code>(VentaId, FechaCarga DESC, CargaId DESC) INCLUDE (...)</code> evita el primer Sort. El <b>segundo</b> <code>ROW_NUMBER</code> pide un orden completamente distinto — <code>(ClienteId, Bruto DESC)</code> — sobre una columna calculada (<code>Cantidad*PrecioUnit</code>) que ni siquiera existe físicamente en la tabla, así que ningún índice sobre <code>VentaCargaDiaria</code> puede sostenerlo directamente. En la práctica se acepta el segundo Sort (es sobre el resultado ya deduplicado y mucho más chico) o se materializa <code>limpio</code> en una tabla temporal con su propio índice si el volumen lo justifica — tema 10: no todo Sort vale la pena eliminarlo, solo el que pesa.</p>`}
+];
+
+/* ══════════ examen ══════════ */
+const EXAMEN = [
+["¿Por qué una window function no colapsa filas y un GROUP BY sí?",
+ "Porque GROUP BY es un operador de agregación: reduce N filas a un grupo y descarta cualquier columna no agrupada ni agregada. Una window function calcula el mismo tipo de valor pero lo reparte sobre las N filas originales sin fusionarlas — conceptualmente es un Sort más una pasada que anota un valor por fila, no un Aggregate que colapsa."],
+["¿Dónde puede aparecer una window function y por qué no en el WHERE?",
+ "Solo en la lista del SELECT y en el ORDER BY. Se evalúa en la fase 5 del orden lógico junto al resto del SELECT; el WHERE es la fase 2, anterior, así que en ese punto la expresión todavía no existe en el ámbito de nombres — el mismo problema de binding que un alias del SELECT usado en el WHERE (módulo 01, tema 3)."],
+["¿Cuál es la diferencia entre RANK y DENSE_RANK con empates?",
+ "Ambos dan el mismo puesto a las filas empatadas, pero RANK numera por posición de fila y deja huecos después de un empate (1,1,3,4,4,6), mientras DENSE_RANK numera por valor distinto visto y nunca deja huecos (1,1,2,3,3,4)."],
+["¿Por qué ROW_NUMBER es la herramienta correcta para 'exactamente top-N por grupo' y RANK no siempre?",
+ "Porque RANK conserva a todos los empatados en el límite del corte: filtrar rk &lt;= 2 con tres filas empatadas en la posición 2 devuelve cuatro filas, no dos. ROW_NUMBER con un ORDER BY sin ambigüedad (con desempate único) siempre devuelve exactamente N filas por partición."],
+["¿Qué cambia si agregas un ORDER BY a un SUM() OVER(PARTITION BY x) que antes no lo tenía?",
+ "El frame por defecto pasa de 'toda la partición' a RANGE UNBOUNDED PRECEDING TO CURRENT ROW: el resultado deja de ser el total del grupo y se convierte en un acumulado hasta esa fila. No lanza ningún error; el número simplemente cambia de significado."],
+["¿Cómo deduplicarías una tabla de staging con reprocesos, garantizando que el resultado sea el mismo en cada ejecución?",
+ "Con ROW_NUMBER() OVER (PARTITION BY &lt;clave de negocio&gt; ORDER BY &lt;criterio de vigencia, por ejemplo fecha de carga DESC&gt;, &lt;columna única como desempate final&gt;), filtrando rn = 1 en una consulta externa. El desempate único al final del ORDER BY es lo que garantiza el mismo ganador entre ejecuciones cuando dos filas empatan exactamente en el criterio principal."],
+["¿Qué es QUALIFY y por qué T-SQL no lo tiene?",
+ "Es un filtro que se aplica directamente sobre el resultado de una window function, evitando el envoltorio en CTE. Lo ofrecen Databricks/Spark SQL, Snowflake y DuckDB; ni SQL Server ni PostgreSQL lo implementan — en ambos, todo QUALIFY se traduce a mano al patrón CTE + WHERE."],
+["¿Cuándo preferirías GROUP BY sobre una window function, y viceversa?",
+ "GROUP BY cuando el resultado final es una fila por grupo sin necesitar el detalle; window function cuando necesitas conservar cada fila de detalle junto con un valor calculado sobre su grupo. Usar window function 'por si acaso' cuando en realidad solo hace falta una fila por grupo suele producir un plan innecesariamente más caro."],
+["¿Por qué aparece un operador Sort antes de una window function y cómo lo evitas?",
+ "El motor necesita las filas físicamente ordenadas por PARTITION BY + ORDER BY antes de calcular la función; si ningún índice ya entrega ese orden exacto, inserta un Sort explícito. Se evita creando un índice cuya clave sea exactamente (columnas de PARTITION BY, columnas de ORDER BY), en ese orden."],
+["¿Qué pasa con NTILE cuando hay un empate justo en el borde de un bucket?",
+ "NTILE reparte por posición de fila, no por valor: dos filas con el mismo valor pueden caer en buckets distintos si su posición (determinada por un ORDER BY sin desempate) las separa justo en la frontera. Si el requisito exige que valores iguales siempre compartan bucket, NTILE no es la función correcta — hay que definir los cortes con CASE WHEN sobre el valor."]
+];
+
+/* ══════════ render ══════════ */
+const $ = s => document.querySelector(s);
+const estado = new Map(TEMAS.map(t => [t.id, false]));
+
+function nodo({id, t, meta, bodyHtml, cls}){
+  const el = document.createElement("article");
+  el.className = "node" + (cls ? " " + cls : "");
+  el.dataset.id = id;
+  el.innerHTML =
+    '<div class="node-inner">' +
+      '<button class="node-head" aria-expanded="false">' +
+        '<span class="idx">' + id + '</span>' +
+        '<span class="ttl">' + t + '</span>' +
+        '<span class="meta">' + meta + '</span>' +
+        '<span class="caret">&rsaquo;</span>' +
+      '</button>' +
+      '<div class="body">' + bodyHtml + '</div>' +
+    '</div>';
+  el.querySelector(".node-head").addEventListener("click", () => {
+    const open = el.classList.toggle("open");
+    el.querySelector(".node-head").setAttribute("aria-expanded", open);
+  });
+  return el;
+}
+
+const cont = $("#temas");
+TEMAS.forEach(t => {
+  const el = nodo({
+    id: "→ " + t.id, t: t.t,
+    meta: '<span>' + t.min + ' min</span>',
+    bodyHtml: t.html +
+      '<div style="margin-top:16px;padding-top:13px;border-top:1px dashed var(--hair)">' +
+        '<label class="chk"><input type="checkbox" data-tema="' + t.id + '"><span>Tema ' + t.id + ' cubierto</span></label>' +
+      '</div>'
+  });
+  el.querySelector("input[data-tema]").addEventListener("change", e => {
+    estado.set(t.id, e.target.checked);
+    el.classList.toggle("done", e.target.checked);
+    refrescar();
+  });
+  cont.appendChild(el);
+});
+
+const ce = $("#ejercicios");
+EJERCICIOS.forEach(x => {
+  const el = nodo({
+    id: "→ " + x.id, t: x.t,
+    meta: '<span>' + x.niv + '</span><span>' + x.temas + '</span>',
+    bodyHtml: x.enun +
+      '<div style="margin-top:14px"><button class="reveal" data-t="#sol' + x.id + '">ver solución</button></div>' +
+      '<div class="hidden" id="sol' + x.id + '" style="margin-top:12px">' + x.sol + '</div>'
+  });
+  ce.appendChild(el);
+});
+
+const ex = $("#examen");
+EXAMEN.forEach((q, i) => {
+  const n = i + 1;
+  const d = document.createElement("div");
+  d.className = "qa";
+  d.innerHTML =
+    '<p class="q"><span>' + String(n).padStart(2,"0") + '</span>' + q[0] + '</p>' +
+    '<button class="reveal" data-t="#ans' + n + '">ver respuesta</button>' +
+    '<div class="hidden ans" id="ans' + n + '">' + q[1] + '</div>';
+  ex.appendChild(d);
+});
+
+/* barra de costo */
+function refrescar(){
+  const track = $("#track");
+  track.innerHTML = "";
+  let done = 0, total = 0;
+  TEMAS.forEach(t => {
+    total += t.min;
+    const ok = estado.get(t.id);
+    if(ok) done += t.min;
+    const s = document.createElement("button");
+    s.className = "seg";
+    s.style.flex = t.min;
+    s.dataset.done = ok ? "1" : "0";
+    s.title = t.id + " · " + t.t + " — " + t.min + " min";
+    s.innerHTML = '<span class="fill" style="right:' + (ok ? 0 : 100) + '%"></span><span class="tag">' + t.id + '</span>';
+    s.addEventListener("click", () => {
+      mostrar("temas");
+      const n = document.querySelector('.node[data-id="→ ' + t.id + '"]');
+      n.classList.add("open");
+      n.querySelector(".node-head").setAttribute("aria-expanded","true");
+      n.scrollIntoView({behavior:"smooth", block:"center"});
+    });
+    track.appendChild(s);
+  });
+  const pct = Math.round(done / total * 100);
+  $("#pct").textContent = pct + " %";
+  $("#pctBig").textContent = pct + " %";
+}
+refrescar();
+
+/* navegación por secciones */
+function mostrar(id){
+  document.querySelectorAll("section.sec").forEach(s => s.classList.toggle("on", id === "todo" || s.id === "sec-" + id));
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.s === id));
+  $("#todo").textContent = id === "todo" ? "ver por secciones" : "ver todo";
+}
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+  mostrar(c.dataset.s);
+  window.scrollTo({top:0, behavior:"smooth"});
+}));
+$("#todo").addEventListener("click", () => mostrar($("#todo").textContent === "ver todo" ? "todo" : "modelo"));
+
+/* revelar soluciones y respuestas */
+document.addEventListener("click", e => {
+  const b = e.target.closest(".reveal");
+  if(!b) return;
+  const t = document.querySelector(b.dataset.t);
+  const on = t.classList.toggle("show");
+  b.textContent = on
+    ? b.textContent.replace("ver","ocultar")
+    : b.textContent.replace("ocultar","ver");
+});
+
+/* copiar bloques de código */
+const toast = $("#toast");
+function flash(msg){
+  toast.textContent = msg;
+  toast.classList.add("on");
+  setTimeout(() => toast.classList.remove("on"), 1400);
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".cp");
+  if(!b) return;
+  const pre = b.parentElement.querySelector("pre");
+  try{
+    await navigator.clipboard.writeText(pre.textContent);
+    flash("copiado");
+  }catch(err){
+    const r = document.createRange();
+    r.selectNodeContents(pre);
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(r);
+    flash("selecciónalo con Ctrl+C");
+  }
+});
+
+/* prompt del siguiente módulo */
+const PROMPT04 = `Contexto del estudiante: trabaja a diario con SQL Server (T-SQL), procesos de carga y datos en Azure/Databricks. Ya escribe consultas complejas; no necesita explicaciones de nivel introductorio. Ya completó los módulos 01 (semántica del lenguaje y orden lógico de ejecución), 02 (joins a fondo y control de cardinalidad) y 03 (funciones de ventana I: partición, orden y ranking), así que puedes dar por conocidos: orden lógico y alcance de alias, lógica de tres valores, joins/EXISTS/APPLY y diagnóstico de explosión de filas, la anatomía de OVER() y dónde puede aparecer una window function, ROW_NUMBER/RANK/DENSE_RANK/NTILE y sus diferencias con empates, deduplicación con ROW_NUMBER+CTE, agregados como ventana y el frame por defecto (RANGE UNBOUNDED PRECEDING TO CURRENT ROW), porcentajes con SUM() OVER(), QUALIFY vs el patrón CTE, y el operador Sort que introduce cada ventana.
+
+Actúa como instructor senior de bases de datos. Desarrolla una clase completa y a profundidad del siguiente módulo.
+
+MÓDULO 04 — Funciones de ventana II: frames y series de tiempo
+Resultado esperado: Escribir acumulados, medias móviles y comparativas contra el periodo anterior sin errores silenciosos de frame.
+
+Temas:
+1. ROWS vs RANGE vs GROUPS: la diferencia que cambia resultados
+2. UNBOUNDED PRECEDING, CURRENT ROW, FOLLOWING
+3. El frame por defecto (RANGE UNBOUNDED PRECEDING) y sus empates
+4. Acumulados, saldos corrientes y balances
+5. Medias y sumas móviles de N periodos
+6. LAG y LEAD con offset y valor por defecto
+7. FIRST_VALUE, LAST_VALUE, NTH_VALUE y el error clásico de LAST_VALUE
+8. PERCENT_RANK, CUME_DIST, PERCENTILE_CONT / PERCENTILE_DISC
+9. Cláusula WINDOW con nombre para reutilizar definiciones
+10. Huecos en la serie: unir contra un calendario antes de la ventana
+
+Formato de la clase:
+1. Modelo mental primero: qué problema resuelve el tema y cómo lo piensa el motor internamente.
+2. Explicación tema por tema, cada uno con un ejemplo ejecutable en T-SQL (SQL Server 2019+) y la equivalencia en PostgreSQL y Spark SQL cuando difiera.
+3. Reutiliza el dataset de los módulos 01-03 (dbo.Cliente, dbo.Producto, dbo.Venta, dbo.ClienteExterno, dbo.ClienteMasivo, dbo.VentaHist, dbo.VentaCargaDiaria) y agrega solo las tablas nuevas que necesites, con su script y una nota de qué se asume ya creado.
+4. Al menos tres comparaciones "consulta ingenua vs consulta correcta" mostrando el plan de ejecución esperado y por qué cambia el costo.
+5. Errores comunes y resultados silenciosamente incorrectos, con el caso mínimo que los reproduce.
+6. Seis ejercicios de dificultad creciente con solución comentada; los dos últimos deben exigir combinar varios temas del módulo.
+7. Un mini-proyecto de cierre con datos realistas y criterios de aceptación verificables.
+8. Diez preguntas de autoevaluación tipo entrevista técnica, con respuesta modelo breve.
+
+Sé preciso y técnico. Cita el comportamiento por versión de motor cuando importe. No resumas: prefiere profundidad sobre cobertura superficial.`;
+
+const dl = $("#dl");
+$("#next").addEventListener("click", () => {
+  $("#dlTitle").textContent = "Prompt · módulo 04 (frames y series de tiempo)";
+  $("#dlText").value = PROMPT04;
+  $("#dlMsg").textContent = "";
+  dl.showModal();
+});
+$("#dlClose").addEventListener("click", () => dl.close());
+$("#dlCopy").addEventListener("click", async () => {
+  const ta = $("#dlText");
+  try{
+    await navigator.clipboard.writeText(ta.value);
+    $("#dlMsg").textContent = "Copiado.";
+  }catch(e){
+    ta.removeAttribute("readonly"); ta.select();
+    $("#dlMsg").textContent = "El navegador bloqueó el portapapeles: el texto quedó seleccionado, usa Ctrl+C.";
+  }
+});
+</script>
+</body>
+</html>

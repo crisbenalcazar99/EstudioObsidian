@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Módulo 02 · Joins a fondo y control de cardinalidad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E7EAF0; --card:#FFFFFF; --tint:#F3F5F9;
+    --ink:#101A33; --slate:#5A688F; --hair:#C9D0DE;
+    --seek:#12715C; --cost:#A31A56; --warn:#8A5A12;
+    --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+    --body:"IBM Plex Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+    --r:3px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--body);
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+    background-image:linear-gradient(to right,rgba(16,26,51,.035) 1px,transparent 1px);
+    background-size:28px 100%;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:34px 20px 90px}
+  p{margin:0 0 12px}
+  a{color:var(--cost)}
+  code{font-family:var(--mono);font-size:.92em}
+
+  .plan-call{font-family:var(--mono);font-size:12.5px;color:var(--slate);margin:0 0 18px}
+  .plan-call b{color:var(--cost);font-weight:600}
+  h1{font-family:var(--display);font-size:clamp(34px,6vw,58px);font-weight:800;
+     line-height:.96;letter-spacing:-.028em;margin:0 0 14px}
+  h1 em{font-style:normal;color:var(--cost)}
+  .lede{max-width:64ch;color:#28324F;font-size:16.5px;margin:0 0 24px}
+
+  .stats{display:flex;flex-wrap:wrap;border:1px solid var(--hair);background:var(--card);border-radius:var(--r);overflow:hidden}
+  .stat{flex:1 1 120px;padding:12px 14px;border-right:1px solid var(--hair)}
+  .stat:last-child{border-right:0}
+  .stat .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--slate);display:block}
+  .stat .v{font-family:var(--display);font-size:25px;font-weight:700;letter-spacing:-.02em;display:block;line-height:1.2}
+
+  .costbar{margin:22px 0 4px}
+  .costbar .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
+    color:var(--slate);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .track{display:flex;gap:2px;height:30px}
+  .seg{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:2px;overflow:hidden;cursor:pointer;padding:0}
+  .seg .fill{position:absolute;inset:0 100% 0 0;background:var(--seek);transition:right .4s cubic-bezier(.2,.7,.3,1)}
+  .seg .tag{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:10.5px;color:var(--slate);mix-blend-mode:multiply}
+  .seg:hover{border-color:var(--ink)}
+  .seg[data-done="1"] .tag{color:#fff;mix-blend-mode:normal}
+
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:28px 0 24px;padding-top:20px;border-top:1px solid var(--hair)}
+  .bar .cap{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--slate);margin-right:4px}
+  .chip{font-family:var(--mono);font-size:12px;padding:6px 11px;border:1px solid var(--hair);
+    background:var(--card);color:var(--slate);border-radius:99px;cursor:pointer}
+  .chip:hover{border-color:var(--ink);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .bar .spacer{flex:1}
+  .ghost{font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--ink);
+    background:transparent;color:var(--ink);border-radius:var(--r);cursor:pointer}
+  .ghost:hover{background:var(--ink);color:#fff}
+  .solid{font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--cost);
+    background:var(--cost);color:#fff;border-radius:var(--r);cursor:pointer}
+  .solid:hover{background:#8C1449;border-color:#8C1449}
+
+  section.sec{display:none;margin:0 0 40px}
+  section.sec.on{display:block;animation:in .2s ease both}
+  @keyframes in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:2px}
+  .sec-head .n{font-family:var(--mono);font-size:12px;color:var(--cost);letter-spacing:.06em}
+  .sec-head h2{font-family:var(--display);font-size:23px;font-weight:700;letter-spacing:-.015em;margin:0}
+  .sec-head .c{font-family:var(--mono);font-size:11.5px;color:var(--slate);margin-left:auto;white-space:nowrap}
+  .sec-note{font-size:14px;color:var(--slate);margin:0 0 18px;max-width:68ch}
+
+  .branch{border-left:1px solid var(--hair);margin-left:9px}
+  .node{position:relative;margin:0 0 8px}
+  .node::before{content:"";position:absolute;left:0;top:26px;width:17px;height:1px;background:var(--hair)}
+  .node-inner{margin-left:17px;background:var(--card);border:1px solid var(--hair);border-radius:var(--r)}
+  .node.open .node-inner{border-color:var(--ink)}
+  .node.done .idx{color:var(--seek)}
+  .node-head{width:100%;display:flex;align-items:center;gap:14px;padding:13px 15px;background:none;
+    border:0;text-align:left;cursor:pointer;font:inherit;color:inherit}
+  .node-head:focus-visible{outline:2px solid var(--cost);outline-offset:-2px}
+  .idx{font-family:var(--mono);font-size:12px;color:var(--slate);min-width:26px}
+  .ttl{font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:-.012em;flex:1;min-width:0}
+  .meta{font-family:var(--mono);font-size:11.5px;color:var(--slate);white-space:nowrap;display:flex;gap:10px;align-items:center}
+  .caret{font-family:var(--mono);color:var(--slate);transition:transform .2s ease}
+  .node.open .caret{transform:rotate(90deg)}
+  .body{display:none;padding:15px 18px 18px;border-top:1px solid var(--hair)}
+  .node.open .body{display:block}
+  .body > :first-child{margin-top:0}
+
+  .card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);padding:16px 18px;margin:0 0 14px}
+  h3{font-family:var(--display);font-size:16px;font-weight:700;margin:20px 0 8px;letter-spacing:-.01em}
+  h3:first-child{margin-top:0}
+  .card h3:not(:first-of-type),
+  .body h3:not(:first-of-type){border-top:1px dashed var(--hair);padding-top:16px}
+  h3 .tag-letter{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;
+    margin-right:8px;vertical-align:middle;border-radius:50%;background:var(--tint);border:1px solid var(--hair);
+    font-family:var(--mono);font-size:12px;color:var(--cost);font-weight:700}
+  .kicker{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);margin:0 0 6px}
+
+  .rule{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 14px;max-width:76ch}
+  .rule > b:first-child{display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);font-weight:600;margin:0 0 4px}
+  .rule.warn{border-left-color:var(--warn)}
+  .rule.warn > b:first-child{color:var(--warn)}
+
+  .code{position:relative;margin:12px 0;border:1px solid var(--hair);border-left:2px solid var(--slate);border-radius:2px;background:var(--tint)}
+  .code.bad{border-left-color:var(--cost)}
+  .code.good{border-left-color:var(--seek)}
+  .code .cap{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--slate);padding:7px 12px 0}
+  .code pre{margin:0;padding:10px 12px 12px;overflow:auto;font-family:var(--mono);font-size:12.4px;line-height:1.55;white-space:pre}
+  .code .cp{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:10.5px;padding:3px 8px;
+    border:1px solid var(--hair);background:var(--card);color:var(--slate);border-radius:99px;cursor:pointer;opacity:0}
+  .code:hover .cp,.code .cp:focus{opacity:1}
+  .code .cp:hover{border-color:var(--ink);color:var(--ink)}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+  .split .code{margin:0}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13.4px;margin:12px 0}
+  table.t th{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--slate);text-align:left;font-weight:600;border-bottom:1px solid var(--ink);padding:7px 10px 7px 0}
+  table.t td{border-bottom:1px solid var(--hair);padding:7px 10px 7px 0;vertical-align:top}
+  table.t td:first-child,table.t th:first-child{padding-left:0}
+  .yes{color:var(--seek);font-weight:600}
+  .no{color:var(--cost);font-weight:600}
+
+  ul.plain{margin:0 0 12px;padding-left:18px}
+  ul.plain li{margin:0 0 5px}
+  .temas-chk{list-style:none;margin:0;padding:0}
+  .temas-chk li{margin:0 0 4px}
+  .chk{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;cursor:pointer}
+  .chk input{appearance:none;width:14px;height:14px;margin:4px 0 0;flex:none;border:1px solid var(--slate);
+    border-radius:2px;background:var(--card);cursor:pointer}
+  .chk input:checked{background:var(--seek);border-color:var(--seek)}
+  .chk input:focus-visible{outline:2px solid var(--cost);outline-offset:2px}
+
+  .err{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 16px}
+  .err h4{font-family:var(--display);font-size:15px;margin:0 0 4px;font-weight:700}
+  .err .fix{font-size:13.4px;color:var(--seek)}
+  .err .fix b{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em}
+
+  .qa{border-bottom:1px solid var(--hair);padding:12px 0}
+  .qa:last-child{border-bottom:0}
+  .qa .q{font-weight:600;font-size:14.5px;margin:0 0 6px;display:flex;gap:10px}
+  .qa .q span{font-family:var(--mono);font-size:12px;color:var(--cost);flex:none}
+  .hidden{display:none}
+  .hidden.show{display:block;animation:in .2s ease both}
+  .reveal{font-family:var(--mono);font-size:11.5px;padding:4px 10px;border:1px dashed var(--hair);
+    background:none;color:var(--slate);border-radius:99px;cursor:pointer}
+  .reveal:hover{border-color:var(--ink);border-style:solid;color:var(--ink)}
+  .reveal:focus-visible{outline:2px solid var(--cost);outline-offset:2px}
+  .ans{margin-top:8px;font-size:13.8px;color:#28324F;max-width:78ch}
+
+  dialog{border:1px solid var(--ink);border-radius:var(--r);padding:0;max-width:760px;width:92vw;background:var(--card);color:var(--ink)}
+  dialog::backdrop{background:rgba(16,26,51,.45)}
+  .dl-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--hair)}
+  .dl-head h3{margin:0;font-size:17px}
+  .dl-head .x{margin-left:auto;background:none;border:0;font-family:var(--mono);font-size:15px;cursor:pointer;color:var(--slate)}
+  .dl-head .x:focus-visible{outline:2px solid var(--cost)}
+  dialog textarea{width:100%;height:46vh;border:0;padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--tint);color:var(--ink);resize:vertical}
+  dialog textarea:focus{outline:0}
+  .dl-foot{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--hair)}
+  .dl-foot .msg{font-family:var(--mono);font-size:11.5px;color:var(--seek)}
+
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--ink);color:#fff;font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:99px;
+    transition:all .25s ease;pointer-events:none;z-index:9}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  button:focus-visible,input:focus-visible{outline:2px solid var(--cost);outline-offset:2px}
+
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:11.5px;color:var(--slate)}
+
+  @media (max-width:760px){
+    .split{grid-template-columns:1fr}
+    body{background-image:none}
+    .body{padding:14px}
+    .code .cp{opacity:1}
+  }
+  @media (max-width:380px){
+    .wrap{padding:22px 12px 70px}
+    .stat{flex:1 1 100%;border-right:0;border-bottom:1px solid var(--hair)}
+    .stat:last-child{border-bottom:0}
+    h1{font-size:clamp(28px,9vw,40px)}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="plan-call">plan_de_estudio_sql &rsaquo; <b>módulo 02</b> &rsaquo; fase 00 · cimientos que casi nadie repasa</p>
+
+  <h1>Joins a fondo y<br>control de cardinalidad<em>.</em></h1>
+  <p class="lede">Elegir entre <code>JOIN</code>, <code>EXISTS</code> y <code>APPLY</code> con criterio, y detectar cuándo un join está multiplicando filas. Motor de referencia: SQL Server 2019/2022, con equivalencias en PostgreSQL 14+ y Spark SQL/Databricks donde el comportamiento difiere. Continúa el módulo 01: se da por conocido el orden lógico, la lógica de tres valores y la comparación null-safe.</p>
+
+  <div class="stats">
+    <div class="stat"><span class="k">temas</span><span class="v">10</span></div>
+    <div class="stat"><span class="k">costo estimado</span><span class="v">6 h</span></div>
+    <div class="stat"><span class="k">planes comparados</span><span class="v">5</span></div>
+    <div class="stat"><span class="k">errores catalogados</span><span class="v">12</span></div>
+    <div class="stat"><span class="k">ejercicios</span><span class="v">6</span></div>
+    <div class="stat"><span class="k">avance</span><span class="v" id="pctBig">0 %</span></div>
+  </div>
+
+  <div class="costbar">
+    <div class="lbl"><span>coste estimado por tema · avance ponderado</span><span id="pct">0 %</span></div>
+    <div class="track" id="track"></div>
+  </div>
+
+  <div class="bar">
+    <span class="cap">sección</span>
+    <button class="chip" data-s="dataset" aria-pressed="false">dataset</button>
+    <button class="chip" data-s="modelo" aria-pressed="true">modelo mental</button>
+    <button class="chip" data-s="temas" aria-pressed="false">10 temas</button>
+    <button class="chip" data-s="planes" aria-pressed="false">planes</button>
+    <button class="chip" data-s="errores" aria-pressed="false">errores</button>
+    <button class="chip" data-s="ejercicios" aria-pressed="false">ejercicios</button>
+    <button class="chip" data-s="proyecto" aria-pressed="false">proyecto</button>
+    <button class="chip" data-s="examen" aria-pressed="false">examen</button>
+    <span class="spacer"></span>
+    <button class="ghost" id="todo">ver todo</button>
+    <button class="ghost" id="next">prompt módulo 03</button>
+  </div>
+
+<!-- ══════════════════════ DATASET ══════════════════════ -->
+<section class="sec" id="sec-dataset">
+  <div class="sec-head"><span class="n">§ 0</span><h2>Dataset · tablas nuevas</h2><span class="c">ejecútalo antes de todo</span></div>
+  <p class="sec-note">Se asume ya creado del módulo 01: <code>dbo.Cliente</code>, <code>dbo.Producto</code>, <code>dbo.Venta</code>, <code>dbo.ClienteExterno</code>, <code>dbo.ClienteMasivo</code> (500 000 filas) y <code>dbo.VentaHist</code> (1 000 000 filas, ~730 días desde 2021-01-01). Este módulo agrega solo lo nuevo: teléfonos por cliente (relación 1:N para el tema 10), campañas por rango de fecha y canal (temas 6 y 3.3/3.5), turnos con traslapes deliberados (tema 7) y un calendario (tema 7c).</p>
+
+  <div class="card">
+    <div class="code"><span class="cap">T-SQL · estructura</span><button class="cp">copiar</button><pre>USE CursoSQL;
+GO
+
+DROP TABLE IF EXISTS dbo.Turno;
+DROP TABLE IF EXISTS dbo.Campania;
+DROP TABLE IF EXISTS dbo.Calendario;
+DROP TABLE IF EXISTS dbo.ClienteTelefono;
+GO
+
+CREATE TABLE dbo.ClienteTelefono
+(
+    ClienteTelefonoId int IDENTITY(1,1) NOT NULL CONSTRAINT PK_ClienteTelefono PRIMARY KEY,
+    ClienteId         int          NOT NULL CONSTRAINT FK_ClienteTelefono_Cliente REFERENCES dbo.Cliente(ClienteId),
+    Telefono          varchar(15)  COLLATE Latin1_General_100_CI_AS NULL,   -- NULL = número pendiente de registrar
+    Tipo              varchar(10)  COLLATE Latin1_General_100_CI_AS NULL   -- 'MOVIL' | 'FIJO' | NULL
+);
+
+CREATE TABLE dbo.Campania
+(
+    CampaniaId    int           NOT NULL CONSTRAINT PK_Campania PRIMARY KEY,
+    Canal         varchar(10)   COLLATE Latin1_General_100_CI_AS NULL,     -- NULL = aplica a cualquier canal
+    FechaInicio   date          NOT NULL,
+    FechaFin      date          NOT NULL,
+    Nombre        varchar(40)   COLLATE Latin1_General_100_CI_AS NOT NULL,
+    PctDescuento  decimal(5,2)  NOT NULL
+);
+
+CREATE TABLE dbo.Turno
+(
+    TurnoId   int          NOT NULL CONSTRAINT PK_Turno PRIMARY KEY,
+    Empleado  varchar(30)  COLLATE Latin1_General_100_CI_AS NOT NULL,
+    Recurso   varchar(20)  COLLATE Latin1_General_100_CI_AS NOT NULL,
+    Inicio    datetime2(0) NOT NULL,
+    Fin       datetime2(0) NOT NULL
+);
+
+CREATE TABLE dbo.Calendario
+(
+    Fecha date NOT NULL CONSTRAINT PK_Calendario PRIMARY KEY
+);
+GO</pre></div>
+
+    <div class="code"><span class="cap">T-SQL · datos</span><button class="cp">copiar</button><pre>INSERT dbo.ClienteTelefono (ClienteId, Telefono, Tipo) VALUES
+ (1 ,'0991111111','MOVIL'),
+ (1 ,'042222222' ,'FIJO' ),
+ (2 , NULL        ,'MOVIL'),  -- número pendiente de registrar
+ (3 ,'0993333333','MOVIL'),
+ (5 ,'0995555555','MOVIL'),
+ (6 , NULL        ,'MOVIL'),  -- número pendiente de registrar
+ (8 ,'0998888888','MOVIL'),
+ (9 ,'0999999991','MOVIL'),
+ (9 ,'0999999992','FIJO' ),
+ (10,'0990000010','MOVIL');
+ -- clientes 4, 7, 11, 12: sin ninguna fila (sin teléfono registrado)
+
+INSERT dbo.Campania (CampaniaId, Canal, FechaInicio, FechaFin, Nombre, PctDescuento) VALUES
+ (1 ,'WEB'     ,'2023-01-01','2023-02-28','Verano Web'        ,10.00),
+ (2 ,'APP'     ,'2023-01-01','2023-04-30','Lanzamiento App'   ,15.00),
+ (3 , NULL     ,'2023-06-01','2023-06-30','Aniversario'       , 5.00),  -- catch-all: cualquier canal
+ (4 ,'AGENCIA' ,'2023-05-01','2023-06-30','Feria Agencias'    , 8.00),  -- se traslapa a propósito con la 3
+ (5 ,'WEB'     ,'2021-01-01','2021-12-31','Web 2021'          , 5.00),
+ (6 ,'APP'     ,'2021-01-01','2021-12-31','App 2021'          , 5.00),
+ (7 ,'AGENCIA' ,'2021-01-01','2021-12-31','Agencia 2021'      , 5.00),
+ (8 , NULL     ,'2022-01-01','2022-12-31','Todos 2022'        , 3.00),  -- catch-all
+ (9 ,'WEB'     ,'2022-01-01','2022-06-30','Web H1 2022'       , 6.00),  -- se traslapa con la 8
+ (10,'AGENCIA' ,'2022-07-01','2022-12-31','Agencia H2 2022'   , 7.00);
+
+INSERT dbo.Turno (TurnoId, Empleado, Recurso, Inicio, Fin) VALUES
+ (1,'Ana Pico'   ,'CAJA1','2024-05-06 09:00:00','2024-05-06 13:00:00'),
+ (2,'Luis Peña'  ,'CAJA1','2024-05-06 12:30:00','2024-05-06 16:00:00'),  -- se traslapa con 1 (12:30-13:00)
+ (3,'Marta Ruiz' ,'CAJA2','2024-05-06 09:00:00','2024-05-06 12:00:00'),
+ (4,'Marta Ruiz' ,'CAJA2','2024-05-06 12:00:00','2024-05-06 15:00:00'),  -- contigua, NO se traslapa (borde exclusivo)
+ (5,'Ana Pico'   ,'CAJA1','2024-05-07 09:00:00','2024-05-07 13:00:00'),
+ (6,'Diego Yépez','VENT1','2024-05-06 08:00:00','2024-05-06 11:00:00'),
+ (7,'Diego Yépez','VENT1','2024-05-06 10:30:00','2024-05-06 14:00:00'), -- se traslapa con 6
+ (8,'Nora Salas' ,'VENT2','2024-05-06 08:00:00','2024-05-06 16:00:00');
+
+;WITH n AS (
+    SELECT TOP (365) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+    FROM sys.all_objects
+)
+INSERT dbo.Calendario (Fecha)
+SELECT DATEADD(day, n-1, '2023-01-01') FROM n;
+GO</pre></div>
+
+    <h3>Tabla de volumen (para la comparación 3.2, 3.4 y 3.5)</h3>
+    <p>Réplica del teléfono a la escala de <code>dbo.ClienteMasivo</code>: ~25% de los clientes sin ningún teléfono, un subconjunto con dos, y valores <code>NULL</code> reales para reproducir la trampa de <code>NOT IN</code> a escala.</p>
+    <div class="code"><span class="cap">T-SQL · volumen</span><button class="cp">copiar</button><pre>DROP TABLE IF EXISTS dbo.ClienteTelefonoMasivo;
+GO
+CREATE TABLE dbo.ClienteTelefonoMasivo
+(
+    ClienteTelefonoId int IDENTITY(1,1) NOT NULL CONSTRAINT PK_ClienteTelefonoMasivo PRIMARY KEY,
+    ClienteId         int          NOT NULL,
+    Telefono          varchar(15)  COLLATE Latin1_General_100_CI_AS NULL
+);
+
+INSERT dbo.ClienteTelefonoMasivo (ClienteId, Telefono)
+SELECT ClienteId,
+       CASE WHEN ClienteId % 5 = 0 THEN NULL
+            ELSE '09' + RIGHT('00000000' + CAST(ClienteId AS varchar(8)),8) END
+FROM dbo.ClienteMasivo
+WHERE ClienteId % 4 &lt;&gt; 0;                -- ~25% de los clientes queda sin ninguna fila
+
+INSERT dbo.ClienteTelefonoMasivo (ClienteId, Telefono)
+SELECT ClienteId,
+       '08' + RIGHT('00000000' + CAST(ClienteId AS varchar(8)),8)
+FROM dbo.ClienteMasivo
+WHERE ClienteId % 4 = 2;                  -- una porción tiene un SEGUNDO teléfono
+
+CREATE NONCLUSTERED INDEX IX_ClienteTelefonoMasivo_Cliente ON dbo.ClienteTelefonoMasivo(ClienteId);
+GO</pre></div>
+
+    <div class="rule"><b>equivalencias</b>PostgreSQL: <code>generate_series('2023-01-01'::date,'2023-12-31'::date,'1 day')</code> reemplaza al truco de <code>sys.all_objects</code> para <code>Calendario</code>. Spark SQL: <code>sequence(to_date('2023-01-01'), to_date('2023-12-31'), interval 1 day)</code> seguido de <code>explode()</code>. El resto de tipos y el truco de módulo aritmético para simular "algunos clientes sin fila" son portables tal cual a los tres motores.</div>
+  </div>
+</section>
+
+<!-- ══════════════════════ MODELO MENTAL ══════════════════════ -->
+<section class="sec on" id="sec-modelo">
+  <div class="sec-head"><span class="n">§ 1</span><h2>Modelo mental</h2><span class="c">léelo antes de tocar SQL</span></div>
+  <p class="sec-note">Todo el módulo se reduce a una sola pregunta que hay que hacerse <b>antes</b> de escribir el join: para una fila de A, ¿con cuántas de B puede hacer match? Si no sabes la respuesta, no puedes predecir el tamaño ni la corrección del resultado.</p>
+
+  <div class="card">
+    <h3>El FROM produce, el resto filtra</h3>
+    <p>El paso 1 del orden lógico (ver módulo 01, tema 2) —el <code>FROM</code>, que incluye el <code>JOIN</code> y su <code>ON</code>— construye el conjunto de filas de trabajo. Todo tipo de join (<code>INNER</code>, <code>LEFT</code>, <code>RIGHT</code>, <code>FULL</code>, <code>CROSS</code>) es una variación de la misma idea: partir del producto cartesiano de las dos tablas y decidir, según el <code>ON</code>, cuáles filas sobreviven <b>y qué hacer con las que no encontraron pareja</b>. Esa segunda parte —qué pasa con los que no matchean— es la única diferencia real entre los cinco tipos.</p>
+
+    <h3>La pregunta de cardinalidad</h3>
+    <table class="t">
+      <tr><th>Relación entre las claves</th><th>Para 1 fila de A</th><th>Riesgo</th></tr>
+      <tr><td>1 a 1</td><td>0 o 1 fila de B</td><td>ninguno: el join nunca crece el resultado</td></tr>
+      <tr><td>1 a N</td><td>0, 1 o varias filas de B</td><td>el resultado crece; correcto si lo esperabas, bug si no</td></tr>
+      <tr><td>N a M (join directo entre dos tablas 1:N de un mismo padre)</td><td>el producto de ambas cardinalidades</td><td class="no">fan trap — tema 10</td></tr>
+    </table>
+    <p>Antes de confiar en cualquier <code>SUM</code>/<code>COUNT</code> posterior a un join, contesta esa pregunta para cada par de tablas involucradas. Si la respuesta es "no estoy seguro", el join necesita <code>DISTINCT</code>, agregación previa, o convertirse en <code>EXISTS</code>/<code>APPLY</code> — que es justo la decisión que estructura los temas 3, 8 y 10.</p>
+
+    <h3>JOIN junta valores; EXISTS y APPLY hacen otra cosa</h3>
+    <ul class="plain">
+      <li><b><code>JOIN</code></b> combina dos conjuntos de filas de forma simétrica: ninguna de las dos tablas "sabe" de la otra hasta que se evalúa el <code>ON</code>.</li>
+      <li><b><code>EXISTS</code>/<code>NOT EXISTS</code></b> no traen columnas del lado derecho: solo preguntan presencia. Por construcción, nunca pueden multiplicar filas del lado externo, sin importar cuántas coincidencias existan.</li>
+      <li><b><code>APPLY</code></b> es procedural en su planteamiento: para cada fila de la izquierda, ejecuta una expresión de tabla que <b>puede referenciar esa fila</b> — algo que un <code>JOIN</code> corriente no puede hacer, porque sus dos lados se evalúan como conjuntos independientes antes de compararse.</li>
+    </ul>
+    <div class="rule"><b>regla operativa</b>Si la pregunta es "¿existe?", usa <code>EXISTS</code>. Si la pregunta es "tráeme el/los que correspondan a esta fila específica", usa <code>APPLY</code>. Si la pregunta es "combina estos dos conjuntos completos", usa <code>JOIN</code> — y verifica la cardinalidad antes de confiar en cualquier agregado posterior.</div>
+
+    <h3>Lo que el optimizador puede y no puede reordenar</h3>
+    <p>Para <code>INNER</code> y <code>CROSS</code>, el optimizador puede reordenar libremente las tablas del <code>FROM</code> porque el resultado final es el mismo sin importar el orden de evaluación. Para <code>OUTER JOIN</code> el orden <b>sí importa para la corrección</b> (un <code>LEFT</code> no es lo mismo hacia un lado que hacia el otro), así que el optimizador conserva la semántica pedida — aunque sigue siendo libre de elegir <b>qué algoritmo físico</b> (Nested Loops, Hash Match, Merge Join) usar para ejecutarlo; ese detalle es del módulo 09.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════ TEMAS ══════════════════════ -->
+<section class="sec" id="sec-temas">
+  <div class="sec-head"><span class="n">§ 2</span><h2>Los diez temas</h2><span class="c">marca lo que ya dominas</span></div>
+  <p class="sec-note">Cada nodo trae su ejemplo ejecutable sobre el dataset de arriba y las diferencias de motor cuando existen. El check alimenta la barra de coste de la parte superior.</p>
+  <div class="branch" id="temas"></div>
+</section>
+
+<!-- ══════════════════════ PLANES ══════════════════════ -->
+<section class="sec" id="sec-planes">
+  <div class="sec-head"><span class="n">§ 3</span><h2>Ingenua vs correcta</h2><span class="c">5 comparaciones con plan</span></div>
+  <p class="sec-note">Las tres primeras se verifican con el dataset pequeño (corrección); las dos últimas necesitan <code>ClienteMasivo</code>/<code>VentaHist</code>/<code>ClienteTelefonoMasivo</code> para que el costo sea observable. Activa el plan real y <code>SET STATISTICS IO, TIME ON;</code> antes de cada par.</p>
+
+  <div class="card">
+    <p class="kicker">3.1 · ON vs WHERE</p>
+    <h3>LEFT JOIN degradado a INNER por el WHERE</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, v.VentaId
+FROM dbo.Cliente c
+LEFT JOIN dbo.Venta v ON v.ClienteId = c.ClienteId
+WHERE v.Canal = 'WEB';</pre></div>
+      <div class="code good"><span class="cap">correcta</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, v.VentaId
+FROM dbo.Cliente c
+LEFT JOIN dbo.Venta v ON v.ClienteId = c.ClienteId
+                     AND v.Canal = 'WEB';</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Operador en el plan</td><td><b>Inner Join</b> — el optimizador simplifica el LEFT porque el WHERE hace imposible que sobreviva una fila con NULL</td><td><b>Left Outer Join</b>, tal como se pidió</td></tr>
+      <tr><td>Filas de salida</td><td>solo clientes con venta WEB</td><td>12 filas: todos los clientes, NULL donde no hubo venta WEB</td></tr>
+      <tr><td>Resultado</td><td class="no">incorrecto si la pregunta era "todos los clientes"</td><td class="yes">correcto</td></tr>
+    </table>
+    <p>El costo aquí es secundario al resultado: un <code>Inner Join</code> suele ser más barato que un <code>Left Outer Join</code>, pero ese ahorro es irrelevante si la pregunta de negocio exigía preservar a todos los clientes. La lección no es de rendimiento: <b>el operador del plan te dice, sin ambigüedad, si tu LEFT sigue siendo un LEFT.</b></p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.2 · anti-join a escala</p>
+    <h3>NOT IN vs NOT EXISTS sobre teléfonos con NULL reales</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT COUNT(*)
+FROM dbo.ClienteTelefonoMasivo t1
+WHERE t1.Telefono NOT IN (
+    SELECT Telefono FROM dbo.ClienteTelefonoMasivo WHERE ClienteId % 97 = 0
+);   -- ese subconjunto SIEMPRE contiene algún Telefono NULL (ClienteId % 5 = 0) -&gt; 0 filas</pre></div>
+      <div class="code good"><span class="cap">correcta</span><button class="cp">copiar</button><pre>SELECT COUNT(*)
+FROM dbo.ClienteTelefonoMasivo t1
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.ClienteTelefonoMasivo t2
+    WHERE t2.Telefono = t1.Telefono AND t2.ClienteId % 97 = 0
+);</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>Ingenua (NOT IN)</th><th>Correcta (NOT EXISTS)</th></tr>
+      <tr><td>Resultado con NULL en el subconjunto derecho</td><td class="no">0 filas, siempre</td><td class="yes">el conjunto real de no-coincidencias</td></tr>
+      <tr><td>Uso del índice sobre <code>Telefono</code></td><td>degradado: necesita una rama adicional para descartar el caso NULL</td><td>Seek directo, sin rama adicional</td></tr>
+      <tr><td>Operador</td><td>Anti Semi Join con comprobación de NULL extra</td><td>Left Anti Semi Join limpio</td></tr>
+    </table>
+    <p>A esta escala el problema no es solo "el resultado está mal": la semántica de <code>NOT IN</code> sobre una columna anulable obliga al optimizador a cargar una comprobación adicional de NULL en cada fila candidata, lo que le impide beneficiarse igual de un índice simple sobre <code>Telefono</code>.</p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.3 · non-equi join sin desempate</p>
+    <h3>Atribución de campaña que duplica ventas</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT v.VentaId, ca.CampaniaId
+FROM dbo.Venta v
+JOIN dbo.Campania ca
+     ON (ca.Canal = v.Canal OR ca.Canal IS NULL)
+    AND v.Fecha &gt;= ca.FechaInicio AND v.Fecha &lt; DATEADD(day,1,ca.FechaFin);
+-- 21 filas para 20 ventas: la venta 8 aparece dos veces</pre></div>
+      <div class="code good"><span class="cap">correcta</span><button class="cp">copiar</button><pre>SELECT v.VentaId, x.CampaniaId
+FROM dbo.Venta v
+CROSS APPLY (
+    SELECT TOP (1) ca.CampaniaId
+    FROM dbo.Campania ca
+    WHERE (ca.Canal = v.Canal OR ca.Canal IS NULL)
+      AND v.Fecha &gt;= ca.FechaInicio AND v.Fecha &lt; DATEADD(day,1,ca.FechaFin)
+    ORDER BY ca.PctDescuento DESC, ca.CampaniaId
+) x;
+-- 20 filas: una por venta, siempre</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Cardinalidad de salida</td><td class="no">variable — depende de cuántas campañas coincidan</td><td class="yes">fija: una fila por venta, por construcción</td></tr>
+      <tr><td>Operador</td><td>Nested Loops que emite una fila por cada coincidencia</td><td>Nested Loops + Top, corta en la primera fila ordenada</td></tr>
+      <tr><td>Riesgo si alimenta un SUM aguas abajo</td><td class="no">alto: monto duplicado en las fechas de solape</td><td class="yes">ninguno</td></tr>
+    </table>
+    <p>La diferencia de costo entre ambas es mínima — las dos usan Nested Loops. La diferencia real es de <b>garantía estructural</b>: el <code>TOP (1)</code> dentro del <code>APPLY</code> hace que la cardinalidad de salida sea imposible de romper, incluso si mañana se agrega otra campaña que se solape.</p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.4 · subconsultas repetidas vs una sola APPLY</p>
+    <h3>Tres subconsultas correlacionadas vs un solo CROSS APPLY</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua · tres pasadas independientes</span><button class="cp">copiar</button><pre>SELECT v1.ClienteId, v1.Fecha,
+  (SELECT MAX(v2.Fecha) FROM dbo.VentaHist v2
+     WHERE v2.ClienteId = v1.ClienteId AND v2.Fecha &lt; v1.Fecha)                        AS FechaAnt,
+  (SELECT TOP(1) v3.Monto FROM dbo.VentaHist v3
+     WHERE v3.ClienteId = v1.ClienteId AND v3.Fecha &lt; v1.Fecha ORDER BY v3.Fecha DESC) AS MontoAnt,
+  (SELECT TOP(1) v4.Canal FROM dbo.VentaHist v4
+     WHERE v4.ClienteId = v1.ClienteId AND v4.Fecha &lt; v1.Fecha ORDER BY v4.Fecha DESC) AS CanalAnt
+FROM dbo.VentaHist v1;</pre></div>
+      <div class="code good"><span class="cap">correcta · una sola APPLY</span><button class="cp">copiar</button><pre>SELECT v1.ClienteId, v1.Fecha, x.Fecha AS FechaAnt, x.Monto AS MontoAnt, x.Canal AS CanalAnt
+FROM dbo.VentaHist v1
+OUTER APPLY (
+    SELECT TOP (1) v2.Fecha, v2.Monto, v2.Canal
+    FROM dbo.VentaHist v2
+    WHERE v2.ClienteId = v1.ClienteId AND v2.Fecha &lt; v1.Fecha
+    ORDER BY v2.Fecha DESC
+) x;</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Búsquedas correlacionadas por fila</td><td>3 (una por subconsulta escalar)</td><td>1</td></tr>
+      <tr><td>Lecturas sobre <code>IX_VentaHist_Cliente</code></td><td>triplicadas</td><td>una sola vez, reutilizada</td></tr>
+      <tr><td>Consistencia entre columnas</td><td class="no">en teoría podrían no venir de la misma fila "anterior" si algo desincroniza los criterios de empate</td><td class="yes">garantizada: las tres vienen de la misma fila física</td></tr>
+    </table>
+    <p>Cada subconsulta escalar adicional en el <code>SELECT</code> es, para el optimizador, otra ejecución correlacionada completa. <code>APPLY</code> devuelve una <b>tabla</b>, no un escalar: una sola ejecución basta para traer cuantas columnas necesites de la misma fila relacionada.</p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.5 · explosión de filas a escala</p>
+    <h3>Join directo entre dos tablas hijas vs agregación previa</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT cm.ClienteId, SUM(vh.Monto) AS Total
+FROM dbo.ClienteMasivo cm
+JOIN dbo.VentaHist vh             ON vh.ClienteId = cm.ClienteId
+JOIN dbo.ClienteTelefonoMasivo tm ON tm.ClienteId = cm.ClienteId
+GROUP BY cm.ClienteId;</pre></div>
+      <div class="code good"><span class="cap">correcta</span><button class="cp">copiar</button><pre>SELECT cm.ClienteId, ISNULL(vt.Total,0) AS Total, ISNULL(tt.NumTelefonos,0) AS NumTelefonos
+FROM dbo.ClienteMasivo cm
+LEFT JOIN (SELECT ClienteId, SUM(Monto) AS Total FROM dbo.VentaHist GROUP BY ClienteId) vt
+       ON vt.ClienteId = cm.ClienteId
+LEFT JOIN (SELECT ClienteId, COUNT(*) AS NumTelefonos FROM dbo.ClienteTelefonoMasivo GROUP BY ClienteId) tt
+       ON tt.ClienteId = cm.ClienteId;</pre></div>
+    </div>
+    <table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Filas procesadas antes de agregar</td><td>varios millones (producto por cliente con 2 teléfonos)</td><td>1 000 000 + ~375 000, cada una agregada por separado primero</td></tr>
+      <tr><td><code>Total</code> resultante</td><td class="no">inflado donde el cliente tiene 2 teléfonos</td><td class="yes">correcto siempre</td></tr>
+      <tr><td>Operador dominante</td><td>Hash Match masivo antes de poder agregar nada</td><td>dos Stream/Hash Aggregate pequeños + un join final de "uno a lo sumo uno"</td></tr>
+    </table>
+    <p>La versión correcta no solo da el número correcto: procesa cada tabla hija <b>una vez</b>, a su propia granularidad, antes de combinarlas. La ingenua paga el costo del producto cartesiano completo y encima entrega un número que hay que volver a auditar.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════ ERRORES ══════════════════════ -->
+<section class="sec" id="sec-errores">
+  <div class="sec-head"><span class="n">§ 4</span><h2>Errores silenciosos</h2><span class="c">12 casos · todos ejecutan sin error</span></div>
+  <p class="sec-note">Ninguno lanza excepción. El reporte sale, el proceso termina en verde, y el número o el conjunto de filas está mal.</p>
+
+  <div class="card">
+    <div class="err"><h4>1 · LEFT JOIN degradado a INNER por el WHERE</h4>
+      <p class="fix"><b>fix ·</b> mover el predicado del lado opcional al <code>ON</code>. Ver tema 2 y comparación 3.1. (Ver también módulo 01, catálogo de errores, caso 15.)</p></div>
+
+    <div class="err"><h4>2 · NOT IN con columna anulable → conjunto vacío</h4>
+      <p class="fix"><b>fix ·</b> <code>NOT EXISTS</code>, o filtrar el NULL explícitamente en la subconsulta. Ver tema 4 y comparación 3.2.</p></div>
+
+    <div class="err"><h4>3 · Falta de DISTINCT tras un INNER JOIN 1:N</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT COUNT(*) FROM dbo.Cliente c JOIN dbo.Venta v ON v.ClienteId = c.ClienteId;  -- 20, no 10 clientes</pre></div>
+      <p class="fix"><b>fix ·</b> si la pregunta era "cuántos clientes", usa <code>COUNT(DISTINCT c.ClienteId)</code> o reescribe con <code>EXISTS</code>.</p></div>
+
+    <div class="err"><h4>4 · Fan trap: join directo entre dos tablas hijas sin agregar antes</h4>
+      <p class="fix"><b>fix ·</b> agregar cada hija a nivel del padre antes de unir. Ver tema 10 y comparación 3.5.</p></div>
+
+    <div class="err"><h4>5 · FULL JOIN + WHERE en cualquiera de los dos lados anula la mitad preservada</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT c.ClienteId, e.Origen
+FROM dbo.Cliente c
+FULL JOIN dbo.ClienteExterno e ON e.Cedula = c.Cedula
+WHERE e.Origen = 'BURO';   -- descarta TODOS los clientes que no están en el buró</pre></div>
+      <p class="fix"><b>fix ·</b> mueve el predicado al <code>ON</code>, o exprésalo completo: <code>WHERE e.Origen = 'BURO' OR e.Cedula IS NULL</code>.</p></div>
+
+    <div class="err"><h4>6 · CROSS JOIN accidental por olvidar el predicado de unión</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT * FROM dbo.Cliente, dbo.Venta;  -- sintaxis de coma sin WHERE de unión: 12 x 20 = 240 filas</pre></div>
+      <p class="fix"><b>fix ·</b> usa siempre <code>JOIN … ON</code> explícito; nunca la sintaxis de coma implícita, ni siquiera con la intención de agregar el <code>WHERE</code> después.</p></div>
+
+    <div class="err"><h4>7 · Self join sin exclusión de identidad</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT v1.VentaId, v2.VentaId
+FROM dbo.Venta v1 JOIN dbo.Venta v2 ON v1.ClienteId = v2.ClienteId;
+-- cada fila matchea consigo misma: v1.VentaId = v2.VentaId también cuenta</pre></div>
+      <p class="fix"><b>fix ·</b> agrega <code>v1.VentaId &lt;&gt; v2.VentaId</code> (o <code>&lt;</code> si además quieres evitar el par simétrico). Ver tema 5.</p></div>
+
+    <div class="err"><h4>8 · Self join sin desempate de dirección: cada par sale dos veces</h4>
+      <p class="fix"><b>fix ·</b> <code>t1.Id &lt; t2.Id</code> en vez de <code>&lt;&gt;</code>. Ver tema 7b.</p></div>
+
+    <div class="err"><h4>9 · Rango con límite mal cerrado en un non-equi join de fechas</h4>
+      <div class="code"><button class="cp">copiar</button><pre>-- BETWEEN inclusivo en ambos extremos: una campaña que termina el mismo día que otra empieza
+-- puede atribuir la venta de ese día a las dos
+... v.Fecha BETWEEN ca.FechaInicio AND ca.FechaFin ...</pre></div>
+      <p class="fix"><b>fix ·</b> usa un rango semiabierto: <code>v.Fecha &gt;= ca.FechaInicio AND v.Fecha &lt; DATEADD(day,1,ca.FechaFin)</code>. Ver tema 6.</p></div>
+
+    <div class="err"><h4>10 · TOP (1) sin ORDER BY determinista dentro de un APPLY</h4>
+      <p class="fix"><b>fix ·</b> termina siempre el <code>ORDER BY</code> con una columna única (como en la comparación 3.3). Sin eso, "el top" puede cambiar entre ejecuciones idénticas.</p></div>
+
+    <div class="err"><h4>11 · CROSS APPLY donde se necesitaba OUTER APPLY</h4>
+      <p class="fix"><b>fix ·</b> si la fila izquierda debe sobrevivir aunque el lado derecho no produzca nada, usa <code>OUTER APPLY</code>. Ver tema 8.</p></div>
+
+    <div class="err"><h4>12 · Colación distinta en el ON de un join</h4>
+      <p class="fix"><b>fix ·</b> fija la colación explícitamente en el <code>ON</code> cuando el negocio exige comparar sin distinguir acentos o mayúsculas. Ver módulo 01, tema 8.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════ EJERCICIOS ══════════════════════ -->
+<section class="sec" id="sec-ejercicios">
+  <div class="sec-head"><span class="n">§ 5</span><h2>Ejercicios</h2><span class="c">6 · los dos últimos combinan varios temas</span></div>
+  <p class="sec-note">Resuélvelos antes de abrir la solución. Los ejercicios 5 y 6 cruzan cuatro temas del módulo cada uno.</p>
+  <div class="branch" id="ejercicios"></div>
+</section>
+
+<!-- ══════════════════════ PROYECTO ══════════════════════ -->
+<section class="sec" id="sec-proyecto">
+  <div class="sec-head"><span class="n">§ 6</span><h2>Mini-proyecto</h2><span class="c">atribución de ventas a campañas sin duplicar filas</span></div>
+  <p class="sec-note">Construye una tabla de atribución que resuelva la ambigüedad de rangos del tema 6 con una garantía estructural de cardinalidad, y verifícala con siete criterios ejecutables, incluido uno de idempotencia y uno sobre el calendario del tema 7.</p>
+
+  <div class="card">
+    <h3>Entregable</h3>
+    <p>Una fila por cada venta de <code>dbo.Venta</code> en <code>dbo.VentaAtribuida</code>, con la campaña vigente de mayor descuento si hay más de una, o <code>NULL</code> si ninguna aplica.</p>
+    <div class="code"><span class="cap">T-SQL · script objetivo</span><button class="cp">copiar</button><pre>DROP TABLE IF EXISTS dbo.VentaAtribuida;
+GO
+SELECT v.VentaId, v.ClienteId, v.Fecha, v.Canal,
+       v.Cantidad*v.PrecioUnit - ISNULL(v.Descuento,0) AS MontoNeto,
+       x.CampaniaId, x.PctDescuento
+INTO dbo.VentaAtribuida
+FROM dbo.Venta v
+OUTER APPLY (
+    SELECT TOP (1) ca.CampaniaId, ca.PctDescuento
+    FROM dbo.Campania ca
+    WHERE (ca.Canal = v.Canal OR ca.Canal IS NULL)
+      AND v.Fecha &gt;= ca.FechaInicio AND v.Fecha &lt; DATEADD(day,1,ca.FechaFin)
+    ORDER BY ca.PctDescuento DESC, ca.CampaniaId
+) x;
+GO</pre></div>
+
+    <h3>Reglas obligatorias</h3>
+    <ul class="temas-chk">
+      <li><label class="chk"><input type="checkbox"><span>Ninguna venta puede aparecer más de una vez en <code>VentaAtribuida</code>, sin importar cuántas campañas coincidan.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>Las ventas sin campaña vigente conservan <code>CampaniaId</code> NULL — no se descartan.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>El desempate entre campañas que coinciden es determinista: mayor descuento primero, luego menor <code>CampaniaId</code>.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>Una venta con <code>Canal</code> NULL solo puede matchear campañas catch-all (<code>Canal IS NULL</code>), nunca una específica.</span></label></li>
+    </ul>
+
+    <h3>Criterios de aceptación</h3>
+    <div class="code"><span class="cap">cada consulta debe devolver OK</span><button class="cp">copiar</button><pre>-- AC1 · Sin fan-out: mismo número de filas que dbo.Venta
+SELECT CASE WHEN (SELECT COUNT(*) FROM dbo.VentaAtribuida) = (SELECT COUNT(*) FROM dbo.Venta)
+            THEN 'OK' ELSE 'FALLA' END;
+
+-- AC2 · Ninguna VentaId duplicada
+SELECT CASE WHEN COUNT(*) = COUNT(DISTINCT VentaId) THEN 'OK' ELSE 'FALLA' END
+FROM dbo.VentaAtribuida;
+
+-- AC3 · La venta 8 (2023-06-01, AGENCIA) se atribuye a la campaña de mayor descuento (4, 8%)
+SELECT CASE WHEN CampaniaId = 4 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.VentaAtribuida WHERE VentaId = 8;
+
+-- AC4 · La venta 3 (2023-03-05, Canal NULL) no tiene catch-all vigente ese día -&gt; NULL
+SELECT CASE WHEN CampaniaId IS NULL THEN 'OK' ELSE 'FALLA' END
+FROM dbo.VentaAtribuida WHERE VentaId = 3;
+
+-- AC5 · Completitud: todas las ventas del origen están representadas
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.Venta v
+WHERE NOT EXISTS (SELECT 1 FROM dbo.VentaAtribuida va WHERE va.VentaId = v.VentaId);
+
+-- AC6 · Idempotencia (guarda un snapshot antes de reejecutar el script y compara en ambas direcciones)
+SELECT CASE WHEN NOT EXISTS (SELECT * FROM dbo.VentaAtribuida EXCEPT SELECT * FROM dbo.VentaAtribuida_Snapshot)
+             AND NOT EXISTS (SELECT * FROM dbo.VentaAtribuida_Snapshot EXCEPT SELECT * FROM dbo.VentaAtribuida)
+            THEN 'OK' ELSE 'FALLA' END;
+
+-- AC7 · Días sin venta en 2023 (tema 7c)
+SELECT CASE WHEN COUNT(*) = 351 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.Calendario cal
+LEFT JOIN (SELECT CAST(Fecha AS date) AS Fecha FROM dbo.Venta
+           WHERE Fecha &gt;= '2023-01-01' AND Fecha &lt; '2024-01-01'
+           GROUP BY CAST(Fecha AS date)) d ON d.Fecha = cal.Fecha
+WHERE cal.Fecha BETWEEN '2023-01-01' AND '2023-12-31' AND d.Fecha IS NULL;</pre></div>
+    <p><b>AC6</b> reutiliza el idioma <code>EXCEPT</code> en ambas direcciones del mini-proyecto del módulo 01 — es null-safe y compara filas completas, exactamente lo que hace falta para probar "esto no cambió".</p>
+
+    <h3>Pistas de diseño</h3>
+    <button class="reveal" data-t="#pistasProy">mostrar pistas</button>
+    <div class="hidden" id="pistasProy">
+      <ul class="plain" style="margin-top:12px">
+        <li>El límite superior del rango de fecha debe ser exclusivo (<code>&lt; DATEADD(day,1,FechaFin)</code>), no un <code>BETWEEN</code> inclusivo — es el error catalogado #9.</li>
+        <li>El <code>ORDER BY PctDescuento DESC, CampaniaId</code> dentro del <code>APPLY</code> es lo único que garantiza AC3 y AC6 a la vez.</li>
+        <li>AC4 falla si tu <code>ON</code> usa <code>ca.Canal = v.Canal</code> sin el <code>OR ca.Canal IS NULL</code> — revisa el tema 6.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ EXAMEN ══════════════════════ -->
+<section class="sec" id="sec-examen">
+  <div class="sec-head"><span class="n">§ 7</span><h2>Autoevaluación</h2><span class="c">10 preguntas nivel entrevista</span></div>
+  <p class="sec-note">Responde en voz alta antes de revelar. Si no puedes explicarlo en dos frases, vuelve al tema correspondiente.</p>
+  <div class="card" id="examen"></div>
+</section>
+
+  <footer>
+    Módulo 02 de 16 · coste estimado 6 h · Motor de referencia: SQL Server / T-SQL, con equivalencias en PostgreSQL y Spark SQL.<br>
+    El avance vive solo en esta pestaña, en memoria: si recargas la página, los checks se reinician.<br>
+    Siguiente: módulo 03 — Funciones de ventana I: partición, orden y ranking.
+  </footer>
+</div>
+
+<dialog id="dl">
+  <div class="dl-head">
+    <h3 id="dlTitle">Prompt</h3>
+    <button class="x" id="dlClose" aria-label="Cerrar">✕</button>
+  </div>
+  <textarea id="dlText" spellcheck="false" readonly></textarea>
+  <div class="dl-foot">
+    <button class="solid" id="dlCopy">Copiar al portapapeles</button>
+    <span class="msg" id="dlMsg"></span>
+  </div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════ temas ══════════ */
+const TEMAS = [
+{id:"01", min:30, t:"Inner, left/right/full outer, cross: semántica real", html:`
+<p>Todo <code>JOIN</code> parte del mismo lugar: el producto cartesiano de las dos tablas, filtrado por la condición del <code>ON</code>. Lo que cambia entre <b>INNER</b>, <b>LEFT</b>, <b>RIGHT</b>, <b>FULL</b> y <b>CROSS</b> no es cómo se buscan las coincidencias — es qué pasa con las filas que <b>no</b> encuentran pareja.</p>
+<table class="t">
+<tr><th>Tipo</th><th>Filas sin match del lado izquierdo</th><th>Filas sin match del lado derecho</th><th>Tamaño típico</th></tr>
+<tr><td><code>INNER</code></td><td class="no">se descartan</td><td class="no">se descartan</td><td>≤ el número de matches</td></tr>
+<tr><td><code>LEFT OUTER</code></td><td class="yes">se conservan (NULL a la derecha)</td><td class="no">se descartan</td><td>≥ |A|</td></tr>
+<tr><td><code>RIGHT OUTER</code></td><td class="no">se descartan</td><td class="yes">se conservan (NULL a la izquierda)</td><td>≥ |B|</td></tr>
+<tr><td><code>FULL OUTER</code></td><td class="yes">se conservan</td><td class="yes">se conservan</td><td>≥ max(|A|,|B|)</td></tr>
+<tr><td><code>CROSS</code></td><td>—</td><td>—</td><td>exactamente |A| × |B|</td></tr>
+</table>
+
+<h3>INNER — solo las coincidencias</h3>
+<div class="code"><span class="cap">T-SQL</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, v.VentaId, v.Fecha
+FROM dbo.Cliente c
+JOIN dbo.Venta v ON v.ClienteId = c.ClienteId
+ORDER BY c.ClienteId, v.Fecha;   -- 20 filas: los clientes 11 y 12 (sin ventas) no aparecen</pre></div>
+
+<h3>LEFT OUTER — todo el lado izquierdo, coincida o no</h3>
+<div class="code"><span class="cap">T-SQL</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, v.VentaId
+FROM dbo.Cliente c
+LEFT JOIN dbo.Venta v ON v.ClienteId = c.ClienteId
+ORDER BY c.ClienteId;   -- 22 filas: Gina (11) y Hugo (12) aparecen con v.VentaId = NULL</pre></div>
+<p>El patrón "encontrar los que <b>no</b> tienen match" nace de aquí: <code>WHERE v.VentaId IS NULL</code> tras este <code>LEFT JOIN</code> filtra exactamente a los clientes sin ventas. Es válido porque <code>VentaId</code> es la columna que el propio <code>LEFT JOIN</code> rellena con NULL — no es el patrón peligroso del tema 2.</p>
+
+<h3>RIGHT OUTER — el mismo LEFT con las tablas al revés</h3>
+<p><code>A RIGHT JOIN B</code> es exactamente <code>B LEFT JOIN A</code>. Los tres motores lo soportan igual, pero conviene evitarlo por legibilidad: con tres o más tablas en el <code>FROM</code>, un <code>RIGHT JOIN</code> en medio obliga a leer hacia atrás para saber qué lado se preserva. Reescribe siempre a <code>LEFT</code> invirtiendo el orden de las tablas.</p>
+
+<h3>FULL OUTER — la unión de ambos LEFT</h3>
+<div class="code"><span class="cap">T-SQL · con el par del módulo 01</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, e.Cedula AS CedulaBuro, e.Origen
+FROM dbo.Cliente c
+FULL JOIN dbo.ClienteExterno e ON e.Cedula = c.Cedula
+ORDER BY c.ClienteId;</pre></div>
+<p>Con el dataset del módulo 01 esta consulta trae <b>13</b> filas: los 12 clientes del core (varios sin match en el buró, incluidos los de cédula NULL, que nunca emparejan) más una fila extra para <code>Zoila Guerra</code>, que solo existe en <code>ClienteExterno</code>. <code>FULL JOIN</code> es el único tipo que puede producir, en la misma consulta, filas NULL de un lado y filas NULL del otro — nunca de ambos a la vez en la misma fila, porque eso no representaría ningún match real.</p>
+
+<h3>CROSS — el producto cartesiano explícito y a propósito</h3>
+<div class="code"><span class="cap">T-SQL · matriz producto × canal</span><button class="cp">copiar</button><pre>SELECT p.Nombre AS Producto, ch.Canal
+FROM dbo.Producto p
+CROSS JOIN (VALUES ('WEB'), ('APP'), ('AGENCIA')) AS ch(Canal)
+ORDER BY p.Nombre, ch.Canal;   -- exactamente 6 x 3 = 18 filas, sin ninguna condición</pre></div>
+<p>Es la única forma de <code>JOIN</code> sin <code>ON</code>: no hay nada que filtrar. Útil para generar universos completos antes de un <code>LEFT JOIN</code> — la misma técnica detrás de una matriz de cruce o de un reporte "todas las combinaciones, incluidas las que dieron cero" (lo verás formalizado como <code>PIVOT</code> en el módulo 05).</p>
+<div class="rule"><b>equivalencias</b>Sintaxis idéntica en PostgreSQL y Spark SQL para los cinco tipos. La única diferencia real de motor está en <code>RIGHT JOIN</code>: válido en los tres, pero ninguno lo optimiza distinto a un <code>LEFT JOIN</code> invertido — evitarlo es una decisión de legibilidad, no de rendimiento.</div>`},
+
+{id:"02", min:35, t:"ON vs WHERE en outer joins", html:`
+<div class="rule"><b>por qué pasa</b>En el orden lógico (ver módulo 01, tema 2) el <code>FROM</code> —que incluye el <code>JOIN</code> y su <code>ON</code>— es el paso 1. El <code>WHERE</code> es el paso 2 y actúa <b>después</b> de que el <code>LEFT JOIN</code> ya rellenó con NULL las filas sin pareja. Si el <code>WHERE</code> compara esa columna rellenada contra un valor, la comparación da UNKNOWN (ver módulo 01, tema 4) y la fila se descarta — como si el <code>LEFT</code> nunca hubiera preservado nada.</div>
+
+<h3>El caso que rompe el LEFT</h3>
+<div class="split">
+<div class="code bad"><span class="cap">ingenua</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, v.VentaId
+FROM dbo.Cliente c
+LEFT JOIN dbo.Venta v ON v.ClienteId = c.ClienteId
+WHERE v.Canal = 'WEB';</pre></div>
+<div class="code good"><span class="cap">correcta</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, v.VentaId
+FROM dbo.Cliente c
+LEFT JOIN dbo.Venta v ON v.ClienteId = c.ClienteId
+                     AND v.Canal = 'WEB';</pre></div>
+</div>
+<p>La ingenua devuelve solo clientes con al menos una venta <code>WEB</code>: pierde a Gina y Hugo (nunca compraron) <b>y también</b> a cualquier cliente cuyas ventas fueron todas por <code>APP</code> o <code>AGENCIA</code>. La correcta preserva a los 12 clientes; para los que no tienen venta <code>WEB</code>, <code>v.VentaId</code> sale NULL en vez de desaparecer la fila.</p>
+
+<h3>La regla que decide dónde va el predicado</h3>
+<table class="t">
+<tr><th>El predicado filtra…</th><th>¿Dónde va?</th><th>Por qué</th></tr>
+<tr><td>una columna del lado <b>preservado</b> (izquierdo en un LEFT)</td><td><code>WHERE</code></td><td>ese lado nunca tiene NULL "artificial"; filtrar ahí no rompe nada</td></tr>
+<tr><td>una columna del lado <b>opcional</b>, y quieres conservar los que no matchean</td><td><code>ON</code></td><td>el filtro decide <em>qué cuenta como match</em>, no <em>qué fila sobrevive</em></td></tr>
+<tr><td>una columna del lado opcional, y de verdad quieres solo los que matchean</td><td><code>WHERE</code> (a propósito)</td><td>ahí el LEFT degradado a INNER es lo que pediste — pero entonces escribe INNER</td></tr>
+</table>
+
+<h3>El mismo error, más peligroso en FULL</h3>
+<div class="code bad"><span class="cap">destruye ambos lados</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, e.Cedula, e.Origen
+FROM dbo.Cliente c
+FULL JOIN dbo.ClienteExterno e ON e.Cedula = c.Cedula
+WHERE e.Origen = 'BURO';   -- descarta TODOS los clientes que no están en el buró</pre></div>
+<p>En un <code>FULL JOIN</code>, un <code>WHERE</code> sobre cualquiera de los dos lados puede destruir la mitad que ese lado estaba preservando. La versión correcta mueve el predicado al <code>ON</code>, o pregunta explícitamente por ambos casos: <code>WHERE e.Origen = 'BURO' OR e.Cedula IS NULL</code>.</p>
+
+<div class="rule"><b>equivalencias</b>Idéntico en PostgreSQL y Spark SQL: los tres motores resuelven el orden lógico igual porque es un requisito del estándar ANSI SQL. Dato de plan en SQL Server: cuando el <code>WHERE</code> vuelve imposible que sobreviva una fila NULL del lado derecho, el optimizador puede simplificar el <code>LEFT JOIN</code> a <code>INNER JOIN</code> <b>antes</b> de generar el plan — el operador ya no dice "Left Outer Join", dice "Inner Join" a secas. El plan no miente: la consulta de verdad se volvió un INNER.</div>`},
+
+{id:"03", min:40, t:"Semi join y anti join: EXISTS / NOT EXISTS", html:`
+<p>Un <code>JOIN</code> junta <b>valores</b>; <code>EXISTS</code>/<code>NOT EXISTS</code> solo comprueban <b>presencia</b>. Esa diferencia de propósito es la que hace que un semi/anti join nunca pueda multiplicar filas del lado externo, sin importar cuántas coincidencias haya del otro lado.</p>
+
+<h3>La multiplicación silenciosa que EXISTS evita</h3>
+<div class="split">
+<div class="code bad"><span class="cap">JOIN sin agregar: multiplica</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre
+FROM dbo.Cliente c
+JOIN dbo.Venta v ON v.ClienteId = c.ClienteId;   -- 20 filas: el cliente 1 aparece 3 veces (3 ventas)</pre></div>
+<div class="code good"><span class="cap">EXISTS: una fila por cliente, siempre</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre
+FROM dbo.Cliente c
+WHERE EXISTS (SELECT 1 FROM dbo.Venta v WHERE v.ClienteId = c.ClienteId);   -- 10 filas, una por cliente</pre></div>
+</div>
+<p>La forma ingenua no está "mal": es la respuesta correcta a otra pregunta ("cada venta, con los datos del cliente"). El error real es usarla cuando la pregunta era "qué clientes compraron algo" y olvidar el <code>DISTINCT</code>. <code>EXISTS</code> no necesita <code>DISTINCT</code> porque nunca trajo filas de <code>Venta</code> a la salida: solo preguntó "¿hay al menos una?" — es, conceptualmente, un cortocircuito.</p>
+
+<h3>Anti join: los que no tienen ninguna</h3>
+<div class="code"><span class="cap">T-SQL · clientes sin ningún teléfono registrado</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre
+FROM dbo.Cliente c
+WHERE NOT EXISTS (SELECT 1 FROM dbo.ClienteTelefono t WHERE t.ClienteId = c.ClienteId);
+-- clientes 4, 7, 11, 12</pre></div>
+
+<h3>Cómo lo lee el optimizador</h3>
+<p><code>EXISTS</code> se traduce a un <b>Right/Left Semi Join</b>; <code>NOT EXISTS</code> a un <b>Anti Semi Join</b> (el detalle del operador y su costo lo verás en el módulo 09). Ambos son, por construcción, operadores que <b>no pueden</b> devolver más filas del lado externo que las que entraron — a diferencia de un <code>Nested Loops</code>/<code>Hash Match</code> normal, que devuelve una fila de salida <b>por cada coincidencia</b>.</p>
+<div class="rule"><b>equivalencias</b><code>EXISTS</code>/<code>NOT EXISTS</code> son ANSI SQL puro: idénticos en PostgreSQL y Spark SQL, incluida la traducción interna a semi/anti join en el optimizador de cada motor.</div>`},
+
+{id:"04", min:25, t:"La trampa de NOT IN con NULLs", html:`
+<div class="rule warn"><b>ya lo viste de pasada</b>El módulo 01 lo catalogó como error silencioso #2. Aquí va la causa completa y el patrón de defensa.</div>
+<p><code>x NOT IN (a, b, NULL)</code> se expande a <code>x&lt;&gt;a AND x&lt;&gt;b AND x&lt;&gt;NULL</code>. El último término es siempre UNKNOWN, y <code>UNKNOWN</code> contamina el <code>AND</code> completo: <code>TRUE AND UNKNOWN = UNKNOWN</code>. Ninguna fila puede dar TRUE — el resultado es un conjunto vacío, sin importar qué tan claramente "debería" haber filas.</p>
+
+<div class="code"><span class="cap">escenario</span><button class="cp">copiar</button><pre>-- Lista de números bloqueados (llega de un proveedor externo, con basura incluida)
+DECLARE @Bloqueados TABLE (Telefono varchar(15));
+INSERT @Bloqueados VALUES ('0991111111'), ('0993333333'), (NULL);  -- el NULL es basura del archivo, no un bloqueo real</pre></div>
+<div class="split">
+<div class="code bad"><span class="cap">ingenua · NOT IN</span><button class="cp">copiar</button><pre>SELECT t.ClienteId, t.Telefono
+FROM dbo.ClienteTelefono t
+WHERE t.Telefono NOT IN (SELECT Telefono FROM @Bloqueados);   -- 0 filas</pre></div>
+<div class="code good"><span class="cap">correcta · NOT EXISTS</span><button class="cp">copiar</button><pre>SELECT t.ClienteId, t.Telefono
+FROM dbo.ClienteTelefono t
+WHERE NOT EXISTS (SELECT 1 FROM @Bloqueados b WHERE b.Telefono = t.Telefono);
+-- devuelve todos los teléfonos salvo 0991111111 y 0993333333</pre></div>
+</div>
+<p>El único NULL en <code>@Bloqueados</code> —que ni siquiera representa un bloqueo real, es basura del archivo del proveedor— basta para vaciar por completo el resultado de la ingenua. <code>NOT EXISTS</code> es inmune porque no evalúa <code>Telefono = NULL</code> como una comparación que deba dar TRUE para todo: simplemente nunca encuentra esa fila como excluyente.</p>
+<div class="rule"><b>regla operativa</b><code>NOT IN</code> es seguro <b>solo</b> si la columna de la subconsulta tiene una restricción <code>NOT NULL</code> verificada. Si no puedes garantizarlo: reescribe a <code>NOT EXISTS</code>, o filtra la basura explícitamente con <code>NOT IN (SELECT Telefono FROM @Bloqueados WHERE Telefono IS NOT NULL)</code> — útil cuando quieres conservar la sintaxis <code>IN</code> por legibilidad y sabes con certeza que el NULL no debería estar ahí.</div>
+<div class="rule"><b>equivalencias</b>Misma trampa, misma causa (lógica de tres valores ANSI), en PostgreSQL y Spark SQL. Ningún motor "arregla" <code>NOT IN</code> con NULL — es el comportamiento correcto según el estándar, aunque casi nunca sea el que el desarrollador quería.</div>`},
+
+{id:"05", min:35, t:"Self joins y comparación de filas contiguas", html:`
+<p>Un self join es un <code>JOIN</code> normal donde ambos lados son la misma tabla con dos alias distintos. Sirve para comparar filas de una tabla <b>entre sí</b>: la anterior, la siguiente, un duplicado, una jerarquía.</p>
+
+<h3>Patrón clásico: la venta anterior del mismo cliente, sin funciones de ventana</h3>
+<div class="code"><span class="cap">T-SQL · autounión correlacionada</span><button class="cp">copiar</button><pre>SELECT v1.ClienteId, v1.VentaId, v1.Fecha AS FechaActual, v2.Fecha AS FechaAnterior,
+       DATEDIFF(day, v2.Fecha, v1.Fecha) AS DiasEntreCompras
+FROM dbo.Venta v1
+LEFT JOIN dbo.Venta v2
+       ON v2.ClienteId = v1.ClienteId
+      AND v2.Fecha = (
+            SELECT MAX(v3.Fecha) FROM dbo.Venta v3
+            WHERE v3.ClienteId = v1.ClienteId AND v3.Fecha &lt; v1.Fecha
+          )
+ORDER BY v1.ClienteId, v1.Fecha;</pre></div>
+<p>Esta técnica —autounión combinada con una subconsulta correlacionada que localiza "la fila anterior"— es exactamente la que <code>CROSS APPLY</code> reemplaza en el tema 8 con una sola pasada en vez de dos joins anidados. Vale la pena reconocerla porque abunda en código legado escrito antes de que <code>APPLY</code> existiera (SQL Server 2005) o en motores sin <code>APPLY</code>/<code>LATERAL</code>.</p>
+
+<h3>El riesgo de un self join sin condición de exclusión</h3>
+<div class="code bad"><span class="cap">olvido común</span><button class="cp">copiar</button><pre>SELECT v1.VentaId, v2.VentaId
+FROM dbo.Venta v1
+JOIN dbo.Venta v2 ON v1.ClienteId = v2.ClienteId;
+-- cada venta hace match consigo misma (v1.VentaId = v2.VentaId) y con cada otra venta DOS veces (ida y vuelta)</pre></div>
+<p>Todo self join que compare "filas distintas" necesita una condición explícita para no emparejar una fila consigo misma (<code>v1.VentaId &lt;&gt; v2.VentaId</code>) y, si el par es simétrico, para no contarlo dos veces (<code>v1.VentaId &lt; v2.VentaId</code>). Es el mismo cuidado que necesitarás en el tema 7 para pares de turnos solapados.</p>
+<div class="rule"><b>equivalencias</b>Sintaxis idéntica en PostgreSQL y Spark SQL: un self join no es más que dos alias de la misma tabla, sin sintaxis especial en ningún motor.</div>`},
+
+{id:"06", min:40, t:"Non-equi joins y joins por rangos de fechas", html:`
+<p>El <code>ON</code> de un <code>JOIN</code> acepta <b>cualquier</b> predicado booleano, no solo <code>=</code>. Cuando el predicado es una desigualdad o un rango, se llama <b>non-equi join</b>. Los joins por rango de fechas son el caso más común en negocio: atribuir un hecho (una venta) al periodo, tarifa o campaña vigente en ese momento.</p>
+
+<h3>Atribuir cada venta a su campaña vigente</h3>
+<div class="code"><span class="cap">T-SQL</span><button class="cp">copiar</button><pre>SELECT v.VentaId, v.Fecha, v.Canal, ca.CampaniaId, ca.Nombre, ca.PctDescuento
+FROM dbo.Venta v
+JOIN dbo.Campania ca
+     ON (ca.Canal = v.Canal OR ca.Canal IS NULL)
+    AND v.Fecha &gt;= ca.FechaInicio
+    AND v.Fecha &lt;  DATEADD(day, 1, ca.FechaFin)
+ORDER BY v.VentaId;</pre></div>
+<p>Nota <code>ca.Canal = v.Canal OR ca.Canal IS NULL</code>: es la misma idea null-safe del módulo 01 (tema 6), aplicada a un join en vez de a un filtro — <code>ca.Canal IS NULL</code> representa "aplica a cualquier canal".</p>
+
+<h3>El riesgo que ya conoces: el rango puede matchear más de una vez</h3>
+<div class="code bad"><span class="cap">la venta 8 (2023-06-01, AGENCIA) matchea DOS campañas</span><button class="cp">copiar</button><pre>SELECT COUNT(*) FROM dbo.Venta v
+JOIN dbo.Campania ca ON (ca.Canal = v.Canal OR ca.Canal IS NULL)
+                    AND v.Fecha &gt;= ca.FechaInicio AND v.Fecha &lt; DATEADD(day,1,ca.FechaFin)
+WHERE v.VentaId = 8;   -- 2: Campania 3 (Aniversario, catch-all, 5%) y Campania 4 (Feria Agencias, 8%)</pre></div>
+<p>Ambas campañas están vigentes el 1 de junio de 2023 para el canal <code>AGENCIA</code>: la 3 por ser catch-all, la 4 por ser específica de <code>AGENCIA</code>. Un <code>JOIN</code> corriente no tiene forma de "elegir una": devuelve las dos combinaciones, duplicando la fila de venta. La solución —quedarte con una sola por criterio de negocio— es exactamente el tema 8/9: <code>CROSS APPLY</code> con <code>TOP (1) … ORDER BY</code>.</p>
+
+<h3>Vista previa de la solución (detalle completo en el tema 9)</h3>
+<div class="code good"><button class="cp">copiar</button><pre>SELECT v.VentaId, x.CampaniaId, x.Nombre, x.PctDescuento
+FROM dbo.Venta v
+CROSS APPLY (
+    SELECT TOP (1) ca.CampaniaId, ca.Nombre, ca.PctDescuento
+    FROM dbo.Campania ca
+    WHERE (ca.Canal = v.Canal OR ca.Canal IS NULL)
+      AND v.Fecha &gt;= ca.FechaInicio AND v.Fecha &lt; DATEADD(day,1,ca.FechaFin)
+    ORDER BY ca.PctDescuento DESC, ca.CampaniaId
+) x;</pre></div>
+<div class="rule"><b>costo</b>Un predicado de rango no se resuelve con un <b>Hash Match</b> ni un <b>Merge Join</b> tradicionales: el plan casi siempre elige <b>Nested Loops</b>, ejecutando la búsqueda de rango una vez por cada fila del lado externo. Con <code>dbo.Venta</code> (20 filas) es irrelevante; con <code>dbo.VentaHist</code> (1 000 000 filas) contra una tabla de campañas más grande, ese Nested Loops se vuelve el cuello de botella (ver comparación 3.4, mismo principio aplicado a subconsultas correlacionadas).</div>
+<div class="rule"><b>equivalencias</b>PostgreSQL ofrece tipos <code>daterange</code>/<code>tsrange</code> con el operador de solapamiento <code>&amp;&amp;</code> y restricciones de exclusión (<code>EXCLUDE USING gist</code>) que resuelven este problema de forma nativa y con índice GiST — muy superior a repetir <code>BETWEEN</code>. Spark SQL no tiene tipos de rango ni operador de solapamiento: el non-equi join se ejecuta igual que aquí, y en volúmenes grandes suele ayudarse con una clave de partición más gruesa (por ejemplo, mes) para convertir parte del join en equi-join antes de aplicar el rango fino.</div>`},
+
+{id:"07", min:45, t:"Solapamiento de intervalos y calendarios", html:`
+<h3><span class="tag-letter">a</span>La fórmula del solapamiento</h3>
+<p>Dos intervalos <code>[Inicio1, Fin1)</code> y <code>[Inicio2, Fin2)</code> se solapan si y solo si:</p>
+<div class="code"><span class="cap">memorízala</span><button class="cp">copiar</button><pre>Inicio1 &lt; Fin2  AND  Fin1 &gt; Inicio2</pre></div>
+<p>Es más confiable que enumerar casos ("empieza antes y termina después", "empieza dentro", …): esas dos desigualdades cubren <b>todas</b> las formas en que dos intervalos pueden cruzarse, incluida la contención total de uno dentro del otro.</p>
+
+<h3><span class="tag-letter">b</span>Turnos que chocan en el mismo recurso</h3>
+<div class="code"><span class="cap">T-SQL · autounión + fórmula de solapamiento</span><button class="cp">copiar</button><pre>SELECT t1.TurnoId AS Turno1, t1.Empleado AS Empleado1,
+       t2.TurnoId AS Turno2, t2.Empleado AS Empleado2, t1.Recurso
+FROM dbo.Turno t1
+JOIN dbo.Turno t2
+     ON t1.Recurso  = t2.Recurso
+    AND t1.TurnoId  &lt; t2.TurnoId          -- evita duplicar el par y el match consigo mismo
+    AND t1.Inicio   &lt; t2.Fin
+    AND t1.Fin      &gt; t2.Inicio;
+-- resultado: (1,2) en CAJA1 -- 12:30 a 13:00 -- y (6,7) en VENT1 -- 10:30 a 11:00
+-- (3,4) en CAJA2 NO aparece: terminan/empiezan exactamente a las 12:00, sin solaparse</pre></div>
+<p>La condición <code>t1.TurnoId &lt; t2.TurnoId</code> hace aquí el mismo trabajo que en el tema 5: sin ella, cada choque saldría dos veces (una por dirección) y cada turno matchearía consigo mismo.</p>
+
+<h3><span class="tag-letter">c</span>Calendario: días sin venta</h3>
+<div class="code"><span class="cap">T-SQL · LEFT JOIN correcto, agregando ANTES de unir</span><button class="cp">copiar</button><pre>SELECT COUNT(*) AS DiasSinVenta
+FROM dbo.Calendario cal
+LEFT JOIN (
+    SELECT CAST(Fecha AS date) AS Fecha, SUM(Cantidad*PrecioUnit) AS Total
+    FROM dbo.Venta
+    GROUP BY CAST(Fecha AS date)
+) d ON d.Fecha = cal.Fecha
+WHERE cal.Fecha BETWEEN '2023-01-01' AND '2023-12-31'
+  AND d.Fecha IS NULL;   -- 351 de 365 días</pre></div>
+<p>Fíjate que este <code>WHERE d.Fecha IS NULL</code> es exactamente el patrón que en el tema 2 llamamos peligroso — y aquí es <b>correcto</b>. La diferencia: <code>d.Fecha</code> es la columna que el propio <code>LEFT JOIN</code> rellena con NULL cuando no hay venta ese día; preguntarle si es NULL es preguntar "¿este día no tuvo ventas?", no un filtro ajeno al join. La regla del tema 2 se sostiene: importa <b>qué</b> columna filtras, no que el patrón "se vea igual".</p>
+<div class="rule"><b>equivalencias</b>PostgreSQL: <code>(t1.Inicio, t1.Fin) OVERLAPS (t2.Inicio, t2.Fin)</code> es sintaxis ANSI válida ahí y expresa la misma fórmula sin escribirla a mano; también sirve <code>tsrange(t1.Inicio,t1.Fin) &amp;&amp; tsrange(t2.Inicio,t2.Fin)</code> con índice GiST. SQL Server no tiene <code>OVERLAPS</code>: se escribe siempre con las dos desigualdades. Spark SQL tampoco tiene operador de solapamiento nativo — misma fórmula manual que en T-SQL. Para el calendario, <code>generate_series('2023-01-01'::date,'2023-12-31'::date,'1 day')</code> reemplaza en Postgres al truco de <code>sys.all_objects</code>; en Spark, <code>sequence(to_date('2023-01-01'), to_date('2023-12-31'), interval 1 day)</code> seguido de <code>explode()</code>.</div>`},
+
+{id:"08", min:35, t:"CROSS APPLY / OUTER APPLY y LATERAL", html:`
+<p><code>APPLY</code> evalúa, <b>fila por fila</b> de la izquierda, una expresión de tabla que <b>puede referenciar columnas de esa fila</b> — algo que un <code>JOIN</code> normal no puede hacer, porque las dos tablas de un <code>JOIN</code> se evalúan como conjuntos independientes antes de compararse. <code>CROSS APPLY</code> descarta la fila izquierda si el lado derecho no produce nada (como INNER); <code>OUTER APPLY</code> la conserva con NULLs (como LEFT).</p>
+
+<h3>Por qué existe: lo que un JOIN no puede expresar</h3>
+<div class="code"><span class="cap">último teléfono registrado por cliente</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, x.Telefono
+FROM dbo.Cliente c
+OUTER APPLY (
+    SELECT TOP (1) t.Telefono
+    FROM dbo.ClienteTelefono t
+    WHERE t.ClienteId = c.ClienteId   -- referencia a la fila izquierda: imposible en el FROM de un JOIN
+    ORDER BY t.ClienteTelefonoId DESC
+) x
+ORDER BY c.ClienteId;   -- 12 filas: los clientes sin teléfono traen x.Telefono = NULL</pre></div>
+<p>Con <code>CROSS APPLY</code> en vez de <code>OUTER APPLY</code>, los clientes 4, 7, 11 y 12 (sin ningún teléfono) desaparecerían del resultado — el mismo comportamiento de preservación que distingue <code>LEFT</code> de <code>INNER</code>, aplicado a <code>APPLY</code>.</p>
+
+<h3>El otro uso: nombrar una expresión una sola vez</h3>
+<p>El patrón <code>CROSS APPLY (VALUES (…)) AS x(col)</code> del módulo 01 (tema 3) es el mismo operador, en su forma más simple: sin subconsulta, solo para reutilizar una expresión calculada sin repetirla.</p>
+<div class="rule"><b>equivalencias</b>El estándar ANSI llama a esto <code>LATERAL</code>. PostgreSQL: <code>CROSS APPLY</code> ≈ <code>CROSS JOIN LATERAL (…)</code>; <code>OUTER APPLY</code> ≈ <code>LEFT JOIN LATERAL (…) ON true</code>. Spark SQL soporta subconsultas <code>LATERAL</code> desde la serie 3.2 (antes solo existía <code>LATERAL VIEW</code>, pensado para funciones que generan tablas como <code>explode()</code>); la sintaxis es <code>, LATERAL (SELECT …)</code>.</div>`},
+
+{id:"09", min:30, t:"Top-N por grupo con APPLY vs window function", html:`
+<p>Pregunta típica de negocio: "las 2 compras de mayor monto por cliente". Hoy tienes dos formas correctas — este tema compara cuándo conviene cada una, no cuál es "mejor" en abstracto.</p>
+<div class="split">
+<div class="code"><span class="cap">(a) CROSS APPLY</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, x.VentaId, x.Monto
+FROM dbo.Cliente c
+CROSS APPLY (
+    SELECT TOP (2) v.VentaId, v.Cantidad*v.PrecioUnit AS Monto
+    FROM dbo.Venta v
+    WHERE v.ClienteId = c.ClienteId
+    ORDER BY v.Cantidad*v.PrecioUnit DESC, v.VentaId
+) x;</pre></div>
+<div class="code"><span class="cap">(b) window function (detalle en el módulo 03)</span><button class="cp">copiar</button><pre>SELECT ClienteId, VentaId, Monto FROM (
+    SELECT ClienteId, VentaId, Cantidad*PrecioUnit AS Monto,
+           ROW_NUMBER() OVER (PARTITION BY ClienteId
+                               ORDER BY Cantidad*PrecioUnit DESC, VentaId) AS rn
+    FROM dbo.Venta
+) x WHERE rn &lt;= 2;</pre></div>
+</div>
+<h3>Cuándo conviene cada una</h3>
+<table class="t">
+<tr><th></th><th>CROSS APPLY</th><th>Window function</th></tr>
+<tr><td>Patrón de acceso</td><td>Nested Loops: un Seek por cliente</td><td>un Sort de toda la tabla, una sola pasada</td></tr>
+<tr><td>Mejor cuando…</td><td>pocos grupos frente al tamaño de la tabla, con índice de apoyo <code>(ClienteId, Monto DESC)</code></td><td>necesitas el Top-N de <b>todos</b> los grupos a la vez, o no hay índice útil</td></tr>
+<tr><td>Escala a "Top-N variable por fila"</td><td class="yes">sí — el N puede venir de otra columna</td><td class="no">no directamente — N es fijo en el <code>WHERE rn &lt;= N</code></td></tr>
+<tr><td>Traer varias columnas relacionadas</td><td class="yes">natural — el APPLY las trae todas juntas</td><td class="no">requiere repetir la ventana o envolver en subconsulta</td></tr>
+</table>
+<p>Regla práctica: si vas a pedir el Top-N de <b>un solo</b> cliente (parámetro de una pantalla), <code>CROSS APPLY</code> con índice suele ser más barato — un solo Seek. Si vas a generar un reporte con el Top-N de <b>todos</b> los clientes de una vez, la window function evita miles de Seeks individuales con un único Sort.</p>
+<div class="rule"><b>equivalencias</b>PostgreSQL: mismo <code>ROW_NUMBER() OVER(...)</code>; el equivalente a <code>CROSS APPLY</code> es <code>CROSS JOIN LATERAL (... LIMIT 2)</code>. Spark SQL: ventanas idénticas; al no tener índices B-tree ni acceso por Seek, el patrón <code>LATERAL</code> no ofrece la misma ventaja de costo que en un motor transaccional — en Spark, la window function es casi siempre la opción idiomática para Top-N por grupo.</div>`},
+
+{id:"10", min:45, t:"Diagnóstico de explosión de filas por granularidad distinta", html:`
+<p>La pregunta que resume todo el módulo: <b>para una fila de A, ¿con cuántas de B puede hacer match?</b> Cuando unes dos tablas hijas de un mismo padre <b>directamente entre sí</b> —en vez de relacionarlas solo a través del padre— obtienes el producto cartesiano de sus filas por cada padre. Es un error de modelado clásico, conocido como <em>fan trap</em>.</p>
+
+<h3>El caso mínimo</h3>
+<div class="code bad"><span class="cap">ingenua · el SUM sale duplicado</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, SUM(v.Cantidad*v.PrecioUnit) AS TotalCompras
+FROM dbo.Cliente c
+JOIN dbo.Venta v            ON v.ClienteId = c.ClienteId
+JOIN dbo.ClienteTelefono t  ON t.ClienteId = c.ClienteId
+WHERE c.ClienteId = 1
+GROUP BY c.ClienteId;
+-- TotalCompras sale EXACTAMENTE EL DOBLE del real</pre></div>
+<p>El cliente 1 tiene 3 ventas y 2 teléfonos. El join produce 3 × 2 = 6 filas para ese cliente —cada venta repetida una vez por cada teléfono— y el <code>SUM</code> agrega las 6, no las 3 reales.</p>
+
+<h3>El chequeo de cordura que lo detecta</h3>
+<div class="code"><span class="cap">compara el conteo contra la tabla que debería fijar la granularidad</span><button class="cp">copiar</button><pre>SELECT
+    (SELECT COUNT(*) FROM dbo.Venta WHERE ClienteId = 1)                                   AS VentasReales,
+    (SELECT COUNT(*) FROM dbo.Cliente c
+       JOIN dbo.Venta v           ON v.ClienteId = c.ClienteId
+       JOIN dbo.ClienteTelefono t ON t.ClienteId = c.ClienteId
+     WHERE c.ClienteId = 1)                                                                AS FilasDelJoin;
+-- 3 vs 6: la razón (6/3 = 2) es, no por casualidad, el número de teléfonos del cliente 1</pre></div>
+<p>Si antes de confiar en cualquier <code>SUM</code>/<code>COUNT</code> posterior a un join de varias tablas comparas su conteo de filas contra el de la tabla que debería fijar la granularidad, detectas el fan trap antes de que llegue a un reporte.</p>
+
+<h3>Tres formas de arreglarlo</h3>
+<table class="t">
+<tr><th>Estrategia</th><th>Cuándo usarla</th></tr>
+<tr><td>Agregar cada tabla hija <b>antes</b> de unir (subconsulta/CTE por hijo, luego <code>LEFT JOIN</code> de agregados)</td><td>siempre que necesites números de ambas tablas hijas en la misma fila</td></tr>
+<tr><td><code>EXISTS</code>/<code>NOT EXISTS</code> en vez de <code>JOIN</code></td><td>cuando de la segunda tabla hija solo te importa si existe, no sus valores</td></tr>
+<tr><td><code>CROSS</code>/<code>OUTER APPLY</code> independiente por cada hijo</td><td>cuando necesitas un valor puntual (el último, el máximo) de cada hijo, no todos sus valores</td></tr>
+</table>
+<div class="code good"><span class="cap">corregido · agregación previa</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, ISNULL(vt.Total, 0) AS TotalCompras, ISNULL(tt.NumTelefonos, 0) AS NumTelefonos
+FROM dbo.Cliente c
+LEFT JOIN (SELECT ClienteId, SUM(Cantidad*PrecioUnit) AS Total FROM dbo.Venta GROUP BY ClienteId) vt
+       ON vt.ClienteId = c.ClienteId
+LEFT JOIN (SELECT ClienteId, COUNT(*) AS NumTelefonos FROM dbo.ClienteTelefono GROUP BY ClienteId) tt
+       ON tt.ClienteId = c.ClienteId
+WHERE c.ClienteId = 1;   -- TotalCompras correcto, NumTelefonos correcto, cada uno en su propia fila</pre></div>
+<p>Ninguna de las dos subconsultas puede "fanear" a la otra porque cada una ya está agregada a la granularidad de <code>ClienteId</code> — un <code>LEFT JOIN</code> de "uno a lo sumo uno" nunca multiplica.</p>
+<div class="rule"><b>a escala</b>El mismo patrón contra <code>dbo.ClienteMasivo</code>, <code>dbo.VentaHist</code> y <code>dbo.ClienteTelefonoMasivo</code> no solo da un número incorrecto: procesa varias veces más filas de las necesarias en cada operador del plan. Ver comparación 3.5.</div>
+<div class="rule"><b>equivalencias</b>La misma trampa existe igual en PostgreSQL y Spark SQL — es un problema de álgebra relacional, no de motor. En Spark es más peligroso todavía: con datos distribuidos, el resultado inflado se ve simplemente como "más lento", sin ningún indicio de que la causa es semántica y no de infraestructura.</div>`}
+];
+
+/* ══════════ ejercicios ══════════ */
+const EJERCICIOS = [
+{id:"01", niv:"fácil", t:"Predecir cardinalidad sin ejecutar", temas:"tema 1", enun:`
+<p>Sin ejecutar, di cuántas filas devuelve cada consulta contra el dataset de los módulos 01 y 02, y por qué.</p>
+<div class="code"><button class="cp">copiar</button><pre>-- A
+SELECT COUNT(*) FROM dbo.Cliente c JOIN dbo.Venta v ON v.ClienteId = c.ClienteId;
+-- B
+SELECT COUNT(*) FROM dbo.Cliente c LEFT JOIN dbo.Venta v ON v.ClienteId = c.ClienteId;
+-- C
+SELECT COUNT(*) FROM dbo.Cliente c FULL JOIN dbo.ClienteExterno e ON e.Cedula = c.Cedula;
+-- D
+SELECT COUNT(*) FROM dbo.Producto p CROSS JOIN (VALUES ('WEB'),('APP')) AS ch(Canal);</pre></div>`,
+sol:`<ul class="plain">
+<li><b>A = 20.</b> INNER: una fila por cada una de las 20 ventas; los clientes 11 y 12 (sin ventas) no contribuyen ninguna.</li>
+<li><b>B = 22.</b> LEFT: las 20 de A más una fila por cada cliente sin ventas (11 y 12), con <code>v.VentaId</code> NULL.</li>
+<li><b>C = 13.</b> FULL: los 12 clientes del core (varios sin match en el buró) más una fila extra para Zoila Guerra, que solo existe en <code>ClienteExterno</code>.</li>
+<li><b>D = 12.</b> CROSS: 6 productos × 2 canales, sin ninguna condición que descarte combinaciones.</li>
+</ul>`},
+
+{id:"02", niv:"fácil", t:"Rescatar el LEFT", temas:"tema 2", enun:`
+<p>Esta consulta pretendía listar <b>todos</b> los clientes con su venta más reciente por canal digital, pero pierde a los clientes sin ninguna venta digital. Corrígela sin cambiar el tipo de join.</p>
+<div class="code bad"><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, v.VentaId, v.Fecha
+FROM dbo.Cliente c
+LEFT JOIN dbo.Venta v ON v.ClienteId = c.ClienteId
+WHERE v.Canal IN ('WEB','APP') OR v.Canal IS NULL;</pre></div>`,
+sol:`<p>El bug no es evidente porque el <code>OR v.Canal IS NULL</code> parece "salvar" el LEFT — pero no: también deja pasar, de cada cliente con ventas, las filas cuyo <code>Canal</code> es NULL (ventas sin canal registrado), que no es lo mismo que "el cliente no tiene ninguna venta digital". El fix real es mover el filtro de canal al <code>ON</code>:</p>
+<div class="code good"><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre, v.VentaId, v.Fecha
+FROM dbo.Cliente c
+LEFT JOIN dbo.Venta v ON v.ClienteId = c.ClienteId
+                     AND v.Canal IN ('WEB','APP');</pre></div>
+<p>Ahora los 12 clientes aparecen siempre; los que no tienen ninguna venta <code>WEB</code>/<code>APP</code> traen <code>v.VentaId</code> NULL, y las ventas por <code>AGENCIA</code> o sin canal simplemente no generan fila para ese cliente si son las únicas que tiene.</p>`},
+
+{id:"03", niv:"medio", t:"Semi y anti join con teléfonos", temas:"temas 3, 4", enun:`
+<p>(a) Escribe una consulta con <code>EXISTS</code> para los clientes con al menos un teléfono <code>MOVIL</code>. (b) Escribe una con <code>NOT EXISTS</code> para los que no tienen ninguno. (c) Explica por qué reescribir (b) con <code>NOT IN</code> sobre <code>ClienteTelefono.Telefono</code> sería un error, aunque sobre <code>ClienteTelefono.ClienteId</code> no lo sea.</p>`,
+sol:`<div class="code good"><span class="cap">(a)</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre
+FROM dbo.Cliente c
+WHERE EXISTS (SELECT 1 FROM dbo.ClienteTelefono t WHERE t.ClienteId = c.ClienteId AND t.Tipo = 'MOVIL');
+-- clientes 1, 2, 3, 5, 6, 8, 9, 10</pre></div>
+<div class="code good"><span class="cap">(b)</span><button class="cp">copiar</button><pre>SELECT c.ClienteId, c.Nombre
+FROM dbo.Cliente c
+WHERE NOT EXISTS (SELECT 1 FROM dbo.ClienteTelefono t WHERE t.ClienteId = c.ClienteId);
+-- clientes 4, 7, 11, 12</pre></div>
+<p><b>(c)</b> <code>ClienteTelefono.ClienteId</code> es <code>NOT NULL</code> (es una FK obligatoria), así que <code>NOT IN (SELECT ClienteId FROM …)</code> nunca tropieza con la trampa del tema 4: no hay NULL que contamine el <code>AND</code>. <code>Telefono</code>, en cambio, sí admite NULL (números 2 y 6, "pendientes de registrar"): un <code>NOT IN (SELECT Telefono FROM …)</code> sobre esa columna se vaciaría por completo en cuanto esa fila entrara en la subconsulta, exactamente como en el ejemplo del tema 4.</p>`},
+
+{id:"04", niv:"medio", t:"Compra anterior: self join y APPLY", temas:"temas 5, 8", enun:`
+<p>El cliente 6 tiene tres ventas (11, 12, 13). Para cada una, calcula los días transcurridos desde la compra anterior del mismo cliente, usando (a) la técnica de autounión correlacionada del tema 5, y (b) <code>OUTER APPLY</code>. Los resultados deben coincidir.</p>`,
+sol:`<div class="code good"><span class="cap">(a) autounión</span><button class="cp">copiar</button><pre>SELECT v1.VentaId, v1.Fecha,
+       DATEDIFF(day, (SELECT MAX(v2.Fecha) FROM dbo.Venta v2
+                      WHERE v2.ClienteId = v1.ClienteId AND v2.Fecha &lt; v1.Fecha), v1.Fecha) AS DiasDesdeAnterior
+FROM dbo.Venta v1
+WHERE v1.ClienteId = 6
+ORDER BY v1.Fecha;</pre></div>
+<div class="code good"><span class="cap">(b) OUTER APPLY</span><button class="cp">copiar</button><pre>SELECT v1.VentaId, v1.Fecha, DATEDIFF(day, x.FechaAnt, v1.Fecha) AS DiasDesdeAnterior
+FROM dbo.Venta v1
+OUTER APPLY (
+    SELECT TOP (1) v2.Fecha AS FechaAnt
+    FROM dbo.Venta v2
+    WHERE v2.ClienteId = v1.ClienteId AND v2.Fecha &lt; v1.Fecha
+    ORDER BY v2.Fecha DESC
+) x
+WHERE v1.ClienteId = 6
+ORDER BY v1.Fecha;</pre></div>
+<p>La primera venta del cliente (11, 2023-09-14) da <code>NULL</code> en ambas versiones: no hay compra anterior. Las ventas 12 (mismo día) y 13 (2023-09-15) dan 0 y ~1 día respectivamente en ambas — si no coinciden, revisa el criterio de desempate cuando dos ventas caen el mismo instante lógico.</p>`},
+
+{id:"05", niv:"difícil", t:"Atribución sin duplicar + choques de turno", temas:"temas 6, 7, 8, 9", enun:`
+<p>(a) Usando <code>dbo.Campania</code>, escribe una consulta que atribuya exactamente una campaña por venta, con el mayor descuento como criterio de desempate. (b) Usando <code>dbo.Turno</code>, encuentra todos los pares de turnos que chocan en el mismo <code>Recurso</code>. (c) Explica qué tienen en común estructuralmente ambos problemas.</p>`,
+sol:`<div class="code good"><span class="cap">(a)</span><button class="cp">copiar</button><pre>SELECT v.VentaId, x.CampaniaId, x.PctDescuento
+FROM dbo.Venta v
+CROSS APPLY (
+    SELECT TOP (1) ca.CampaniaId, ca.PctDescuento
+    FROM dbo.Campania ca
+    WHERE (ca.Canal = v.Canal OR ca.Canal IS NULL)
+      AND v.Fecha &gt;= ca.FechaInicio AND v.Fecha &lt; DATEADD(day,1,ca.FechaFin)
+    ORDER BY ca.PctDescuento DESC, ca.CampaniaId
+) x;</pre></div>
+<div class="code good"><span class="cap">(b)</span><button class="cp">copiar</button><pre>SELECT t1.TurnoId, t2.TurnoId, t1.Recurso
+FROM dbo.Turno t1
+JOIN dbo.Turno t2 ON t1.Recurso = t2.Recurso AND t1.TurnoId &lt; t2.TurnoId
+                 AND t1.Inicio &lt; t2.Fin AND t1.Fin &gt; t2.Inicio;
+-- (1,2) en CAJA1 y (6,7) en VENT1</pre></div>
+<p><b>(c)</b> Ambos son casos donde una relación que <em>parece</em> 1 a 1 (una venta con su campaña vigente, un turno con su franja horaria) en realidad puede ser 1 a N por solape de rangos. En (a) se resuelve eligiendo una sola coincidencia con <code>TOP (1) … ORDER BY</code> dentro de un <code>APPLY</code>; en (b), como aquí sí queremos <b>todas</b> las coincidencias (todos los choques), se resuelve con un self join y la fórmula de solapamiento del tema 7, con la condición de exclusión/dirección del tema 5 para no duplicar ni auto-matchear.</p>`},
+
+{id:"06", niv:"difícil", t:"Diagnóstico y corrección de un fan trap en producción", temas:"temas 3, 9, 10", enun:`
+<p>Un reporte en producción ejecuta esto contra el dataset a escala y reporta totales de venta que "no cuadran" con el sistema origen:</p>
+<div class="code bad"><button class="cp">copiar</button><pre>SELECT cm.ClienteId, SUM(vh.Monto) AS Total
+FROM dbo.ClienteMasivo cm
+JOIN dbo.VentaHist vh             ON vh.ClienteId = cm.ClienteId
+JOIN dbo.ClienteTelefonoMasivo tm ON tm.ClienteId = cm.ClienteId
+GROUP BY cm.ClienteId;</pre></div>
+<p>(a) Escribe la consulta de diagnóstico que demuestra la causa exacta para un <code>ClienteId</code> específico con dos teléfonos. (b) Corrige el reporte para que <code>Total</code> sea correcto y agrega el conteo de teléfonos sin volver a fanear nada. (c) El equipo solo necesita saber si el cliente <b>tiene o no</b> teléfono registrado (no cuántos). Reescribe esa parte con <code>EXISTS</code> y explica por qué es más barato que el <code>COUNT</code> agregado si eso es todo lo que hace falta.</p>`,
+sol:`<div class="code good"><span class="cap">(a) diagnóstico</span><button class="cp">copiar</button><pre>SELECT
+    (SELECT COUNT(*) FROM dbo.VentaHist WHERE ClienteId = 4) AS VentasReales,
+    (SELECT COUNT(*) FROM dbo.ClienteMasivo cm
+       JOIN dbo.VentaHist vh             ON vh.ClienteId = cm.ClienteId
+       JOIN dbo.ClienteTelefonoMasivo tm ON tm.ClienteId = cm.ClienteId
+     WHERE cm.ClienteId = 4) AS FilasDelJoin,
+    (SELECT COUNT(*) FROM dbo.ClienteTelefonoMasivo WHERE ClienteId = 4) AS NumTelefonos;
+-- FilasDelJoin = VentasReales x NumTelefonos, siempre que NumTelefonos &gt; 0</pre></div>
+<div class="code good"><span class="cap">(b) corregido</span><button class="cp">copiar</button><pre>SELECT cm.ClienteId, ISNULL(vt.Total,0) AS Total, ISNULL(tt.NumTelefonos,0) AS NumTelefonos
+FROM dbo.ClienteMasivo cm
+LEFT JOIN (SELECT ClienteId, SUM(Monto) AS Total FROM dbo.VentaHist GROUP BY ClienteId) vt
+       ON vt.ClienteId = cm.ClienteId
+LEFT JOIN (SELECT ClienteId, COUNT(*) AS NumTelefonos FROM dbo.ClienteTelefonoMasivo GROUP BY ClienteId) tt
+       ON tt.ClienteId = cm.ClienteId;</pre></div>
+<div class="code good"><span class="cap">(c) EXISTS en vez de COUNT</span><button class="cp">copiar</button><pre>SELECT cm.ClienteId, ISNULL(vt.Total,0) AS Total,
+       CASE WHEN EXISTS (SELECT 1 FROM dbo.ClienteTelefonoMasivo tm WHERE tm.ClienteId = cm.ClienteId)
+            THEN 1 ELSE 0 END AS TieneTelefono
+FROM dbo.ClienteMasivo cm
+LEFT JOIN (SELECT ClienteId, SUM(Monto) AS Total FROM dbo.VentaHist GROUP BY ClienteId) vt
+       ON vt.ClienteId = cm.ClienteId;</pre></div>
+<p><code>EXISTS</code> se detiene en la primera fila que encuentra: para un cliente con dos teléfonos, un <code>COUNT(*)</code> agregado tiene que leer ambas filas y agruparlas; <code>EXISTS</code> solo necesita confirmar que hay al menos una. Cuando la pregunta real es booleana ("¿existe?"), <code>EXISTS</code> es siempre al menos tan barato como cualquier forma de <code>COUNT</code>, y nunca corre el riesgo de que alguien reintroduzca un fan trap sumando esa cuenta contra otra tabla hija más adelante.</p>`}
+];
+
+/* ══════════ examen ══════════ */
+const EXAMEN = [
+["¿Cuál es la diferencia esencial entre un INNER JOIN y un EXISTS cuando ambos parecen responder \"cuáles tienen match\"?",
+ "INNER JOIN trae y puede repetir filas del lado externo una vez por cada coincidencia; EXISTS solo pregunta si hay al menos una y nunca multiplica. Si solo necesitas presencia, EXISTS es semánticamente más seguro y no requiere DISTINCT."],
+["¿Por qué un WHERE sobre una columna del lado derecho de un LEFT JOIN puede convertirlo silenciosamente en INNER?",
+ "Porque WHERE actúa después del FROM en el orden lógico, cuando las filas sin match ya tienen NULL en ese lado. Si el predicado no puede dar TRUE con NULL (lógica de tres valores), esas filas se descartan y el LEFT se comporta como INNER; SQL Server incluso simplifica el operador del plan a Inner Join."],
+["¿Por qué NOT IN falla con NULLs y NOT EXISTS no?",
+ "NOT IN se expande a una cadena de AND con &lt;&gt; contra cada valor, incluido el NULL; esa comparación da UNKNOWN y contamina todo el AND, vaciando el resultado. NOT EXISTS no evalúa una comparación de valor: solo pregunta si existe una fila que cumpla la condición, y no encontrarla no contamina nada más."],
+["¿Qué permite que APPLY referencie columnas de la tabla izquierda dentro de su subconsulta, algo que un JOIN normal no puede hacer?",
+ "APPLY se evalúa fila por fila del lado izquierdo, tratando cada fila como un parámetro correlacionado para la expresión de tabla de la derecha — conceptualmente, un bucle. Un JOIN evalúa ambos lados como conjuntos independientes antes de aplicar el ON, así que el lado derecho no puede \"ver\" una fila específica de la izquierda."],
+["¿Cómo se prueba si dos intervalos se solapan sin enumerar casos?",
+ "Con la fórmula Inicio1 &lt; Fin2 AND Fin1 &gt; Inicio2. Cubre todos los casos posibles —incluida la contención total de un intervalo dentro de otro— sin necesidad de listar combinaciones."],
+["Un LEFT JOIN de Cliente a dos tablas hijas (Venta y Teléfono) y tu SUM sale duplicado. ¿Qué pasó y cómo lo arreglas?",
+ "Es un fan trap: uniste dos tablas 1:N directamente entre sí a través del padre, y el join produjo el producto cartesiano de sus filas por cliente. Se arregla agregando cada tabla hija por separado (a nivel de ClienteId) antes de unirla al padre, nunca uniendo las dos hijas entre sí sin agregar primero."],
+["¿Cuándo conviene CROSS APPLY con TOP(N) frente a una window function para Top-N por grupo?",
+ "APPLY conviene cuando hay pocos grupos relativos al tamaño de la tabla y existe un índice de apoyo para buscar cada grupo con un Seek. La window function conviene cuando necesitas el Top-N de todos los grupos a la vez, o no hay índice útil, porque resuelve todo con un único Sort en vez de N búsquedas independientes."],
+["¿Qué diferencia hay entre CROSS APPLY y OUTER APPLY, y qué riesgo tiene usar el primero cuando necesitabas el segundo?",
+ "CROSS APPLY descarta la fila izquierda si la expresión de tabla derecha no produce nada, como un INNER; OUTER APPLY la conserva con NULLs, como un LEFT. Usar CROSS APPLY por error hace desaparecer silenciosamente las filas izquierdas sin datos relacionados — el mismo riesgo que confundir INNER con LEFT."],
+["En un self join para comparar filas contiguas, ¿qué pasa si olvidas la condición de exclusión o de orden entre los alias?",
+ "Sin excluir la identidad, cada fila hace match consigo misma. Sin fijar una dirección (por ejemplo t1.Id &lt; t2.Id), cada par sale duplicado en ambos sentidos. Ambos olvidos inflan el resultado sin lanzar ningún error."],
+["¿Por qué un CROSS JOIN accidental no siempre lanza error, y cómo lo detectas rápido?",
+ "Suele originarse en una sintaxis de coma sin condición de unión, que es válida sintácticamente y produce el producto cartesiano completo sin quejarse. Se detecta comparando el conteo de filas resultante contra el producto de los conteos de las tablas de origen: si coincide con |A| × |B|, es un CROSS JOIN disfrazado."]
+];
+
+/* ══════════ render ══════════ */
+const $ = s => document.querySelector(s);
+const estado = new Map(TEMAS.map(t => [t.id, false]));
+
+function nodo({id, t, meta, bodyHtml, cls}){
+  const el = document.createElement("article");
+  el.className = "node" + (cls ? " " + cls : "");
+  el.dataset.id = id;
+  el.innerHTML =
+    '<div class="node-inner">' +
+      '<button class="node-head" aria-expanded="false">' +
+        '<span class="idx">' + id + '</span>' +
+        '<span class="ttl">' + t + '</span>' +
+        '<span class="meta">' + meta + '</span>' +
+        '<span class="caret">&rsaquo;</span>' +
+      '</button>' +
+      '<div class="body">' + bodyHtml + '</div>' +
+    '</div>';
+  el.querySelector(".node-head").addEventListener("click", () => {
+    const open = el.classList.toggle("open");
+    el.querySelector(".node-head").setAttribute("aria-expanded", open);
+  });
+  return el;
+}
+
+const cont = $("#temas");
+TEMAS.forEach(t => {
+  const el = nodo({
+    id: "&rarr; " + t.id, t: t.t,
+    meta: '<span>' + t.min + ' min</span>',
+    bodyHtml: t.html +
+      '<div style="margin-top:16px;padding-top:13px;border-top:1px dashed var(--hair)">' +
+        '<label class="chk"><input type="checkbox" data-tema="' + t.id + '"><span>Tema ' + t.id + ' cubierto</span></label>' +
+      '</div>'
+  });
+  el.querySelector("input[data-tema]").addEventListener("change", e => {
+    estado.set(t.id, e.target.checked);
+    el.classList.toggle("done", e.target.checked);
+    refrescar();
+  });
+  cont.appendChild(el);
+});
+
+const ce = $("#ejercicios");
+EJERCICIOS.forEach(x => {
+  const el = nodo({
+    id: "&rarr; " + x.id, t: x.t,
+    meta: '<span>' + x.niv + '</span><span>' + x.temas + '</span>',
+    bodyHtml: x.enun +
+      '<div style="margin-top:14px"><button class="reveal" data-t="#sol' + x.id + '">ver solución</button></div>' +
+      '<div class="hidden" id="sol' + x.id + '" style="margin-top:12px">' + x.sol + '</div>'
+  });
+  ce.appendChild(el);
+});
+
+const ex = $("#examen");
+EXAMEN.forEach((q, i) => {
+  const n = i + 1;
+  const d = document.createElement("div");
+  d.className = "qa";
+  d.innerHTML =
+    '<p class="q"><span>' + String(n).padStart(2,"0") + '</span>' + q[0] + '</p>' +
+    '<button class="reveal" data-t="#ans' + n + '">ver respuesta</button>' +
+    '<div class="hidden ans" id="ans' + n + '">' + q[1] + '</div>';
+  ex.appendChild(d);
+});
+
+/* barra de coste ponderada por minutos */
+function refrescar(){
+  const track = $("#track");
+  track.innerHTML = "";
+  let done = 0, total = 0;
+  TEMAS.forEach(t => {
+    total += t.min;
+    const ok = estado.get(t.id);
+    if(ok) done += t.min;
+    const s = document.createElement("button");
+    s.className = "seg";
+    s.style.flex = t.min;
+    s.dataset.done = ok ? "1" : "0";
+    s.title = t.id + " · " + t.t + " — " + t.min + " min";
+    s.innerHTML = '<span class="fill" style="right:' + (ok ? 0 : 100) + '%"></span><span class="tag">' + t.id + '</span>';
+    s.addEventListener("click", () => {
+      mostrar("temas");
+      const n = document.querySelector('.node[data-id="&rarr; ' + t.id + '"]');
+      if(!n) return;
+      n.classList.add("open");
+      n.querySelector(".node-head").setAttribute("aria-expanded","true");
+      n.scrollIntoView({behavior:"smooth", block:"center"});
+    });
+    track.appendChild(s);
+  });
+  const pct = total ? Math.round(done / total * 100) : 0;
+  $("#pct").textContent = pct + " %";
+  $("#pctBig").textContent = pct + " %";
+}
+refrescar();
+
+/* navegación por secciones */
+function mostrar(id){
+  document.querySelectorAll("section.sec").forEach(s => s.classList.toggle("on", id === "todo" || s.id === "sec-" + id));
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.s === id));
+  $("#todo").textContent = id === "todo" ? "ver por secciones" : "ver todo";
+}
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+  mostrar(c.dataset.s);
+  window.scrollTo({top:0, behavior:"smooth"});
+}));
+$("#todo").addEventListener("click", () => mostrar($("#todo").textContent === "ver todo" ? "todo" : "modelo"));
+
+/* revelar soluciones y respuestas */
+document.addEventListener("click", e => {
+  const b = e.target.closest(".reveal");
+  if(!b) return;
+  const t = document.querySelector(b.dataset.t);
+  const on = t.classList.toggle("show");
+  b.textContent = on
+    ? b.textContent.replace("ver","ocultar")
+    : b.textContent.replace("ocultar","ver");
+});
+
+/* copiar bloques de código */
+const toast = $("#toast");
+function flash(msg){
+  toast.textContent = msg;
+  toast.classList.add("on");
+  setTimeout(() => toast.classList.remove("on"), 1400);
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".cp");
+  if(!b) return;
+  const pre = b.parentElement.querySelector("pre");
+  try{
+    await navigator.clipboard.writeText(pre.textContent);
+    flash("copiado");
+  }catch(err){
+    const r = document.createRange();
+    r.selectNodeContents(pre);
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(r);
+    flash("selecciónalo con Ctrl+C");
+  }
+});
+
+/* prompt del siguiente módulo */
+const PROMPT03 = `Contexto del estudiante: trabaja a diario con SQL Server (T-SQL), procesos de carga y datos en Azure/Databricks. Ya escribe consultas complejas; no necesita explicaciones de nivel introductorio. Ya completó los módulos 01 (semántica del lenguaje y orden lógico de ejecución) y 02 (joins a fondo y control de cardinalidad), así que puedes dar por conocidos: orden lógico de las cláusulas, lógica de tres valores, comparación null-safe, precedencia de tipos, colaciones, determinismo del orden; inner/left/right/full/cross join, ON vs WHERE, semi y anti join con EXISTS/NOT EXISTS, la trampa de NOT IN con NULLs, self joins, non-equi joins y rangos de fechas, solapamiento de intervalos, CROSS APPLY/OUTER APPLY, Top-N por grupo, y diagnóstico de explosión de filas por granularidad distinta (fan trap).
+
+Actúa como instructor senior de bases de datos relacionales. Desarrolla una clase completa y a profundidad del siguiente módulo de su plan de estudio.
+
+MÓDULO 03 — Funciones de ventana I: partición, orden y ranking
+Resultado esperado: resolver con una sola pasada lo que hoy resuelves con subconsultas y self joins.
+
+Temas que debe cubrir la clase:
+1. Anatomía de OVER(): PARTITION BY y ORDER BY
+2. Dónde puede y no puede aparecer una window function
+3. ROW_NUMBER, RANK, DENSE_RANK, NTILE y sus diferencias
+4. Deduplicación con ROW_NUMBER + CTE
+5. Agregados como ventana: SUM/AVG/COUNT OVER
+6. Porcentaje sobre el total y sobre el grupo
+7. Top-N por partición y desempates estables
+8. QUALIFY (Databricks/Snowflake) vs subconsulta filtrada
+9. Ventanas vs GROUP BY: cuándo cada una
+10. Costo real: el operador Sort que introduce cada ventana
+
+Formato de la clase:
+1. Modelo mental primero: qué problema resuelve el tema y cómo lo piensa el motor internamente.
+2. Explicación tema por tema, cada uno con un ejemplo ejecutable en T-SQL (SQL Server 2019+) y la equivalencia en PostgreSQL y Spark SQL cuando difiera.
+3. Reutiliza el dataset de los módulos 01 y 02 (dbo.Cliente, dbo.Producto, dbo.Venta, dbo.ClienteExterno, dbo.ClienteMasivo, dbo.VentaHist, dbo.ClienteTelefono, dbo.ClienteTelefonoMasivo, dbo.Campania, dbo.Turno, dbo.Calendario) y agrega solo las tablas nuevas que necesites, con su script y una nota de qué se asume ya creado.
+4. Al menos tres comparaciones "consulta ingenua vs consulta correcta" mostrando el plan de ejecución esperado y por qué cambia el costo.
+5. Errores comunes y resultados silenciosamente incorrectos, con el caso mínimo que los reproduce.
+6. Seis ejercicios de dificultad creciente con solución comentada; los dos últimos deben exigir combinar varios temas del módulo.
+7. Un mini-proyecto de cierre con datos realistas y criterios de aceptación verificables.
+8. Diez preguntas de autoevaluación tipo entrevista técnica, con respuesta modelo breve.
+
+Sé preciso y técnico. Cita el comportamiento por versión de motor cuando importe. No resumas: prefiere profundidad sobre cobertura superficial.`;
+
+const dl = $("#dl");
+$("#next").addEventListener("click", () => {
+  $("#dlTitle").textContent = "Prompt · módulo 03 (funciones de ventana I)";
+  $("#dlText").value = PROMPT03;
+  $("#dlMsg").textContent = "";
+  dl.showModal();
+});
+$("#dlClose").addEventListener("click", () => dl.close());
+$("#dlCopy").addEventListener("click", async () => {
+  const ta = $("#dlText");
+  try{
+    await navigator.clipboard.writeText(ta.value);
+    $("#dlMsg").textContent = "Copiado.";
+  }catch(e){
+    ta.removeAttribute("readonly"); ta.select();
+    $("#dlMsg").textContent = "El navegador bloqueó el portapapeles: el texto quedó seleccionado, usa Ctrl+C.";
+  }
+});
+</script>
+</body>
+</html>
