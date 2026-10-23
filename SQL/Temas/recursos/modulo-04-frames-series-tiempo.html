@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Módulo 04 · Funciones de ventana II: frames y series de tiempo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E7EAF0; --card:#FFFFFF; --tint:#F3F5F9;
+    --ink:#101A33; --slate:#5A688F; --hair:#C9D0DE;
+    --seek:#12715C; --cost:#A31A56; --warn:#8A5A12;
+    --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+    --body:"IBM Plex Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+    --r:3px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--body);
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+    background-image:linear-gradient(to right,rgba(16,26,51,.035) 1px,transparent 1px);
+    background-size:28px 100%;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:34px 20px 90px}
+  p{margin:0 0 12px}
+  a{color:var(--cost)}
+  code{font-family:var(--mono);font-size:.92em}
+
+  .plan-call{font-family:var(--mono);font-size:12.5px;color:var(--slate);margin:0 0 18px}
+  .plan-call b{color:var(--cost);font-weight:600}
+  h1{font-family:var(--display);font-size:clamp(34px,6vw,58px);font-weight:800;
+     line-height:.96;letter-spacing:-.028em;margin:0 0 14px}
+  h1 em{font-style:normal;color:var(--cost)}
+  .lede{max-width:60ch;color:#28324F;font-size:16.5px;margin:0 0 24px}
+
+  .stats{display:flex;flex-wrap:wrap;border:1px solid var(--hair);background:var(--card);border-radius:var(--r);overflow:hidden}
+  .stat{flex:1 1 120px;padding:12px 14px;border-right:1px solid var(--hair)}
+  .stat:last-child{border-right:0}
+  .stat .k{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--slate);display:block}
+  .stat .v{font-family:var(--display);font-size:25px;font-weight:700;letter-spacing:-.02em;display:block;line-height:1.2}
+
+  .costbar{margin:22px 0 4px}
+  .costbar .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
+    color:var(--slate);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .track{display:flex;gap:2px;height:30px}
+  .seg{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:2px;overflow:hidden;cursor:pointer;padding:0}
+  .seg .fill{position:absolute;inset:0 100% 0 0;background:var(--seek);transition:right .4s cubic-bezier(.2,.7,.3,1)}
+  .seg .tag{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:10.5px;color:var(--slate);mix-blend-mode:multiply}
+  .seg:hover{border-color:var(--ink)}
+  .seg:focus-visible{outline:2px solid var(--cost);outline-offset:1px}
+  .seg[data-done="1"] .tag{color:#fff;mix-blend-mode:normal}
+
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:28px 0 24px;padding-top:20px;border-top:1px solid var(--hair)}
+  .bar .cap{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--slate);margin-right:4px}
+  .chip{font-family:var(--mono);font-size:12px;padding:6px 11px;border:1px solid var(--hair);
+    background:var(--card);color:var(--slate);border-radius:99px;cursor:pointer}
+  .chip:hover{border-color:var(--ink);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .bar .spacer{flex:1}
+  .ghost{font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--ink);
+    background:transparent;color:var(--ink);border-radius:var(--r);cursor:pointer}
+  .ghost:hover{background:var(--ink);color:#fff}
+  .solid{font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--cost);
+    background:var(--cost);color:#fff;border-radius:var(--r);cursor:pointer}
+  .solid:hover{background:#8C1449;border-color:#8C1449}
+  button:focus-visible{outline:2px solid var(--cost);outline-offset:2px}
+
+  section.sec{display:none;margin:0 0 40px}
+  section.sec.on{display:block;animation:in .2s ease both}
+  @keyframes in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:2px;flex-wrap:wrap}
+  .sec-head .n{font-family:var(--mono);font-size:12px;color:var(--cost);letter-spacing:.06em}
+  .sec-head h2{font-family:var(--display);font-size:23px;font-weight:700;letter-spacing:-.015em;margin:0}
+  .sec-head .c{font-family:var(--mono);font-size:11.5px;color:var(--slate);margin-left:auto;white-space:nowrap}
+  .sec-note{font-size:14px;color:var(--slate);margin:0 0 18px;max-width:66ch}
+
+  .branch{border-left:1px solid var(--hair);margin-left:9px}
+  .node{position:relative;margin:0 0 8px}
+  .node::before{content:"";position:absolute;left:0;top:26px;width:17px;height:1px;background:var(--hair)}
+  .node-inner{margin-left:17px;background:var(--card);border:1px solid var(--hair);border-radius:var(--r)}
+  .node.open .node-inner{border-color:var(--ink)}
+  .node.done .node-inner{border-left:2px solid var(--seek)}
+  .node-head{width:100%;display:flex;align-items:center;gap:14px;padding:13px 15px;background:none;
+    border:0;text-align:left;cursor:pointer;font:inherit;color:inherit}
+  .node-head:focus-visible{outline:2px solid var(--cost);outline-offset:-2px}
+  .idx{font-family:var(--mono);font-size:12px;color:var(--slate);min-width:26px}
+  .node.done .idx{color:var(--seek)}
+  .ttl{font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:-.012em;flex:1;min-width:0}
+  .meta{font-family:var(--mono);font-size:11.5px;color:var(--slate);white-space:nowrap;display:flex;gap:10px;align-items:center}
+  .caret{font-family:var(--mono);color:var(--slate);transition:transform .2s ease}
+  .node.open .caret{transform:rotate(90deg)}
+  .body{display:none;padding:15px 18px 18px;border-top:1px solid var(--hair)}
+  .node.open .body{display:block}
+  .body > :first-child{margin-top:0}
+
+  .card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);padding:16px 18px;margin:0 0 14px}
+  h3{font-family:var(--display);font-size:16px;font-weight:700;margin:20px 0 8px;letter-spacing:-.01em}
+  h3:first-child{margin-top:0}
+  .card h3:not(:first-of-type),
+  .body h3:not(:first-of-type){border-top:1px dashed var(--hair);padding-top:16px}
+  h3 .tag-letter{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;
+    margin-right:8px;vertical-align:middle;border-radius:50%;background:var(--tint);border:1px solid var(--hair);
+    font-family:var(--mono);font-size:12px;color:var(--cost);font-weight:700}
+  .kicker{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);margin:0 0 6px}
+  .rule{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 14px;max-width:72ch}
+  .rule > b:first-child{display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--cost);font-weight:600;margin:0 0 4px}
+  .rule.warn{border-left-color:var(--warn)}
+  .rule.warn > b:first-child{color:var(--warn)}
+
+  .engines{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 14px;max-width:72ch}
+  .engines .kicker{margin:0 0 8px}
+  .engine{margin:0 0 10px;padding-bottom:10px;border-bottom:1px dashed var(--hair)}
+  .engine:last-child{margin:0;padding-bottom:0;border-bottom:0}
+  .engine .eng{display:inline-block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--cost);font-weight:600;margin:0 0 4px}
+  .engine p{margin:0;font-size:14.5px}
+
+  .code{position:relative;margin:12px 0;border:1px solid var(--hair);border-left:2px solid var(--slate);border-radius:2px;background:var(--tint)}
+  .code.bad{border-left-color:var(--cost)}
+  .code.good{border-left-color:var(--seek)}
+  .code .cap{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--slate);padding:7px 70px 0 12px}
+  .code pre{margin:0;padding:10px 12px 12px;overflow:auto;font-family:var(--mono);font-size:12.4px;line-height:1.55;white-space:pre}
+  .code .cp{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:10.5px;padding:3px 8px;
+    border:1px solid var(--hair);background:var(--card);color:var(--slate);border-radius:99px;cursor:pointer;opacity:0}
+  .code:hover .cp,.code .cp:focus{opacity:1}
+  .code .cp:hover{border-color:var(--ink);color:var(--ink)}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+  .split .code{margin:0}
+
+  .tw{overflow-x:auto}
+  table.t{width:100%;border-collapse:collapse;font-size:13.4px;margin:12px 0}
+  table.t th{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--slate);text-align:left;font-weight:600;border-bottom:1px solid var(--ink);padding:7px 10px 7px 0}
+  table.t td{border-bottom:1px solid var(--hair);padding:7px 10px 7px 0;vertical-align:top}
+  table.t td.num,table.t th.num{text-align:right;font-family:var(--mono);font-size:12.4px}
+  table.t.fg{margin:8px 0 12px}
+  table.t.fg caption{caption-side:top;text-align:left;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--cost);padding:0 0 6px;font-weight:600}
+  table.t.fg th,table.t.fg td{text-align:center;padding:5px 3px;font-family:var(--mono);font-size:12px}
+  table.t.fg th small{display:block;font-size:9.5px;color:var(--slate);font-weight:400;text-transform:none;letter-spacing:0}
+  table.t.fg td{color:var(--slate)}
+  table.t.fg td.in{background:var(--seek);color:#fff;border-bottom-color:var(--card)}
+  table.t.fg td.cur{box-shadow:inset 0 0 0 2px var(--cost)}
+  table.t.fg td.num,table.t.fg th.num{text-align:right;color:var(--ink);font-weight:600;padding-left:8px}
+  .yes{color:var(--seek);font-weight:600}
+  .no{color:var(--cost);font-weight:600}
+
+  ul.plain{margin:0 0 12px;padding-left:18px}
+  ul.plain li{margin:0 0 5px}
+  .temas-chk{list-style:none;margin:0;padding:0}
+  .temas-chk li{margin:0 0 4px}
+  .chk{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;cursor:pointer}
+  .chk input{appearance:none;-webkit-appearance:none;width:14px;height:14px;margin:4px 0 0;flex:none;border:1px solid var(--slate);
+    border-radius:2px;background:var(--card);cursor:pointer}
+  .chk input:checked{background:var(--seek);border-color:var(--seek)}
+  .chk input:focus-visible{outline:2px solid var(--cost);outline-offset:2px}
+
+  .err{border-left:2px solid var(--cost);padding-left:12px;margin:0 0 18px}
+  .err h4{font-family:var(--display);font-size:15px;margin:0 0 4px;font-weight:700}
+  .err .fix{font-size:13.4px;color:var(--seek)}
+  .err .fix b{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em}
+
+  .qa{border-bottom:1px solid var(--hair);padding:12px 0}
+  .qa:last-child{border-bottom:0}
+  .qa .q{font-weight:600;font-size:14.5px;margin:0 0 6px;display:flex;gap:10px}
+  .qa .q span{font-family:var(--mono);font-size:12px;color:var(--cost);flex:none}
+  .hidden{display:none}
+  .hidden.show{display:block;animation:in .2s ease both}
+  .reveal{font-family:var(--mono);font-size:11.5px;padding:4px 10px;border:1px dashed var(--hair);
+    background:none;color:var(--slate);border-radius:99px;cursor:pointer}
+  .reveal:hover{border-color:var(--ink);border-style:solid;color:var(--ink)}
+  .ans{margin-top:8px;font-size:13.8px;color:#28324F;max-width:76ch}
+
+  dialog{border:1px solid var(--ink);border-radius:var(--r);padding:0;max-width:760px;width:92vw;background:var(--card);color:var(--ink)}
+  dialog::backdrop{background:rgba(16,26,51,.45)}
+  .dl-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--hair)}
+  .dl-head h3{margin:0;font-size:17px}
+  .dl-head .x{margin-left:auto;background:none;border:0;font-family:var(--mono);font-size:15px;cursor:pointer;color:var(--slate)}
+  dialog textarea{width:100%;height:46vh;border:0;padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--tint);color:var(--ink);resize:vertical}
+  dialog textarea:focus{outline:0}
+  .dl-foot{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--hair);flex-wrap:wrap}
+  .dl-foot .msg{font-family:var(--mono);font-size:11.5px;color:var(--seek)}
+
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--ink);color:#fff;font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:99px;
+    transition:all .25s ease;pointer-events:none;z-index:9}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:11.5px;color:var(--slate)}
+
+  @media (max-width:760px){
+    .split{grid-template-columns:1fr}
+    body{background-image:none}
+    .body{padding:14px}
+    .code .cp{opacity:1}
+    .meta{display:none}
+  }
+  @media (max-width:380px){
+    .wrap{padding:24px 12px 70px}
+    .stat{flex:1 1 50%}
+    .sec-head .c{margin-left:0;white-space:normal}
+    .node-head{gap:10px;padding:12px}
+    .code pre{font-size:11.6px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="plan-call">plan_de_estudio_sql &rsaquo; <b>módulo 04</b> &rsaquo; fase 01 · SQL analítico</p>
+
+  <h1>Ventanas II: frames<br>y series de tiempo<em>.</em></h1>
+  <p class="lede">Escribir acumulados, medias móviles y comparativas contra el periodo anterior sin errores silenciosos de frame. Motor de referencia: SQL Server 2019/2022, con equivalencias en PostgreSQL 14+ y Spark SQL / Databricks donde la sintaxis o la semántica del frame cambian.</p>
+
+  <div class="stats">
+    <div class="stat"><span class="k">temas</span><span class="v">10</span></div>
+    <div class="stat"><span class="k">costo estimado</span><span class="v">7 h</span></div>
+    <div class="stat"><span class="k">planes comparados</span><span class="v">4</span></div>
+    <div class="stat"><span class="k">errores catalogados</span><span class="v">12</span></div>
+    <div class="stat"><span class="k">ejercicios</span><span class="v">6</span></div>
+    <div class="stat"><span class="k">avance ponderado</span><span class="v" id="pctBig">0 %</span></div>
+  </div>
+
+  <div class="costbar">
+    <div class="lbl"><span>costo estimado por nodo · avance real</span><span id="pct">0 %</span></div>
+    <div class="track" id="track"></div>
+  </div>
+
+  <div class="bar">
+    <span class="cap">sección</span>
+    <button class="chip" data-s="dataset" aria-pressed="false">dataset</button>
+    <button class="chip" data-s="modelo" aria-pressed="true">modelo mental</button>
+    <button class="chip" data-s="temas" aria-pressed="false">10 temas</button>
+    <button class="chip" data-s="planes" aria-pressed="false">planes</button>
+    <button class="chip" data-s="errores" aria-pressed="false">errores</button>
+    <button class="chip" data-s="ejercicios" aria-pressed="false">ejercicios</button>
+    <button class="chip" data-s="proyecto" aria-pressed="false">proyecto</button>
+    <button class="chip" data-s="examen" aria-pressed="false">examen</button>
+    <span class="spacer"></span>
+    <button class="ghost" id="todo">ver todo</button>
+    <button class="ghost" id="next">prompt módulo 05</button>
+  </div>
+
+<!-- ══════════════════════ §0 DATASET ══════════════════════ -->
+<section class="sec" id="sec-dataset">
+  <div class="sec-head"><span class="n">§ 0</span><h2>Dataset del módulo</h2><span class="c">5 tablas nuevas · ejecútalo primero</span></div>
+  <p class="sec-note">Se asume ya creada la base <code>CursoSQL</code> con <code>dbo.Cliente</code>, <code>dbo.Producto</code>, <code>dbo.Venta</code>, <code>dbo.ClienteExterno</code>, <code>dbo.ClienteMasivo</code> y <code>dbo.VentaHist</code> (módulo 01). Aquí solo se agregan las tablas que este módulo necesita: series con empates deliberados en la clave de orden y huecos deliberados en el calendario.</p>
+
+  <div class="card">
+    <h3>Qué trampa trae cada tabla</h3>
+    <div class="tw"><table class="t">
+      <tr><th>Tabla</th><th>Grano</th><th>Trampa deliberada</th></tr>
+      <tr><td><code>dbo.Cuenta</code></td><td>una fila por cuenta</td><td>la cuenta 4 no tiene movimientos; la 3 abre un día después</td></tr>
+      <tr><td><code>dbo.Movimiento</code></td><td>un movimiento</td><td><b>empates</b> en <code>FechaHora</code> (1-2, 4-5-6, 9-10): es donde ROWS y RANGE divergen</td></tr>
+      <tr><td><code>dbo.VentaDiaria</code></td><td>sucursal × día</td><td><b>huecos</b> de calendario (GYE: 06, 07, 10; UIO: 04, 07, 08, 11, 14) y montos empatados en UIO</td></tr>
+      <tr><td><code>dbo.Calendario</code></td><td>un día</td><td>ninguna: es la tabla que arregla las demás</td></tr>
+      <tr><td><code>dbo.MovimientoHist</code></td><td>un movimiento</td><td>1 000 000 filas, 5 000 cuentas, 2 movimientos por día con la misma <code>FechaHora</code></td></tr>
+    </table></div>
+
+    <div class="code"><span class="cap">T-SQL · estructura</span><button class="cp">copiar</button><pre>USE CursoSQL;
+GO
+DROP TABLE IF EXISTS dbo.MovimientoHist;
+DROP TABLE IF EXISTS dbo.Movimiento;
+DROP TABLE IF EXISTS dbo.Cuenta;
+DROP TABLE IF EXISTS dbo.VentaDiaria;
+DROP TABLE IF EXISTS dbo.Calendario;
+GO
+
+CREATE TABLE dbo.Cuenta
+(
+    CuentaId      int           NOT NULL CONSTRAINT PK_Cuenta PRIMARY KEY,
+    ClienteId     int           NOT NULL CONSTRAINT FK_Cuenta_Cliente REFERENCES dbo.Cliente(ClienteId),
+    Moneda        char(3)       COLLATE Latin1_General_100_CI_AS NOT NULL,
+    SaldoInicial  decimal(14,2) NOT NULL,
+    FechaApertura date          NOT NULL
+);
+
+CREATE TABLE dbo.Movimiento
+(
+    MovimientoId int           NOT NULL CONSTRAINT PK_Movimiento PRIMARY KEY,
+    CuentaId     int           NOT NULL CONSTRAINT FK_Movimiento_Cuenta REFERENCES dbo.Cuenta(CuentaId),
+    FechaHora    datetime2(0)  NOT NULL,
+    Monto        decimal(14,2) NOT NULL,   -- con signo: + crédito, - débito
+    Concepto     varchar(12)   COLLATE Latin1_General_100_CI_AS NOT NULL
+);
+
+CREATE TABLE dbo.VentaDiaria
+(
+    Sucursal varchar(5)    COLLATE Latin1_General_100_CI_AS NOT NULL,
+    Fecha    date          NOT NULL,
+    Monto    decimal(12,2) NOT NULL,
+    CONSTRAINT PK_VentaDiaria PRIMARY KEY (Sucursal, Fecha)
+);
+
+CREATE TABLE dbo.Calendario
+(
+    Fecha        date     NOT NULL CONSTRAINT PK_Calendario PRIMARY KEY,
+    Anio         smallint NOT NULL,
+    Mes          tinyint  NOT NULL,
+    DiaSemanaIso tinyint  NOT NULL,   -- 1 = lunes … 7 = domingo, independiente de @@DATEFIRST
+    EsFinSemana  bit      NOT NULL
+);
+GO</pre></div>
+
+    <div class="code"><span class="cap">T-SQL · datos</span><button class="cp">copiar</button><pre>INSERT dbo.Cuenta (CuentaId, ClienteId, Moneda, SaldoInicial, FechaApertura) VALUES
+ (1, 1, 'USD', 1000.00, '2024-01-01'),
+ (2, 3, 'USD',    0.00, '2024-01-01'),
+ (3, 8, 'USD', 5000.00, '2024-01-02'),
+ (4,11, 'USD',  200.00, '2024-01-05');   -- sin movimientos
+
+INSERT dbo.Movimiento (MovimientoId, CuentaId, FechaHora, Monto, Concepto) VALUES
+ (1 ,1,'2024-01-02 09:00:00',   500.00,'DEPOSITO'),
+ (2 ,1,'2024-01-02 09:00:00',  -200.00,'RETIRO'),     -- empate con el 1
+ (3 ,1,'2024-01-03 14:30:00',  -150.00,'PAGO'),
+ (4 ,1,'2024-01-05 10:00:00',  1000.00,'NOMINA'),
+ (5 ,1,'2024-01-05 10:00:00',  -300.00,'TRANSFER'),   -- empate triple 4-5-6
+ (6 ,1,'2024-01-05 10:00:00',   -50.00,'COMISION'),
+ (7 ,1,'2024-01-08 11:15:00',  -400.00,'PAGO'),
+ (8 ,2,'2024-01-02 08:00:00',   300.00,'DEPOSITO'),
+ (9 ,2,'2024-01-04 16:00:00',   300.00,'DEPOSITO'),
+ (10,2,'2024-01-04 16:00:00',  -100.00,'RETIRO'),     -- empate con el 9
+ (11,2,'2024-01-09 12:00:00',   250.00,'NOMINA'),
+ (12,3,'2024-01-03 10:00:00', -1000.00,'PAGO'),
+ (13,3,'2024-01-06 10:00:00',  2000.00,'DEPOSITO'),
+ (14,3,'2024-01-07 10:00:00',  -500.00,'RETIRO');
+
+INSERT dbo.VentaDiaria (Sucursal, Fecha, Monto) VALUES
+ ('GYE','2024-01-01',120),('GYE','2024-01-02',150),('GYE','2024-01-03', 90),
+ ('GYE','2024-01-04',200),('GYE','2024-01-05',180),                            -- sin fila: 06 y 07
+ ('GYE','2024-01-08',210),('GYE','2024-01-09',160),                            -- sin fila: 10
+ ('GYE','2024-01-11',230),('GYE','2024-01-12',190),('GYE','2024-01-13',170),('GYE','2024-01-14',250),
+ ('UIO','2024-01-01', 80),('UIO','2024-01-02', 80),('UIO','2024-01-03',100),   -- 01 y 02: monto empatado
+ ('UIO','2024-01-05',120),('UIO','2024-01-06', 60),
+ ('UIO','2024-01-09',140),('UIO','2024-01-10',110),
+ ('UIO','2024-01-12',130),('UIO','2024-01-13', 90);
+
+-- Calendario 2023-01-01 .. 2025-12-31 (1 096 días). 1900-01-01 fue lunes.
+;WITH n AS (
+    SELECT TOP (DATEDIFF(day, '2023-01-01', '2025-12-31') + 1)
+           ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS d
+    FROM sys.all_objects a CROSS JOIN sys.all_objects b
+)
+INSERT dbo.Calendario (Fecha, Anio, Mes, DiaSemanaIso, EsFinSemana)
+SELECT f.Fecha, YEAR(f.Fecha), MONTH(f.Fecha),
+       DATEDIFF(day, '19000101', f.Fecha) % 7 + 1,
+       CASE WHEN DATEDIFF(day, '19000101', f.Fecha) % 7 &gt;= 5 THEN 1 ELSE 0 END
+FROM n
+CROSS APPLY (VALUES (DATEADD(day, n.d, CAST('2023-01-01' AS date)))) AS f(Fecha);
+GO</pre></div>
+
+    <h3>Tabla de volumen (para los planes y el mini-proyecto)</h3>
+    <p>Con 14 movimientos todo cabe en una página y cualquier frame parece gratis. <code>dbo.MovimientoHist</code> tiene 5 000 cuentas con 200 movimientos cada una, dos por día y con la <b>misma</b> <code>FechaHora</code>: así el costo y la divergencia ROWS/RANGE se ven a la vez. El índice <code>IX_MovHist_POC</code> sigue el patrón POC (<em>Partition, Order, Covering</em>) que viste en el módulo 03, tema 10: entrega las filas ya ordenadas para la ventana y evita el Sort.</p>
+    <div class="code"><span class="cap">T-SQL · volumen (~20 s)</span><button class="cp">copiar</button><pre>CREATE TABLE dbo.MovimientoHist
+(
+    MovimientoId int           NOT NULL IDENTITY(1,1) CONSTRAINT PK_MovimientoHist PRIMARY KEY,
+    CuentaId     int           NOT NULL,
+    FechaHora    datetime2(0)  NOT NULL,
+    Monto        decimal(14,2) NOT NULL
+);
+
+;WITH n AS (
+    SELECT TOP (1000000) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+    FROM sys.all_objects a CROSS JOIN sys.all_objects b CROSS JOIN sys.all_objects c
+)
+INSERT dbo.MovimientoHist (CuentaId, FechaHora, Monto)
+SELECT (n - 1) % 5000 + 1,                                                       -- 5 000 cuentas
+       DATEADD(day, ((n - 1) / 5000) / 2, CAST('2024-01-01' AS datetime2(0))),   -- 2 mov/día: empates
+       CAST(CASE WHEN n % 3 = 0 THEN -1 ELSE 1 END * ((n * 7) % 500 + 1) AS decimal(14,2))
+FROM n;
+
+CREATE NONCLUSTERED INDEX IX_MovHist_POC
+    ON dbo.MovimientoHist (CuentaId, FechaHora, MovimientoId) INCLUDE (Monto);
+GO</pre></div>
+
+    <div class="rule"><b>equivalencias</b>
+      PostgreSQL: el calendario sale de <code>generate_series(date '2023-01-01', date '2025-12-31', interval '1 day')</code> y el día ISO de <code>extract(isodow from fecha)</code>. Spark SQL: <code>explode(sequence(to_date('2023-01-01'), to_date('2025-12-31'), interval 1 day))</code> y <code>dayofweek()</code> (1 = domingo, ojo). SQL Server 2022 con nivel de compatibilidad 160 tiene <code>GENERATE_SERIES(0, 1095)</code> en lugar del CROSS JOIN a <code>sys.all_objects</code>.
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ §1 MODELO MENTAL ══════════════════════ -->
+<section class="sec on" id="sec-modelo">
+  <div class="sec-head"><span class="n">§ 1</span><h2>Modelo mental</h2><span class="c">el tercer componente de OVER()</span></div>
+  <p class="sec-note">El módulo 03 cubrió partición y orden. Este módulo trata el tercer componente — el frame — que es justo donde viven los errores que no lanzan excepción: acumulados que saltan, medias que promedian de menos y "últimos valores" que son el actual.</p>
+
+  <div class="card">
+    <h3>Tres capas, tres preguntas</h3>
+    <div class="tw"><table class="t">
+      <tr><th>Capa</th><th>Pregunta que responde</th><th>Si la omites</th></tr>
+      <tr><td><code>PARTITION BY</code></td><td>¿Con qué filas me comparo? (el universo)</td><td>toda la tabla es una partición</td></tr>
+      <tr><td><code>ORDER BY</code></td><td>¿En qué secuencia? y ¿quiénes son mis <b>pares</b> (filas con la misma clave de orden)?</td><td>no hay secuencia ni pares; el frame es toda la partición</td></tr>
+      <tr><td><b>frame</b> (<code>ROWS</code> / <code>RANGE</code> / <code>GROUPS</code>)</td><td>Para <b>esta</b> fila, ¿qué subconjunto de la partición ve el agregado?</td><td><code>RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code> — con todo lo que eso implica (tema 3)</td></tr>
+    </table></div>
+    <div class="rule"><b>la idea central</b>El frame se evalúa <b>por fila</b>. El motor recorre la partición ordenada y, en cada fila, pregunta "¿qué filas ve esta fila?". <code>ROWS</code> responde contando filas físicas; <code>RANGE</code>, comparando <b>valores</b> de la clave de orden; <code>GROUPS</code>, contando <b>grupos de pares</b>. Mismo <code>SUM</code>, tres preguntas distintas.</div>
+
+    <h3>Quién usa el frame y quién lo ignora</h3>
+    <div class="tw"><table class="t">
+      <tr><th>Familia</th><th>Funciones</th><th>¿Respeta el frame?</th></tr>
+      <tr><td>Agregados</td><td><code>SUM, AVG, COUNT, MIN, MAX, STDEV, VAR…</code></td><td class="yes">sí</td></tr>
+      <tr><td>Valor</td><td><code>FIRST_VALUE, LAST_VALUE, NTH_VALUE</code></td><td class="yes">sí — y por eso existe el error clásico de LAST_VALUE</td></tr>
+      <tr><td>Ranking</td><td><code>ROW_NUMBER, RANK, DENSE_RANK, NTILE</code></td><td class="no">no (módulo 03, tema 3)</td></tr>
+      <tr><td>Desplazamiento</td><td><code>LAG, LEAD</code></td><td class="no">no: se mueven por filas, siempre</td></tr>
+      <tr><td>Distribución</td><td><code>PERCENT_RANK, CUME_DIST</code></td><td class="no">no: miran toda la partición</td></tr>
+      <tr><td>Percentiles</td><td><code>PERCENTILE_CONT / DISC</code></td><td class="no">no: en T-SQL ni siquiera admiten ORDER BY en el OVER</td></tr>
+    </table></div>
+    <p>En SQL Server, escribir un frame en una función que no lo usa es un <b>error de compilación</b> ("<em>The function 'LAG' may not have a window frame</em>"). PostgreSQL lo acepta y lo ignora en silencio. Spark lo rechaza para las de ranking y desplazamiento.</p>
+
+    <h3>Cómo lo ejecuta el motor</h3>
+    <div class="code"><span class="cap">SQL Server · modo fila · lectura del plan de derecha a izquierda</span><button class="cp">copiar</button><pre>Index Scan (ordenado) o Sort       -- filas en orden (partición, orden)
+  -&gt; Segment                        -- marca dónde empieza cada partición
+  -&gt; Segment / Sequence Project     -- marca grupos de pares y numera filas
+  -&gt; Window Spool                   -- materializa, por cada fila, las filas de su frame
+  -&gt; Stream Aggregate               -- agrega lo que dejó el spool</pre></div>
+    <ul class="plain">
+      <li><b>Window Spool en memoria</b>: para frames <code>ROWS</code> cuyo tamaño máximo se conoce y no supera 10 000 filas. <code>ROWS UNBOUNDED PRECEDING</code> tiene además un atajo (<em>fast-track</em>): calcula el acumulado incrementalmente con dos filas por fila, sin releer el frame.</li>
+      <li><b>Window Spool en disco</b> (worktable en tempdb): siempre con <code>RANGE</code>, y con <code>ROWS</code> cuando el frame puede superar 10 000 filas (por ejemplo <code>UNBOUNDED FOLLOWING</code>). Se delata en <code>SET STATISTICS IO</code> como <code>Worktable</code> con lecturas lógicas abultadas.</li>
+      <li><b>Window Aggregate</b> (modo batch): un único operador que calcula en una pasada, sin spool. Disponible con columnstore desde 2016 y sobre rowstore desde 2019 (<em>batch mode on rowstore</em>, nivel de compatibilidad 150, Enterprise/Developer). Cuando aparece, la diferencia de costo ROWS/RANGE casi desaparece — <b>la diferencia de resultado no</b>.</li>
+    </ul>
+    <div class="engines"><p class="kicker">otros motores</p>
+      <div class="engine"><b class="eng">PostgreSQL</b><p>Nodo <code>WindowAgg</code> sobre un <code>Sort</code>. Para frames que se deslizan usa funciones de transición inversas (<em>moving-aggregate</em>, 9.4+): al avanzar resta la fila que sale y suma la que entra, en vez de recalcular el frame entero.</p></div>
+      <div class="engine"><b class="eng">Spark SQL</b><p>Operador <code>Window</code> precedido de un <em>shuffle</em> por las columnas de partición y un sort dentro de cada partición. Sin <code>PARTITION BY</code> todo viaja a una sola tarea (aviso en el log, no error). Un frame con <code>UNBOUNDED FOLLOWING</code> obliga a bufferizar la partición completa en memoria: con <em>skew</em> eso termina en spill o en OOM.</p></div>
+    </div>
+
+    <h3>Una partición, tres frames</h3>
+    <div class="code"><span class="cap">cuenta 1 ordenada por FechaHora · la fila actual es la 5</span><button class="cp">copiar</button><pre>fila  mov  FechaHora           grupo de pares
+  1    1   2024-01-02 09:00    G1 ┐
+  2    2   2024-01-02 09:00    G1 ┘
+  3    3   2024-01-03 14:30    G2
+  4    4   2024-01-05 10:00    G3 ┐
+  5    5   2024-01-05 10:00    G3 │  &lt;- fila actual
+  6    6   2024-01-05 10:00    G3 ┘
+  7    7   2024-01-08 11:15    G4
+
+ROWS   BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW  -&gt; filas 1..5   (para en la fila física)
+RANGE  BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW  -&gt; filas 1..6   (incluye a TODOS sus pares)
+GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW          -&gt; filas 3..6   (su grupo y el anterior)</pre></div>
+    <p>Lo que hay que retener: con <code>RANGE</code>, "fila actual" significa "<b>valor</b> actual", así que las filas 4, 5 y 6 ven exactamente lo mismo y devuelven el mismo acumulado. Si la clave de orden no tiene empates, ROWS y RANGE coinciden en resultado; nunca coinciden en costo dentro de SQL Server en modo fila.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════ §2 TEMAS ══════════════════════ -->
+<section class="sec" id="sec-temas">
+  <div class="sec-head"><span class="n">§ 2</span><h2>Los diez temas</h2><span class="c">420 min · marca lo que ya dominas</span></div>
+  <p class="sec-note">Cada nodo trae la explicación, el ejemplo ejecutable sobre el dataset del §0 y las diferencias de motor. El check alimenta la barra de costo: el avance se pondera por minutos, no por cantidad de temas.</p>
+  <div class="branch" id="temas"></div>
+</section>
+
+<!-- ══════════════════════ §3 PLANES ══════════════════════ -->
+<section class="sec" id="sec-planes">
+  <div class="sec-head"><span class="n">§ 3</span><h2>Ingenua vs correcta</h2><span class="c">4 comparaciones con plan</span></div>
+  <p class="sec-note">Activa el plan real (Ctrl+M en SSMS) y <code>SET STATISTICS IO, TIME ON;</code>. Para no medir el render de un millón de filas en el cliente, cada par va envuelto en un agregado externo. Si tu instancia usa modo batch sobre rowstore, añade <code>OPTION (USE HINT('DISALLOW_BATCH_MODE'))</code> para ver el comportamiento en modo fila, que es el que tendrás en Standard o en compatibilidad &lt; 150.</p>
+
+  <div class="card">
+    <p class="kicker">3.1 · frame por defecto</p>
+    <h3>RANGE implícito vs ROWS explícito en un saldo corriente</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua · frame por defecto</span><button class="cp">copiar</button><pre>SELECT COUNT(*) AS Filas, MAX(Saldo) AS SaldoMax
+FROM (
+    SELECT CuentaId, MovimientoId,
+           SUM(Monto) OVER (PARTITION BY CuentaId
+                            ORDER BY FechaHora) AS Saldo
+    FROM dbo.MovimientoHist
+) d;</pre></div>
+      <div class="code good"><span class="cap">correcta · ROWS + desempate único</span><button class="cp">copiar</button><pre>SELECT COUNT(*) AS Filas, MAX(Saldo) AS SaldoMax
+FROM (
+    SELECT CuentaId, MovimientoId,
+           SUM(Monto) OVER (PARTITION BY CuentaId
+                            ORDER BY FechaHora, MovimientoId
+                            ROWS UNBOUNDED PRECEDING) AS Saldo
+    FROM dbo.MovimientoHist
+) d;</pre></div>
+    </div>
+    <div class="tw"><table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Acceso</td><td>Index Scan ordenado de <code>IX_MovHist_POC</code>, sin Sort</td><td>igual: el índice POC entrega el orden en ambas</td></tr>
+      <tr><td>Operador de ventana</td><td><b>Window Spool en disco</b> + Stream Aggregate</td><td>Window Spool <b>en memoria</b> (fast-track) + Stream Aggregate</td></tr>
+      <tr><td><code>STATISTICS IO</code></td><td><code>Worktable</code> con millones de lecturas lógicas (varias por fila)</td><td><code>Worktable</code> con 0 lecturas lógicas</td></tr>
+      <tr><td>Resultado</td><td class="no">Distinto: los dos movimientos de cada día reciben el mismo saldo. <code>SaldoMax</code> sale menor porque el pico intradía desaparece</td><td class="yes">Un saldo por movimiento, reproducible</td></tr>
+      <tr><td>Modo batch (2019+ Enterprise)</td><td>Window Aggregate: costo parecido…</td><td>…pero el resultado de la ingenua sigue mal</td></tr>
+    </table></div>
+    <p>Este par es la razón de la regla del tema 3: el default de SQL es a la vez el más caro y el que da el número equivocado cuando hay empates. Que el modo batch te salve el costo no te salva el saldo.</p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.2 · join triangular</p>
+    <h3>Subconsulta correlacionada vs ventana para un acumulado</h3>
+    <p>El patrón anterior a 2012 que todavía aparece en procedimientos heredados. Se restringe a 500 cuentas (100 000 filas) para que la ingenua termine en un tiempo razonable.</p>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua · O(n²) por cuenta</span><button class="cp">copiar</button><pre>SELECT COUNT(*), MAX(Saldo)
+FROM (
+    SELECT m.CuentaId, m.MovimientoId,
+           (SELECT SUM(m2.Monto)
+            FROM dbo.MovimientoHist m2
+            WHERE m2.CuentaId = m.CuentaId
+              AND (m2.FechaHora &lt; m.FechaHora
+                   OR (m2.FechaHora = m.FechaHora
+                       AND m2.MovimientoId &lt;= m.MovimientoId))
+           ) AS Saldo
+    FROM dbo.MovimientoHist m
+    WHERE m.CuentaId &lt;= 500
+) d;</pre></div>
+      <div class="code good"><span class="cap">correcta · O(n) por cuenta</span><button class="cp">copiar</button><pre>SELECT COUNT(*), MAX(Saldo)
+FROM (
+    SELECT CuentaId, MovimientoId,
+           SUM(Monto) OVER (PARTITION BY CuentaId
+                            ORDER BY FechaHora, MovimientoId
+                            ROWS UNBOUNDED PRECEDING) AS Saldo
+    FROM dbo.MovimientoHist
+    WHERE CuentaId &lt;= 500
+) d;</pre></div>
+    </div>
+    <div class="tw"><table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Forma del plan</td><td>Nested Loops: por cada fila externa, un Index Seek en <code>IX_MovHist_POC</code> + Stream Aggregate</td><td>Un Index Seek de rango + Segment + Window Spool + Stream Aggregate</td></tr>
+      <tr><td>Filas procesadas</td><td>200·201/2 = 20 100 por cuenta → ~10 millones</td><td>100 000, una vez</td></tr>
+      <tr><td>Seek predicate</td><td>Solo <code>CuentaId</code> y el rango de <code>FechaHora</code>; el <code>OR</code> del desempate queda como predicado residual</td><td>Rango de <code>CuentaId</code></td></tr>
+      <tr><td>Escala</td><td>Cuadrática en el tamaño de la partición: duplicar movimientos por cuenta cuadruplica el trabajo</td><td>Lineal</td></tr>
+    </table></div>
+    <p>Fíjate en que la versión ingenua <b>sí</b> resolvía el desempate (con el <code>OR</code>): era correcta y lenta. La versión con ventana es correcta y rápida solo porque el <code>ORDER BY</code> incluye <code>MovimientoId</code>; sin él, sería rápida e incorrecta.</p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.3 · fila anterior</p>
+    <h3>Self join sobre ROW_NUMBER vs LAG</h3>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua · dos pasadas + join</span><button class="cp">copiar</button><pre>WITH r AS (
+    SELECT CuentaId, MovimientoId, Monto,
+           ROW_NUMBER() OVER (PARTITION BY CuentaId
+                              ORDER BY FechaHora, MovimientoId) AS rn
+    FROM dbo.MovimientoHist
+)
+SELECT COUNT(*), SUM(b.Monto)
+FROM r a
+LEFT JOIN r b
+       ON b.CuentaId = a.CuentaId
+      AND b.rn       = a.rn - 1;</pre></div>
+      <div class="code good"><span class="cap">correcta · una pasada</span><button class="cp">copiar</button><pre>SELECT COUNT(*), SUM(MontoAnt)
+FROM (
+    SELECT CuentaId, MovimientoId, Monto,
+           LAG(Monto) OVER (PARTITION BY CuentaId
+                            ORDER BY FechaHora, MovimientoId) AS MontoAnt
+    FROM dbo.MovimientoHist
+) d;</pre></div>
+    </div>
+    <div class="tw"><table class="t">
+      <tr><th></th><th>Ingenua</th><th>Correcta</th></tr>
+      <tr><td>Lecturas de la tabla</td><td><b>Dos</b>: la CTE se expande en cada referencia, no se materializa (lo verás a fondo en el módulo 06)</td><td>Una</td></tr>
+      <tr><td>Join</td><td>Hash Match (Right Outer) con reserva de memoria proporcional a un millón de filas, o Merge Join si el optimizador conserva el orden</td><td>Ninguno</td></tr>
+      <tr><td>Ventana</td><td>Dos Segment + Sequence Project</td><td>Segment + Window Spool de 2 filas en memoria + Stream Aggregate: internamente LAG es un agregado sobre <code>ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING</code></td></tr>
+      <tr><td>Riesgo</td><td>Spill del hash a tempdb si la estimación queda corta</td><td>—</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <p class="kicker">3.4 · percentiles</p>
+    <h3>PERCENTILE_CONT como ventana + DISTINCT vs cálculo dirigido</h3>
+    <p>Mediana de <code>Monto</code> por canal sobre <code>dbo.VentaHist</code> (1 000 000 de filas, 5 canales contando NULL). En SQL Server, <code>PERCENTILE_CONT</code> solo existe como función de ventana: produce un valor por fila que luego hay que colapsar.</p>
+    <div class="split">
+      <div class="code bad"><span class="cap">ingenua · 1M filas para obtener 5</span><button class="cp">copiar</button><pre>SELECT DISTINCT Canal,
+       PERCENTILE_CONT(0.5)
+         WITHIN GROUP (ORDER BY Monto)
+         OVER (PARTITION BY Canal) AS Mediana
+FROM dbo.VentaHist;</pre></div>
+      <div class="code good"><span class="cap">correcta · exacta, sin DISTINCT masivo</span><button class="cp">copiar</button><pre>WITH o AS (
+    SELECT Canal, Monto,
+           ROW_NUMBER() OVER (PARTITION BY Canal ORDER BY Monto) AS rn,
+           COUNT(*)     OVER (PARTITION BY Canal)                AS n
+    FROM dbo.VentaHist
+)
+SELECT Canal, AVG(Monto * 1.0) AS Mediana
+FROM o
+WHERE rn IN ((n + 1) / 2, (n + 2) / 2)   -- 1 fila si n es impar, 2 si es par
+GROUP BY Canal;</pre></div>
+    </div>
+    <div class="code good"><span class="cap">correcta · aproximada, SQL Server 2022 / Azure SQL</span><button class="cp">copiar</button><pre>SELECT Canal,
+       APPROX_PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Monto) AS MedianaAprox
+FROM dbo.VentaHist
+GROUP BY Canal;</pre></div>
+    <div class="tw"><table class="t">
+      <tr><th></th><th>PERCENTILE_CONT + DISTINCT</th><th>ROW_NUMBER dirigido</th><th>APPROX_PERCENTILE_CONT</th></tr>
+      <tr><td>Sort</td><td>1M filas por (Canal, Monto)</td><td>1M filas por (Canal, Monto)</td><td class="yes">ninguno: agregado de un solo paso</td></tr>
+      <tr><td>Spools</td><td>varios Table/Window Spool sobre tempdb para contar la partición y localizar posiciones</td><td>uno, para el <code>COUNT(*) OVER</code></td><td class="yes">ninguno</td></tr>
+      <tr><td>Colapso final</td><td class="no">Hash o Sort Distinct sobre 1M filas</td><td class="yes">GROUP BY sobre ≤ 10 filas</td><td class="yes">nativo</td></tr>
+      <tr><td>Exactitud</td><td>exacta, devuelve <code>float</code></td><td>exacta, <code>decimal</code></td><td>aproximada, con error de rango acotado y documentado</td></tr>
+    </table></div>
+    <p>El <code>(n+1)/2, (n+2)/2</code> usa división entera a propósito: es la única división entera bienvenida de todo el curso. El caso NULL de <code>Canal</code> funciona porque <code>PARTITION BY</code> agrupa los NULL juntos (módulo 01, tema 5d); si lo resolvieras con un join a un <code>GROUP BY</code> por <code>Canal</code>, la fila NULL se perdería en el <code>ON</code>.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════ §4 ERRORES ══════════════════════ -->
+<section class="sec" id="sec-errores">
+  <div class="sec-head"><span class="n">§ 4</span><h2>Errores silenciosos</h2><span class="c">12 casos · ninguno lanza excepción</span></div>
+  <p class="sec-note">Todos compilan, todos terminan en verde y todos entregan un número que alguien va a poner en un reporte. Cada uno trae el caso mínimo sobre el dataset del §0.</p>
+
+  <div class="card">
+    <div class="err"><h4>1 · Saldo que se repite en movimientos simultáneos</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT MovimientoId, FechaHora, Monto,
+       SUM(Monto) OVER (PARTITION BY CuentaId ORDER BY FechaHora) AS Acum
+FROM dbo.Movimiento WHERE CuentaId = 1;   -- movs 4, 5 y 6 devuelven 800 los tres</pre></div>
+      <p class="fix"><b>fix ·</b> <code>ORDER BY FechaHora, MovimientoId ROWS UNBOUNDED PRECEDING</code>. Tema 3.</p></div>
+
+    <div class="err"><h4>2 · Acumulado que cambia entre ejecuciones</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT MovimientoId,
+       SUM(Monto) OVER (PARTITION BY CuentaId ORDER BY FechaHora
+                        ROWS UNBOUNDED PRECEDING) AS Acum   -- ¿500 o -200 en el primer movimiento?
+FROM dbo.Movimiento WHERE CuentaId = 1;</pre></div>
+      <p class="fix"><b>fix ·</b> ROWS sin desempate único es no determinista: el orden entre pares depende del plan (módulo 01, tema 9). Termina el <code>ORDER BY</code> en una columna única.</p></div>
+
+    <div class="err"><h4>3 · LAST_VALUE que devuelve el valor actual</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       LAST_VALUE(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS "Ultimo"  -- = Monto
+FROM dbo.VentaDiaria;</pre></div>
+      <p class="fix"><b>fix ·</b> <code>ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</code>, o <code>FIRST_VALUE</code> con el orden invertido. Tema 7.</p></div>
+
+    <div class="err"><h4>4 · El total que se volvió acumulado al agregarle ORDER BY</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       100.0 * Monto / SUM(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS PctDelTotal
+FROM dbo.VentaDiaria;   -- el primer día de cada sucursal da 100 %</pre></div>
+      <p class="fix"><b>fix ·</b> el total de la partición no lleva <code>ORDER BY</code>. Si lo necesitas por otra razón, escribe <code>ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</code>.</p></div>
+
+    <div class="err"><h4>5 · Media móvil de "3 días" que promedia uno</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha,
+       AVG(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS Media3
+FROM dbo.VentaDiaria;   -- el 2024-01-01 "media de 3" = 120, con una sola fila</pre></div>
+      <p class="fix"><b>fix ·</b> condicionar a <code>COUNT(*) OVER (mismo frame) = 3</code>. Tema 5.</p></div>
+
+    <div class="err"><h4>6 · AVG sobre enteros que trunca</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT VentaId, Cantidad,
+       AVG(Cantidad) OVER (ORDER BY VentaId ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS Media
+FROM dbo.Venta;   -- ventas 1-3: (1+2+1)/3 = 1, no 1.33</pre></div>
+      <p class="fix"><b>fix ·</b> <code>AVG(Cantidad * 1.0)</code> o <code>CAST</code> a decimal. En SQL Server <code>AVG(int)</code> devuelve int; en PostgreSQL devuelve numeric y en Spark double, así que el mismo código da números distintos en cada motor.</p></div>
+
+    <div class="err"><h4>7 · "Día anterior" que en realidad es hace tres días</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT Fecha, Monto,
+       LAG(Fecha) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS FechaAnt,
+       Monto - LAG(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS VarVsDiaAnterior
+FROM dbo.VentaDiaria WHERE Sucursal = 'GYE';   -- el 08 se compara con el 05</pre></div>
+      <p class="fix"><b>fix ·</b> densificar contra <code>dbo.Calendario</code> antes de la ventana (tema 10) o validar <code>DATEDIFF(day, FechaAnt, Fecha) = 1</code>.</p></div>
+
+    <div class="err"><h4>8 · LAG con default 0 que fabrica una variación</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       Monto - LAG(Monto, 1, 0) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS Variacion
+FROM dbo.VentaDiaria;   -- el primer día "creció" 120 respecto de nada</pre></div>
+      <p class="fix"><b>fix ·</b> el default debe significar algo del negocio (un saldo inicial sí; un cero inventado no). Si no hay periodo anterior, la variación es NULL. Y el default solo se usa fuera de la partición, nunca para reemplazar un NULL real. Tema 6.</p></div>
+
+    <div class="err"><h4>9 · Ventana calculada antes de densificar</h4>
+      <div class="code"><button class="cp">copiar</button><pre>WITH v AS (
+    SELECT Sucursal, Fecha,
+           SUM(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS Suma3
+    FROM dbo.VentaDiaria
+)
+SELECT c.Fecha, v.Suma3
+FROM dbo.Calendario c
+LEFT JOIN v ON v.Sucursal = 'GYE' AND v.Fecha = c.Fecha
+WHERE c.Fecha BETWEEN '2024-01-01' AND '2024-01-14';
+-- el 08 sigue sumando 04+05+08, y los días 06, 07, 10 salen NULL</pre></div>
+      <p class="fix"><b>fix ·</b> el calendario se une <b>antes</b> de la ventana, en el mismo <code>FROM</code> donde se calcula. Tema 10.</p></div>
+
+    <div class="err"><h4>10 · Filtro en WHERE que recorta la historia de la ventana</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT MovimientoId, FechaHora,
+       SUM(Monto) OVER (PARTITION BY CuentaId ORDER BY FechaHora, MovimientoId
+                        ROWS UNBOUNDED PRECEDING) AS Saldo
+FROM dbo.Movimiento
+WHERE CuentaId = 1 AND FechaHora &gt;= '2024-01-05';   -- el "saldo" arranca de cero el día 5</pre></div>
+      <p class="fix"><b>fix ·</b> <code>WHERE</code> se evalúa antes que la ventana (módulo 03, tema 2). Calcula la ventana sobre toda la historia en una CTE y filtra fuera. Solo es seguro filtrar dentro si el filtro coincide con la partición.</p></div>
+
+    <div class="err"><h4>11 · "Mediana" con PERCENTILE_DISC en un conjunto par</h4>
+      <div class="code"><button class="cp">copiar</button><pre>SELECT DISTINCT
+       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x) OVER () AS Cont,   -- 25
+       PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY x) OVER () AS Disc    -- 20
+FROM (VALUES (10),(20),(30),(40)) t(x);</pre></div>
+      <p class="fix"><b>fix ·</b> la mediana estadística de un conjunto par es <code>CONT</code>. <code>DISC</code> devuelve un valor que existe en los datos — útil para montos reales, incorrecto si el reporte dice "mediana". Tema 8.</p></div>
+
+    <div class="err"><h4>12 · Ventana sin PARTITION BY en Spark (costo silencioso)</h4>
+      <div class="code"><button class="cp">copiar</button><pre>-- Databricks: compila, corre y manda toda la tabla a UNA tarea
+SELECT movimiento_id,
+       sum(monto) OVER (ORDER BY fecha_hora, movimiento_id
+                        ROWS UNBOUNDED PRECEDING) AS acumulado_global
+FROM movimiento_hist;
+-- log: "No Partition Defined for Window operation! Moving all data to a single partition..."</pre></div>
+      <p class="fix"><b>fix ·</b> si el negocio admite partición (por cuenta, por día), úsala. Si de verdad necesitas un acumulado global sobre millones de filas, calcula acumulados por bloque y súmales el offset de los bloques anteriores en un segundo paso.</p></div>
+  </div>
+</section>
+
+<!-- ══════════════════════ §5 EJERCICIOS ══════════════════════ -->
+<section class="sec" id="sec-ejercicios">
+  <div class="sec-head"><span class="n">§ 5</span><h2>Ejercicios</h2><span class="c">6 · los dos últimos combinan temas</span></div>
+  <p class="sec-note">Resuélvelos antes de abrir la solución. Todos los resultados esperados se pueden verificar contra el dataset del §0; los números están en cada solución.</p>
+  <div class="branch" id="ejercicios"></div>
+</section>
+
+<!-- ══════════════════════ §6 PROYECTO ══════════════════════ -->
+<section class="sec" id="sec-proyecto">
+  <div class="sec-head"><span class="n">§ 6</span><h2>Mini-proyecto</h2><span class="c">saldo diario de cuentas con tendencia</span></div>
+  <p class="sec-note">El tablero diario de saldos que pide cualquier área de riesgo o de tesorería: una fila por cuenta y por día, aunque ese día no haya habido movimientos. Nueve criterios de aceptación ejecutables, incluidos uno de idempotencia y uno contra un cálculo independiente.</p>
+
+  <div class="card">
+    <h3>Datos de entrada</h3>
+    <p>Se derivan de <code>dbo.MovimientoHist</code> con 2 000 cuentas y huecos realistas: las cuentas múltiplo de 7 no mueven dinero uno de cada cinco días.</p>
+    <div class="code"><span class="cap">T-SQL · datos del proyecto</span><button class="cp">copiar</button><pre>DROP TABLE IF EXISTS dbo.CuentaProy;
+DROP TABLE IF EXISTS dbo.MovimientoProy;
+GO
+SELECT c.CuentaId,
+       CAST((c.CuentaId % 50) * 100 AS decimal(14,2)) AS SaldoInicial,
+       CAST('2024-01-01' AS date)                    AS FechaApertura
+INTO dbo.CuentaProy
+FROM (SELECT DISTINCT CuentaId FROM dbo.MovimientoHist WHERE CuentaId &lt;= 2000) c;
+
+ALTER TABLE dbo.CuentaProy ADD CONSTRAINT PK_CuentaProy PRIMARY KEY (CuentaId);
+
+SELECT MovimientoId, CuentaId, FechaHora, Monto
+INTO dbo.MovimientoProy
+FROM dbo.MovimientoHist
+WHERE CuentaId &lt;= 2000
+  AND NOT (CuentaId % 7 = 0 AND DATEDIFF(day, '2024-01-01', FechaHora) % 5 = 3);   -- huecos
+
+ALTER TABLE dbo.MovimientoProy ADD CONSTRAINT PK_MovimientoProy PRIMARY KEY (MovimientoId);
+CREATE NONCLUSTERED INDEX IX_MovProy_POC ON dbo.MovimientoProy (CuentaId, FechaHora, MovimientoId) INCLUDE (Monto);
+GO</pre></div>
+
+    <h3>Entregable</h3>
+    <p>Un procedimiento <code>dbo.uspSaldoDiario</code> que reconstruya <code>dbo.SaldoDiarioCuenta</code> desde cero, con una fila por cuenta y por día entre <code>FechaApertura</code> y el último día con movimientos de todo el universo (2024-04-09):</p>
+    <div class="tw"><table class="t">
+      <tr><th>Columna</th><th>Contenido</th></tr>
+      <tr><td><code>CuentaId</code>, <code>Fecha</code></td><td>clave</td></tr>
+      <tr><td><code>NumMov</code></td><td>movimientos del día (0 si no hubo)</td></tr>
+      <tr><td><code>Neto</code></td><td>suma de montos del día (0 si no hubo)</td></tr>
+      <tr><td><code>SaldoCierre</code></td><td>saldo al final del día</td></tr>
+      <tr><td><code>SaldoAnterior</code></td><td>saldo al cierre del día previo; el primer día, <code>SaldoInicial</code></td></tr>
+      <tr><td><code>Media7Neto</code></td><td>promedio diario del neto en los últimos 7 días <b>calendario</b> incluido el actual; NULL si la cuenta tiene menos de 7 días de historia</td></tr>
+      <tr><td><code>PctRankDia</code></td><td><code>PERCENT_RANK</code> del saldo de cierre entre todas las cuentas de ese día</td></tr>
+      <tr><td><code>DiaMaxSaldo</code></td><td>primera fecha en que la cuenta alcanzó su saldo de cierre máximo</td></tr>
+    </table></div>
+
+    <h3>Reglas obligatorias</h3>
+    <ul class="temas-chk">
+      <li><label class="chk"><input type="checkbox"><span>Ningún frame queda por defecto: todo <code>OVER</code> con <code>ORDER BY</code> en un agregado o en <code>FIRST/LAST_VALUE</code> declara <code>ROWS</code> explícito.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>La serie se densifica contra <code>dbo.Calendario</code> <b>antes</b> de cualquier ventana de tiempo.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>El saldo diario se obtiene acumulando el neto diario (aditivo), no arrastrando el último saldo con LOCF.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>Todo desempate es determinista: con los mismos datos, dos ejecuciones producen exactamente la misma tabla.</span></label></li>
+      <li><label class="chk"><input type="checkbox"><span>En modo fila, <code>STATISTICS IO</code> muestra la <code>Worktable</code> con 0 lecturas lógicas en el cálculo del saldo (sin spool en disco).</span></label></li>
+    </ul>
+
+    <h3>Criterios de aceptación</h3>
+    <div class="code"><span class="cap">cada consulta debe devolver OK</span><button class="cp">copiar</button><pre>-- AC1 · Densidad: cada cuenta tiene una fila por día, sin huecos
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'FALLA' END
+FROM (SELECT CuentaId FROM dbo.SaldoDiarioCuenta
+      GROUP BY CuentaId
+      HAVING COUNT(*) &lt;&gt; DATEDIFF(day, MIN(Fecha), MAX(Fecha)) + 1
+          OR MIN(Fecha) &lt;&gt; '2024-01-01' OR MAX(Fecha) &lt;&gt; '2024-04-09') x;
+
+-- AC2 · Unicidad de la clave
+SELECT CASE WHEN COUNT(*) = COUNT(DISTINCT CONCAT(CuentaId, '|', Fecha)) THEN 'OK' ELSE 'FALLA' END
+FROM dbo.SaldoDiarioCuenta;
+
+-- AC3 · Cuadre contra la fuente: saldo final = inicial + todos los movimientos
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.CuentaProy c
+JOIN dbo.SaldoDiarioCuenta s ON s.CuentaId = c.CuentaId AND s.Fecha = '2024-04-09'
+CROSS APPLY (SELECT ISNULL(SUM(m.Monto), 0) AS Total
+             FROM dbo.MovimientoProy m WHERE m.CuentaId = c.CuentaId) t
+WHERE s.SaldoCierre &lt;&gt; c.SaldoInicial + t.Total;
+
+-- AC4 · Continuidad: cierre = anterior + neto, en todas las filas
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.SaldoDiarioCuenta
+WHERE SaldoCierre &lt;&gt; SaldoAnterior + Neto OR SaldoAnterior IS NULL;
+
+-- AC5 · Días sin movimiento: tantos como (días densos - días con movimiento)
+SELECT CASE WHEN
+   (SELECT COUNT(*) FROM dbo.SaldoDiarioCuenta WHERE NumMov = 0 AND Neto = 0)
+ = (SELECT COUNT(*) FROM dbo.SaldoDiarioCuenta)
+ - (SELECT COUNT(*) FROM (SELECT DISTINCT CuentaId, CAST(FechaHora AS date) AS d
+                          FROM dbo.MovimientoProy) z)
+ THEN 'OK' ELSE 'FALLA' END;
+
+-- AC6 · Media de 7 días: NULL exactamente en los 6 primeros días de cada cuenta…
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.SaldoDiarioCuenta
+WHERE (Media7Neto IS NULL) &lt;&gt; (Fecha &lt; '2024-01-07');
+-- …y coincide con un cálculo independiente, sin ventanas, para una cuenta con huecos
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'FALLA' END
+FROM dbo.SaldoDiarioCuenta s
+CROSS APPLY (SELECT ISNULL(SUM(m.Monto), 0) / 7.0 AS Ref
+             FROM dbo.MovimientoProy m
+             WHERE m.CuentaId = s.CuentaId
+               AND m.FechaHora &gt;= DATEADD(day, -6, s.Fecha)
+               AND m.FechaHora &lt;  DATEADD(day,  1, s.Fecha)) r
+WHERE s.CuentaId = 7 AND s.Media7Neto IS NOT NULL
+  AND ABS(s.Media7Neto - r.Ref) &gt; 0.01;
+
+-- AC7 · PERCENT_RANK coherente por día
+SELECT CASE WHEN COUNT(*) = 0 THEN 'OK' ELSE 'FALLA' END
+FROM (SELECT Fecha FROM dbo.SaldoDiarioCuenta
+      GROUP BY Fecha
+      HAVING MIN(PctRankDia) &lt;&gt; 0 OR MAX(PctRankDia) &gt; 1) x;
+
+-- AC8 · Idempotencia: guarda un snapshot, reejecuta el procedimiento, compara en ambas direcciones
+-- SELECT * INTO dbo.SaldoDiario_Snapshot FROM dbo.SaldoDiarioCuenta;  EXEC dbo.uspSaldoDiario;
+SELECT CASE WHEN NOT EXISTS (SELECT * FROM dbo.SaldoDiarioCuenta EXCEPT SELECT * FROM dbo.SaldoDiario_Snapshot)
+             AND NOT EXISTS (SELECT * FROM dbo.SaldoDiario_Snapshot EXCEPT SELECT * FROM dbo.SaldoDiarioCuenta)
+            THEN 'OK' ELSE 'FALLA' END;
+
+-- AC9 · Ningún RANGE en el procedimiento (heurística sobre el texto)
+SELECT CASE WHEN OBJECT_DEFINITION(OBJECT_ID('dbo.uspSaldoDiario')) LIKE '%RANGE%'
+            THEN 'FALLA' ELSE 'OK' END;</pre></div>
+    <p><b>AC6</b> es el criterio que importa: compara el resultado de la ventana con una suma por rango de fechas que no sabe nada de filas ni de frames. Si densificaste después de la ventana, o usaste <code>ROWS 6 PRECEDING</code> sobre la serie con huecos, la cuenta 7 lo delata.</p>
+
+    <h3>Pistas de diseño</h3>
+    <button class="reveal" data-t="#pistas">ver pistas</button>
+    <div class="hidden" id="pistas">
+      <ul class="plain" style="margin-top:12px">
+        <li>Orden de las CTE: <b>serie</b> (cuenta × calendario) → <b>neto diario</b> (<code>GROUP BY CuentaId, CAST(FechaHora AS date)</code>) → <b>LEFT JOIN</b> de ambas → ventanas. Agregar antes de unir evita multiplicar filas (módulo 02, tema 10).</li>
+        <li><code>CAST(FechaHora AS date)</code> en el <code>GROUP BY</code> es aceptable aquí porque recorres la tabla completa; no lo uses como filtro en un <code>WHERE</code> sobre una tabla grande (módulo 01, tema 7e).</li>
+        <li>Con la serie ya densa, "últimos 7 días calendario" es exactamente <code>ROWS BETWEEN 6 PRECEDING AND CURRENT ROW</code>, y el NULL de los primeros días sale de <code>COUNT(*) OVER (mismo frame) &lt; 7</code>.</li>
+        <li><code>SaldoAnterior</code> es <code>LAG(SaldoCierre, 1, SaldoInicial)</code>: un default con significado de negocio. Necesitas <code>SaldoCierre</code> materializado en una CTE previa porque no se pueden anidar funciones de ventana.</li>
+        <li><code>DiaMaxSaldo</code>: <code>FIRST_VALUE(Fecha) OVER (PARTITION BY CuentaId ORDER BY SaldoCierre DESC, Fecha ROWS UNBOUNDED PRECEDING)</code>. El <code>Fecha</code> en el orden es el desempate que convierte "un día de máximo" en "el primero".</li>
+        <li>Para AC8, crea <code>dbo.SaldoDiarioCuenta</code> con <code>DROP</code> + <code>SELECT … INTO</code> o <code>TRUNCATE</code> + <code>INSERT</code>; ambos son idempotentes si el cálculo es determinista. Los efectos de cada opción en el log se ven en el módulo 12.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ §7 EXAMEN ══════════════════════ -->
+<section class="sec" id="sec-examen">
+  <div class="sec-head"><span class="n">§ 7</span><h2>Autoevaluación</h2><span class="c">10 preguntas nivel entrevista</span></div>
+  <p class="sec-note">Responde en voz alta antes de revelar. Si no puedes explicarlo en dos frases, vuelve al nodo correspondiente.</p>
+  <div class="card" id="examen"></div>
+</section>
+
+  <footer>
+    Módulo 04 de 16 · fase 01 · SQL analítico · costo estimado 7 h (420 min)<br>
+    El avance vive solo en esta pestaña: si recargas, los checks se reinician.<br>
+    Siguiente: <b>módulo 05 — patrones analíticos que se repiten siempre</b>. El puente: gaps and islands se construye con la diferencia entre dos ROW_NUMBER y con el LAG de este módulo.
+  </footer>
+</div>
+
+<dialog id="dl">
+  <div class="dl-head"><h3 id="dlTitle">Prompt</h3><button class="x" id="dlClose" aria-label="Cerrar">✕</button></div>
+  <textarea id="dlText" spellcheck="false" readonly aria-label="Prompt del módulo siguiente"></textarea>
+  <div class="dl-foot"><button class="solid" id="dlCopy">Copiar al portapapeles</button><span class="msg" id="dlMsg"></span></div>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite">copiado</div>
+
+<script>
+/* rejilla de frames: qué filas entran en el frame de cada fila actual */
+function rejilla(titulo, cab, frames, sumas){
+  let h = '<div class="tw"><table class="t fg"><caption>' + titulo + '</caption><tr><th>fila</th>';
+  cab.forEach((c, i) => { h += '<th>' + (i + 1) + '<small>' + c + '</small></th>'; });
+  h += '<th class="num">SUM</th></tr>';
+  frames.forEach((f, i) => {
+    h += '<tr><td>' + (i + 1) + '</td>';
+    cab.forEach((c, j) => {
+      const k = j + 1, dentro = k >= f[0] && k <= f[1];
+      h += '<td class="' + (dentro ? 'in' : '') + (k === i + 1 ? ' cur' : '') + '"' +
+           (dentro ? ' aria-label="en el frame"' : ' aria-label="fuera"') + '>' + (dentro ? '■' : '·') + '</td>';
+    });
+    h += '<td class="num">' + sumas[i] + '</td></tr>';
+  });
+  return h + '</table></div>';
+}
+
+/* ══════════ contenido de los 10 temas (minutos suman 420 = 7 h) ══════════ */
+const TEMAS = [
+{id:"01", min:55, t:"ROWS vs RANGE vs GROUPS", html:`
+<p>Para cada fila de la partición, el motor calcula dos fronteras: dónde <b>empieza</b> su frame y dónde <b>termina</b>. El agregado (<code>SUM</code>, <code>AVG</code>…) solo ve las filas que quedan entre esas dos fronteras. Lo único que cambia entre <code>ROWS</code>, <code>RANGE</code> y <code>GROUPS</code> es <b>cómo se mide la distancia</b> desde la fila actual hasta cada frontera.</p>
+<div class="tw"><table class="t">
+<tr><th>Modo</th><th>Mide la distancia en…</th><th>Pregunta que el motor hace a cada fila candidata</th></tr>
+<tr><td><code>ROWS</code></td><td><b>posiciones</b>: 1.ª, 2.ª, 3.ª fila…</td><td>"¿Estás a N filas o menos de mí?"</td></tr>
+<tr><td><code>RANGE</code></td><td><b>valores</b> de la columna del <code>ORDER BY</code></td><td>"¿Tu valor de orden está a N unidades o menos del mío?"</td></tr>
+<tr><td><code>GROUPS</code></td><td><b>grupos de pares</b>: bloques de filas con el mismo valor de orden</td><td>"¿Tu grupo está a N grupos o menos del mío?"</td></tr>
+</table></div>
+<div class="rule"><b>la clave de todo: los pares</b>Dos filas son <b>pares</b> cuando tienen el mismo valor en las columnas del <code>ORDER BY</code> de la ventana. <code>ROWS</code> no sabe que existen: trata a cada fila por separado. <code>RANGE</code> y <code>GROUPS</code> los tratan como un bloque indivisible: entran todos al frame o no entra ninguno. Si el <code>ORDER BY</code> no tiene empates, no hay pares, y con <code>UNBOUNDED</code> / <code>CURRENT ROW</code> los tres modos dan el mismo resultado.</div>
+
+<h3><span class="tag-letter">a)</span> Cómo traduce cada modo los límites que escribes</h3>
+<p>Llamemos <code>p</code> a la posición de la fila actual, <code>v</code> a su valor en el <code>ORDER BY</code> y <code>g</code> al número de su grupo de pares.</p>
+<div class="tw"><table class="t">
+<tr><th>Límite escrito</th><th>ROWS</th><th>RANGE</th><th>GROUPS</th></tr>
+<tr><td><code>UNBOUNDED PRECEDING</code></td><td colspan="3">la primera fila de la partición — igual en los tres</td></tr>
+<tr><td><code>N PRECEDING</code></td><td>la fila en la posición <code>p − N</code></td><td>la primera fila con valor <code>≥ v − N</code></td><td>la primera fila del grupo <code>g − N</code></td></tr>
+<tr><td><code>CURRENT ROW</code> como <b>inicio</b></td><td>exactamente la fila <code>p</code></td><td class="no">la <b>primera</b> de sus pares: retrocede</td><td class="no">la primera de su grupo</td></tr>
+<tr><td><code>CURRENT ROW</code> como <b>fin</b></td><td>exactamente la fila <code>p</code></td><td class="no">la <b>última</b> de sus pares: avanza</td><td class="no">la última de su grupo</td></tr>
+<tr><td><code>N FOLLOWING</code></td><td>la fila en la posición <code>p + N</code></td><td>la última fila con valor <code>≤ v + N</code></td><td>la última fila del grupo <code>g + N</code></td></tr>
+<tr><td><code>UNBOUNDED FOLLOWING</code></td><td colspan="3">la última fila de la partición — igual en los tres</td></tr>
+</table></div>
+<p>Las celdas en vino son las que sorprenden: en <code>RANGE</code>, <code>CURRENT ROW</code> no significa "esta fila", significa "esta fila <b>y todas las que empatan con ella</b>", estén antes o después. Por eso un acumulado con <code>RANGE</code> "salta": la fila actual ya suma a sus pares que todavía no han pasado.</p>
+
+<h3><span class="tag-letter">b)</span> Caso 1 · acumulado: <code>UNBOUNDED PRECEDING AND CURRENT ROW</code></h3>
+<p>Cuenta 1 del dataset, ordenada por <code>FechaHora</code>. Grupos de pares: <b>G1</b> = movs 1 y 2 (mismo instante), <b>G2</b> = mov 3, <b>G3</b> = movs 4, 5 y 6 (mismo instante), <b>G4</b> = mov 7.</p>
+<div class="code"><span class="cap">T-SQL · mismo SUM, dos frames</span><button class="cp">copiar</button><pre>SELECT MovimientoId, FechaHora, Monto,
+       SUM(Monto) OVER (PARTITION BY CuentaId ORDER BY FechaHora, MovimientoId
+                        ROWS  BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AcumRows,
+       SUM(Monto) OVER (PARTITION BY CuentaId ORDER BY FechaHora
+                        RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AcumRange
+FROM dbo.Movimiento
+WHERE CuentaId = 1
+ORDER BY FechaHora, MovimientoId;
+-- montos en orden: 500, -200, -150, 1000, -300, -50, -400</pre></div>
+<p><b>Cómo leer las rejillas:</b> cada renglón es la fila actual (la celda con borde vino marca dónde está ella); las celdas verdes son las filas que entran en su frame; la última columna es la suma de esas filas.</p>
+<div class="split">
+${rejilla("ROWS · cuenta posiciones", ["m1·G1","m2·G1","m3·G2","m4·G3","m5·G3","m6·G3","m7·G4"],
+  [[1,1],[1,2],[1,3],[1,4],[1,5],[1,6],[1,7]], [500,300,150,1150,850,800,400])}
+${rejilla("RANGE · arrastra a los pares", ["m1·G1","m2·G1","m3·G2","m4·G3","m5·G3","m6·G3","m7·G4"],
+  [[1,2],[1,2],[1,3],[1,6],[1,6],[1,6],[1,7]], [300,300,150,800,800,800,400])}
+</div>
+<ul class="plain">
+<li><b>Fila 1 (mov 1)</b> · ROWS: el fin es la fila 1 → suma solo <code>500</code>. RANGE: el fin es el <b>último par</b> de la fila 1; el mov 2 tiene la misma <code>FechaHora</code>, así que entra → <code>500 − 200 = 300</code>.</li>
+<li><b>Fila 3 (mov 3)</b> · no tiene pares: ambos modos terminan en la fila 3 → <code>150</code>.</li>
+<li><b>Fila 4 (mov 4)</b> · ROWS: llega hasta la fila 4 → <code>1 150</code>, el pico real después de la nómina. RANGE: llega hasta la fila 6, último par del instante 01-05 10:00 → <code>800</code>. Ese <code>1 150</code> nunca aparece en el resultado con RANGE.</li>
+<li><b>Filas 4, 5 y 6</b> · con RANGE tienen <b>el mismo frame</b> (1 a 6) y devuelven el mismo número. Con ROWS cada una ve una fila más que la anterior.</li>
+<li><b>Fila 7</b> · sin pares: coinciden otra vez.</li>
+</ul>
+<div class="rule warn"><b>ROWS sin desempate</b>Si quitas <code>MovimientoId</code> del <code>ORDER BY</code> de <code>AcumRows</code>, el motor puede poner al mov 2 antes que al 1 (o al 6 antes que al 4): ROWS cuenta posiciones, y la posición entre pares la decide el plan. El resultado de la fila 1 podría ser <code>500</code> o <code>-200</code> según la ejecución. RANGE no tiene este problema precisamente porque mete a todos los pares juntos. Ver módulo 01, tema 9.</div>
+<p><b>Corolario:</b> si escribes <code>RANGE</code> con un <code>ORDER BY</code> que ya es único (<code>FechaHora, MovimientoId</code>), no quedan pares y RANGE da lo mismo que ROWS — pero en SQL Server modo fila sigue pagando el spool en disco (comparación 3.1). Si no hay pares, escribe ROWS.</p>
+
+<h3><span class="tag-letter">c)</span> Caso 2 · desplazamiento: <code>1 PRECEDING AND CURRENT ROW</code></h3>
+<p>Con un desplazamiento <code>N</code> los tres modos se separan del todo, porque "1 hacia atrás" significa una fila, una unidad de valor o un grupo. Datos mínimos: una columna <code>dia</code> con un empate (dos filas el día 2) y saltos (no hay días 4, 6 ni 7).</p>
+<div class="code"><span class="cap">PostgreSQL 11+ · los tres modos lado a lado</span><button class="cp">copiar</button><pre>SELECT id, dia, monto,
+       sum(monto) OVER (ORDER BY dia, id ROWS   BETWEEN 1 PRECEDING AND CURRENT ROW) AS s_rows,
+       sum(monto) OVER (ORDER BY dia     RANGE  BETWEEN 1 PRECEDING AND CURRENT ROW) AS s_range,
+       sum(monto) OVER (ORDER BY dia     GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW) AS s_groups
+FROM (VALUES (1,1,10),(2,2,20),(3,2,30),(4,3,40),(5,5,50),(6,8,60)) AS t(id, dia, monto)
+ORDER BY dia, id;
+-- Spark SQL: igual, sin la columna GROUPS y con  FROM VALUES (...) AS t(id, dia, monto)</pre></div>
+<div class="split">
+${rejilla("ROWS · la fila anterior", ["d1","d2","d2","d3","d5","d8"],
+  [[1,1],[1,2],[2,3],[3,4],[4,5],[5,6]], [10,30,50,70,90,110])}
+${rejilla("RANGE · valores en [dia − 1, dia]", ["d1","d2","d2","d3","d5","d8"],
+  [[1,1],[1,3],[1,3],[2,4],[5,5],[6,6]], [10,60,60,90,50,60])}
+</div>
+${rejilla("GROUPS · su grupo y el grupo anterior", ["d1","d2","d2","d3","d5","d8"],
+  [[1,1],[1,3],[1,3],[2,4],[4,5],[5,6]], [10,60,60,90,90,110])}
+<p>El cálculo explícito para las filas donde los modos discrepan:</p>
+<div class="tw"><table class="t">
+<tr><th>Fila actual</th><th>ROWS: posiciones p−1 … p</th><th>RANGE: valores v−1 … v (+ pares)</th><th>GROUPS: grupos g−1 … g</th></tr>
+<tr><td>2 · día 2 · 20</td><td>filas 1, 2 → 10 + 20 = <b>30</b></td><td>valores 1..2 → filas 1, 2 <b>y 3</b> (par posterior) → <b>60</b></td><td>grupos d1, d2 → filas 1–3 → <b>60</b></td></tr>
+<tr><td>3 · día 2 · 30</td><td>filas 2, 3 → 20 + 30 = <b>50</b> (la fila 1 queda fuera)</td><td>valores 1..2 → filas 1–3 → <b>60</b></td><td>grupos d1, d2 → <b>60</b></td></tr>
+<tr><td>4 · día 3 · 40</td><td>filas 3, 4 → 30 + 40 = <b>70</b></td><td>valores 2..3 → filas 2–4 → <b>90</b></td><td>grupos d2, d3 → filas 2–4 → <b>90</b></td></tr>
+<tr><td>5 · día 5 · 50</td><td>filas 4, 5 → 40 + 50 = <b>90</b></td><td>valores 4..5 → no existe el día 4 → solo la fila 5 → <b>50</b></td><td>grupo anterior = d3, aunque esté a 2 días → <b>90</b></td></tr>
+<tr><td>6 · día 8 · 60</td><td>filas 5, 6 → <b>110</b></td><td>valores 7..8 → solo la fila 6 → <b>60</b></td><td>grupo anterior = d5 → <b>110</b></td></tr>
+</table></div>
+<div class="rule"><b>en una frase</b><code>ROWS 1 PRECEDING</code> = "la fila anterior". <code>RANGE 1 PRECEDING</code> = "el día anterior, si existe, con todos sus empates". <code>GROUPS 1 PRECEDING</code> = "el día anterior <b>con datos</b>, por lejos que esté".</div>
+
+<h3><span class="tag-letter">c.1)</span> ¿Por qué con RANGE los días 5 y 8 no toman un precedente?</h3>
+<div class="rule"><b>RANGE no busca "la fila anterior"</b><code>RANGE BETWEEN 1 PRECEDING AND CURRENT ROW</code> no significa "la fila de antes". Significa: <b>todas las filas cuyo valor de <code>dia</code> está entre <code>dia_actual − 1</code> y <code>dia_actual</code></b>. El motor no avanza ni retrocede por filas: arma un intervalo de valores y se queda con las filas que caen dentro. Si no hay ninguna fila con el valor <code>dia_actual − 1</code>, el frame solo contiene a la fila actual (y a sus pares).</div>
+<p>Míralo sobre la recta de valores de <code>dia</code>. Las filas existen en 1, 2, 2, 3, 5 y 8; los valores 4, 6 y 7 no tienen filas.</p>
+<div class="code"><span class="cap">la recta de valores · qué intervalo revisa cada fila</span><button class="cp">copiar</button><pre>valor de dia:  1    2    3    4    5    6    7    8
+filas:         ●    ●●   ●    ·    ●    ·    ·    ●
+
+d3 busca:           [────]                               → [2, 3]: d2 + d2 + d3 = 20 + 30 + 40 = 90
+d5 busca:                     [────]                     → [4, 5]: el 4 está vacío → solo d5 = 50
+d8 busca:                                    [────]      → [7, 8]: el 7 está vacío → solo d8 = 60
+
+●  = una fila con ese valor     ·  = valor sin filas (hueco)
+[─] = intervalo que RANGE 1 PRECEDING revisa para esa fila: de (dia - 1) a dia</pre></div>
+<div class="tw"><table class="t">
+<tr><th>Fila actual</th><th>Intervalo de valores que revisa</th><th>¿Hay filas con dia − 1?</th><th>Filas en el frame</th><th class="num">s_range</th></tr>
+<tr><td>d1 · 10</td><td>[0, 1]</td><td class="no">no hay día 0</td><td>d1</td><td class="num">10</td></tr>
+<tr><td>d2 · 20</td><td>[1, 2]</td><td class="yes">sí, d1</td><td>d1, d2, d2 (incluye a su par)</td><td class="num">60</td></tr>
+<tr><td>d2 · 30</td><td>[1, 2]</td><td class="yes">sí, d1</td><td>d1, d2, d2</td><td class="num">60</td></tr>
+<tr><td>d3 · 40</td><td>[2, 3]</td><td class="yes">sí, los dos d2</td><td>d2, d2, d3</td><td class="num">90</td></tr>
+<tr><td><b>d5 · 50</b></td><td><b>[4, 5]</b></td><td class="no"><b>no hay día 4</b></td><td><b>solo d5</b></td><td class="num">50</td></tr>
+<tr><td><b>d8 · 60</b></td><td><b>[7, 8]</b></td><td class="no"><b>no hay día 7</b></td><td><b>solo d8</b></td><td class="num">60</td></tr>
+</table></div>
+<p>El día 3 está a <b>2</b> unidades del día 5, y el día 5 a <b>3</b> unidades del día 8. Ninguno cabe en un intervalo de 1 unidad, así que RANGE no los toma. ROWS sí los toma porque no mira valores: para ROWS, d3 es "la fila de antes" de d5, esté a la distancia que esté.</p>
+<div class="rule"><b>por qué este comportamiento es útil</b>Si <code>dia</code> fuera una fecha, <code>1 PRECEDING</code> con RANGE significa literalmente "ayer". Si ayer no hubo ventas, no hay nada que sumar, y lo correcto es <b>no</b> traer el dato de hace 2 o 3 días como si fuera de ayer. ROWS sí lo trae: es el error 7 del §4, el "día anterior" que en realidad era hace tres días.</div>
+<h3><span class="tag-letter">c.2)</span> Si quieres que d5 y d8 sí alcancen un precedente</h3>
+<p>Depende de qué significa "precedente" para el negocio. Son tres preguntas distintas:</p>
+<div class="tw"><table class="t">
+<tr><th>Lo que quieres</th><th>Frame</th><th>Intervalo de d5</th><th class="num">d5</th><th>Intervalo de d8</th><th class="num">d8</th></tr>
+<tr><td>Solo el día de ayer, si existe</td><td><code>RANGE 1 PRECEDING</code></td><td>[4, 5]</td><td class="num">50</td><td>[7, 8]</td><td class="num">60</td></tr>
+<tr><td>Una ventana de tiempo más ancha</td><td><code>RANGE 2 PRECEDING</code></td><td>[3, 5] → alcanza d3</td><td class="num">90</td><td>[6, 8] → sigue vacío</td><td class="num">60</td></tr>
+<tr><td>Una ventana todavía más ancha</td><td><code>RANGE 3 PRECEDING</code></td><td>[2, 5] → d2, d2, d3</td><td class="num">140</td><td>[5, 8] → alcanza d5</td><td class="num">110</td></tr>
+<tr><td>El registro anterior <b>con datos</b>, esté donde esté</td><td><code>GROUPS 1 PRECEDING</code></td><td>grupo anterior = d3</td><td class="num">90</td><td>grupo anterior = d5</td><td class="num">110</td></tr>
+<tr><td>La fila anterior, sin importar empates ni distancia</td><td><code>ROWS 1 PRECEDING</code></td><td>fila 4 = d3</td><td class="num">90</td><td>fila 5 = d5</td><td class="num">110</td></tr>
+</table></div>
+<p>Fíjate en que ampliar el RANGE no resuelve "el anterior con datos": con <code>3 PRECEDING</code> d8 alcanza a d5, pero d5 ya arrastra también los dos d2 (140). Ampliar el rango define una <b>ventana de tiempo</b> más ancha, no "lo anterior". Para "el anterior con datos" la herramienta es GROUPS (o ROWS sobre datos agregados por día, en SQL Server).</p>
+<div class="code"><span class="cap">PostgreSQL · verifica la tabla anterior</span><button class="cp">copiar</button><pre>SELECT id, dia, monto,
+       sum(monto) OVER (ORDER BY dia RANGE  BETWEEN 1 PRECEDING AND CURRENT ROW) AS range_1,
+       sum(monto) OVER (ORDER BY dia RANGE  BETWEEN 2 PRECEDING AND CURRENT ROW) AS range_2,
+       sum(monto) OVER (ORDER BY dia RANGE  BETWEEN 3 PRECEDING AND CURRENT ROW) AS range_3,
+       sum(monto) OVER (ORDER BY dia GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW) AS groups_1
+FROM (VALUES (1,1,10),(2,2,20),(3,2,30),(4,3,40),(5,5,50),(6,8,60)) AS t(id, dia, monto)
+ORDER BY dia, id;</pre></div>
+
+<h3><span class="tag-letter">d)</span> En SQL Server: solo ROWS acepta desplazamientos</h3>
+<p>T-SQL admite <code>RANGE</code> únicamente con <code>UNBOUNDED PRECEDING</code>, <code>CURRENT ROW</code> y <code>UNBOUNDED FOLLOWING</code>; <code>RANGE BETWEEN 1 PRECEDING …</code> es un error de compilación. Tampoco existe <code>GROUPS</code> (ni en 2022). Las dos semánticas se emulan así:</p>
+<div class="code good"><span class="cap">T-SQL · ROWS nativo, RANGE con desplazamiento emulado</span><button class="cp">copiar</button><pre>DROP TABLE IF EXISTS #t;
+CREATE TABLE #t (id int PRIMARY KEY, dia int NOT NULL, monto int NOT NULL);
+INSERT #t VALUES (1,1,10),(2,2,20),(3,2,30),(4,3,40),(5,5,50),(6,8,60);
+
+SELECT t.id, t.dia, t.monto,
+       SUM(t.monto) OVER (ORDER BY t.dia, t.id
+                          ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS s_rows,
+       r.s_range                                   -- RANGE 1 PRECEDING: por valor, con pares
+FROM #t t
+CROSS APPLY (SELECT SUM(x.monto)
+             FROM #t x
+             WHERE x.dia &gt;= t.dia - 1          -- inicio: valor &gt;= v - 1
+               AND x.dia &lt;= t.dia) r(s_range)  -- fin: valor &lt;= v (incluye a los pares)
+ORDER BY t.dia, t.id;</pre></div>
+<p>El <code>WHERE</code> del <code>APPLY</code> es literalmente la definición de RANGE: compara <b>valores</b>, no posiciones, y por eso incluye solo a los pares. Con un índice sobre <code>dia</code> es un Index Seek por fila. En el tema 10 verás la alternativa que suele preferirse: densificar el calendario para que "1 fila" y "1 día" sean lo mismo, y usar ROWS.</p>
+<div class="code good"><span class="cap">T-SQL · emulación de GROUPS: un renglón por grupo, luego ROWS</span><button class="cp">copiar</button><pre>WITH porInstante AS (
+    SELECT CuentaId, FechaHora, SUM(Monto) AS MontoInstante
+    FROM dbo.Movimiento
+    GROUP BY CuentaId, FechaHora
+)
+SELECT m.MovimientoId, m.FechaHora, m.Monto,
+       g.Ult2Instantes
+FROM dbo.Movimiento m
+JOIN (SELECT CuentaId, FechaHora,
+             SUM(MontoInstante) OVER (PARTITION BY CuentaId ORDER BY FechaHora
+                                      ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS Ult2Instantes
+      FROM porInstante) g
+  ON g.CuentaId = m.CuentaId AND g.FechaHora = m.FechaHora
+WHERE m.CuentaId = 1;
+-- 300, 300, 150, 500, 500, 500, 250</pre></div>
+<p>Después del <code>GROUP BY</code> cada grupo de pares es una sola fila, así que "1 fila atrás" pasa a significar "1 grupo atrás", y ROWS es determinista sin desempate extra porque la clave de orden ya es única.</p>
+
+<h3><span class="tag-letter">e)</span> Cuál elegir según la pregunta de negocio</h3>
+<div class="tw"><table class="t">
+<tr><th>Pregunta</th><th>Modo</th></tr>
+<tr><td>Saldo después de <b>cada</b> movimiento; total corriente por evento</td><td><code>ROWS</code> + desempate único en el <code>ORDER BY</code></td></tr>
+<tr><td>Saldo al cierre de cada instante (todas las operaciones simultáneas juntas)</td><td><code>RANGE … CURRENT ROW</code>, o agrupar por instante y aplicar <code>ROWS</code> (más barato en SQL Server)</td></tr>
+<tr><td>Últimos 3 días / últimas 24 horas de calendario</td><td><code>RANGE</code> con intervalo (PostgreSQL, Spark) o densificar + <code>ROWS</code> (tema 10)</td></tr>
+<tr><td>Últimos N instantes o días <b>con datos</b></td><td><code>GROUPS</code> (PostgreSQL) o agrupar + <code>ROWS</code></td></tr>
+</table></div>
+
+<h3>Soporte por motor</h3>
+<div class="tw"><table class="t">
+<tr><th>Capacidad</th><th>SQL Server</th><th>PostgreSQL</th><th>Spark SQL</th></tr>
+<tr><td><code>ROWS</code> con N PRECEDING/FOLLOWING</td><td class="yes">2012+</td><td class="yes">sí</td><td class="yes">sí</td></tr>
+<tr><td><code>RANGE</code> con UNBOUNDED / CURRENT ROW</td><td class="yes">2012+</td><td class="yes">sí</td><td class="yes">sí</td></tr>
+<tr><td><code>RANGE</code> con desplazamiento numérico</td><td class="no">no</td><td class="yes">11+</td><td class="yes">sí, una sola columna de orden numérica</td></tr>
+<tr><td><code>RANGE</code> con intervalo de tiempo</td><td class="no">no</td><td class="yes">11+</td><td>verifica tu versión; el truco portable es ordenar por <code>datediff(fecha, '1970-01-01')</code> y usar rango numérico</td></tr>
+<tr><td><code>GROUPS</code></td><td class="no">no</td><td class="yes">11+</td><td class="no">no</td></tr>
+<tr><td><code>EXCLUDE</code> (CURRENT ROW, GROUP, TIES)</td><td class="no">no</td><td class="yes">11+</td><td class="no">no</td></tr>
+</table></div>
+<div class="rule"><b>regla</b>Antes de escribir el frame, decide qué cuentas: filas, valores o instantes. Escríbelo. Nunca dejes que el default decida por ti.</div>`},
+
+{id:"02", min:35, t:"UNBOUNDED PRECEDING, CURRENT ROW, FOLLOWING", html:`
+<div class="code"><span class="cap">gramática</span><button class="cp">copiar</button><pre>{ ROWS | RANGE } BETWEEN &lt;inicio&gt; AND &lt;fin&gt;
+  &lt;inicio&gt; / &lt;fin&gt; ::= UNBOUNDED PRECEDING | n PRECEDING | CURRENT ROW
+                     | n FOLLOWING | UNBOUNDED FOLLOWING
+
+-- Forma corta: solo indica el inicio; el fin es CURRENT ROW
+ROWS UNBOUNDED PRECEDING   ==  ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+ROWS 3 PRECEDING           ==  ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+-- ROWS 2 FOLLOWING (forma corta con FOLLOWING) no es válida</pre></div>
+<p>Reglas de validez: el inicio no puede quedar después del fin (<code>BETWEEN CURRENT ROW AND 1 PRECEDING</code> no compila), <code>UNBOUNDED FOLLOWING</code> no puede ser inicio y <code>UNBOUNDED PRECEDING</code> no puede ser fin. Lo que <b>sí</b> es válido, y muy útil, es un frame que excluye la fila actual:</p>
+<div class="code"><span class="cap">T-SQL · cuatro frames sobre la misma serie</span><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       AVG(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                        ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)          AS MediaCentrada3,
+       AVG(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                        ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING)          AS Media3Anteriores,
+       SUM(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                        ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING)  AS RestoDelPeriodo,
+       SUM(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS TotalSucursal
+FROM dbo.VentaDiaria
+ORDER BY Sucursal, Fecha;</pre></div>
+<ul class="plain">
+<li><code>Media3Anteriores</code> es la base de toda detección de anomalías: comparar el valor de hoy contra una referencia que <b>no</b> lo incluye. En la primera fila el frame está vacío y <code>AVG</code>/<code>SUM</code> devuelven NULL; <code>COUNT</code> devuelve 0.</li>
+<li><code>RestoDelPeriodo</code> en la última fila de la partición es NULL, no 0: frame vacío.</li>
+<li><code>TotalSucursal</code> da lo mismo que <code>SUM(Monto) OVER (PARTITION BY Sucursal)</code> sin <code>ORDER BY</code>, pero es más caro en SQL Server modo fila: el frame no acotado obliga a un Window Spool en disco.</li>
+</ul>
+<div class="rule warn"><b>el desplazamiento es un literal</b>En SQL Server el <code>n</code> de <code>n PRECEDING</code> debe ser un entero literal: no acepta variables ni parámetros, así que "media de N días" con N variable requiere SQL dinámico (módulo 13) o la técnica de diferencia de acumulados del tema 5. PostgreSQL acepta cualquier expresión constante no negativa, incluido un parámetro <code>$1</code>. Spark exige literal.</div>
+<div class="engines"><p class="kicker">costo de mirar hacia adelante</p>
+<div class="engine"><b class="eng">SQL Server</b><p>Un frame con <code>n FOLLOWING</code> obliga a leer n filas por delante antes de emitir la actual; con <code>UNBOUNDED FOLLOWING</code>, la partición completa. El spool deja de ser incremental.</p></div>
+<div class="engine"><b class="eng">Spark</b><p>Cualquier frame no acotado hacia adelante bufferiza la partición entera por tarea. Con una partición sesgada (un cliente con 40 % de los movimientos) es la causa típica de spill o de un executor caído.</p></div>
+</div>`},
+
+{id:"03", min:40, t:"El frame por defecto y sus empates", html:`
+<div class="rule"><b>las dos reglas del estándar (iguales en SQL Server, PostgreSQL y Spark)</b>
+1) Sin <code>ORDER BY</code> en el <code>OVER</code>: el frame es <b>toda la partición</b>.<br>
+2) Con <code>ORDER BY</code> y sin frame explícito: el frame es <code>RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code>.</div>
+<p>De esas dos reglas salen cuatro consecuencias que conviene conocer de memoria:</p>
+<h3><span class="tag-letter">a)</span> Agregar ORDER BY cambia la pregunta</h3>
+<div class="code"><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       SUM(Monto) OVER (PARTITION BY Sucursal)               AS TotalSucursal,  -- 1 950 / 990
+       SUM(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS NoEsElTotal     -- acumulado
+FROM dbo.VentaDiaria;</pre></div>
+<p>El bug típico: alguien "ordena" la ventana para que el resultado se vea prolijo y convierte un porcentaje sobre el total en un porcentaje sobre el acumulado (error 4 del §4).</p>
+<h3><span class="tag-letter">b)</span> Empates: todos los pares ven lo mismo</h3>
+<p>Es la tabla del tema 1: los movimientos 4, 5 y 6 devuelven 800. En series diarias sin empates no se nota; en cuanto la clave de orden es una fecha sin hora, un timestamp truncado o un campo de periodo, aparece.</p>
+<div class="code bad"><span class="cap">el empate que tú mismo fabricas</span><button class="cp">copiar</button><pre>SELECT MovimientoId, FechaHora,
+       SUM(Monto) OVER (PARTITION BY CuentaId
+                        ORDER BY CAST(FechaHora AS date)) AS AcumDia   -- más pares, más saltos
+FROM dbo.Movimiento WHERE CuentaId = 1;</pre></div>
+<h3><span class="tag-letter">c)</span> Costo: el default es el modo caro</h3>
+<p>En SQL Server modo fila, <code>RANGE</code> siempre usa el Window Spool en disco. El default es <code>RANGE</code>. Por lo tanto el default es el frame más caro para el caso más común (el acumulado). Ver comparación 3.1.</p>
+<h3><span class="tag-letter">d)</span> FIRST_VALUE funciona y LAST_VALUE no</h3>
+<p>El default empieza en el inicio de la partición (bien para <code>FIRST_VALUE</code>) y termina en la fila actual (mal para <code>LAST_VALUE</code>). Tema 7.</p>
+<div class="rule"><b>regla operativa</b>Si escribes <code>ORDER BY</code> dentro de un <code>OVER</code> de agregado o de <code>FIRST/LAST/NTH_VALUE</code>, escribe también el frame. Siempre. El frame implícito es correcto por accidente.</div>
+<h3>Buscarlo en el código existente</h3>
+<div class="code"><span class="cap">heurística sobre el texto, no un parser: revisa a mano lo que devuelva</span><button class="cp">copiar</button><pre>SELECT OBJECT_SCHEMA_NAME(m.object_id) AS Esquema,
+       OBJECT_NAME(m.object_id)        AS Objeto
+FROM sys.sql_modules m
+WHERE m.definition LIKE '%OVER%(%ORDER BY%'
+  AND m.definition LIKE '%SUM(%'
+  AND m.definition NOT LIKE '%ROWS %'
+  AND m.definition NOT LIKE '%RANGE %';</pre></div>`},
+
+{id:"04", min:50, t:"Acumulados, saldos corrientes y balances", html:`
+<p>Un saldo corriente es <code>saldo inicial + acumulado de movimientos</code>. Las tres decisiones que lo hacen correcto: <b>ROWS</b>, <b>desempate único</b> y <b>partición = unidad de saldo</b>.</p>
+<div class="code good"><span class="cap">T-SQL · saldo por movimiento</span><button class="cp">copiar</button><pre>SELECT m.CuentaId, m.MovimientoId, m.FechaHora, m.Concepto, m.Monto,
+       c.SaldoInicial
+     + SUM(m.Monto) OVER (PARTITION BY m.CuentaId
+                          ORDER BY m.FechaHora, m.MovimientoId
+                          ROWS UNBOUNDED PRECEDING) AS Saldo
+FROM dbo.Movimiento m
+JOIN dbo.Cuenta c ON c.CuentaId = m.CuentaId
+ORDER BY m.CuentaId, m.FechaHora, m.MovimientoId;
+-- cuenta 1: 1500, 1300, 1150, 2150, 1850, 1800, 1400</pre></div>
+<p>El pico de la cuenta 1 es 2 150 (tras la nómina del día 5). Con el frame por defecto ese valor no existe en el resultado: el máximo sería 1 800. Si el reporte es "saldo máximo alcanzado" para un control de límites, la diferencia no es estética.</p>
+<h3>Saldo al cierre del día: dos formas</h3>
+<div class="code"><span class="cap">(a) agregar por día y acumular · ventana sobre GROUP BY</span><button class="cp">copiar</button><pre>SELECT m.CuentaId,
+       CAST(m.FechaHora AS date) AS Dia,
+       SUM(m.Monto)              AS NetoDia,
+       MAX(c.SaldoInicial)
+     + SUM(SUM(m.Monto)) OVER (PARTITION BY m.CuentaId
+                               ORDER BY CAST(m.FechaHora AS date)
+                               ROWS UNBOUNDED PRECEDING) AS SaldoCierre
+FROM dbo.Movimiento m
+JOIN dbo.Cuenta c ON c.CuentaId = m.CuentaId
+GROUP BY m.CuentaId, CAST(m.FechaHora AS date);</pre></div>
+<p><code>SUM(SUM(m.Monto)) OVER</code> parece un error de tipeo y no lo es. Para entenderlo hay que seguir la consulta en su orden lógico y ver qué filas existen en cada paso. Se usa la cuenta 1 como ejemplo; las demás cuentas pasan por exactamente lo mismo dentro de su propia partición.</p>
+
+<h3><span class="tag-letter">1</span> Dónde se evalúa una función de ventana</h3>
+<div class="code"><span class="cap">orden lógico · la ventana vive entre HAVING y la salida del SELECT</span><button class="cp">copiar</button><pre>(1) FROM / JOIN    -&gt; filas de detalle: un movimiento por fila
+(2) WHERE          -&gt; (no hay en esta consulta)
+(3) GROUP BY       -&gt; colapsa los movimientos en un renglón por (cuenta, día)
+(4) HAVING         -&gt; (no hay)
+(5) funciones de ventana  -&gt; se calculan sobre los renglones que dejó el GROUP BY
+(6) SELECT         -&gt; arma las columnas de salida y nacen los alias (NetoDia, SaldoCierre)
+(7) ORDER BY</pre></div>
+<p>Dos consecuencias: la ventana <b>no ve movimientos sueltos</b>, ve renglones ya agrupados por día; y la ventana <b>no puede usar el alias <code>NetoDia</code></b>, porque ese alias nace en el paso 6 (módulo 01, tema 3). Por eso hay que volver a escribir el agregado dentro de la ventana.</p>
+
+<h3><span class="tag-letter">2</span> Paso a paso con la cuenta 1</h3>
+<p><b>Paso 1 · FROM + JOIN.</b> Siete filas de detalle. El join a <code>dbo.Cuenta</code> pega el <code>SaldoInicial</code> (1 000) en <b>cada</b> fila de la cuenta.</p>
+<div class="tw"><table class="t">
+<tr><th>Mov</th><th>FechaHora</th><th>Dia = CAST(… AS date)</th><th class="num">Monto</th><th class="num">c.SaldoInicial</th></tr>
+<tr><td>1</td><td>2024-01-02 09:00</td><td>2024-01-02</td><td class="num">500</td><td class="num">1000</td></tr>
+<tr><td>2</td><td>2024-01-02 09:00</td><td>2024-01-02</td><td class="num">-200</td><td class="num">1000</td></tr>
+<tr><td>3</td><td>2024-01-03 14:30</td><td>2024-01-03</td><td class="num">-150</td><td class="num">1000</td></tr>
+<tr><td>4</td><td>2024-01-05 10:00</td><td>2024-01-05</td><td class="num">1000</td><td class="num">1000</td></tr>
+<tr><td>5</td><td>2024-01-05 10:00</td><td>2024-01-05</td><td class="num">-300</td><td class="num">1000</td></tr>
+<tr><td>6</td><td>2024-01-05 10:00</td><td>2024-01-05</td><td class="num">-50</td><td class="num">1000</td></tr>
+<tr><td>7</td><td>2024-01-08 11:15</td><td>2024-01-08</td><td class="num">-400</td><td class="num">1000</td></tr>
+</table></div>
+
+<p><b>Paso 3 · GROUP BY m.CuentaId, CAST(m.FechaHora AS date).</b> Las 7 filas se colapsan en 4 grupos, uno por día. A partir de aquí <b>solo existen</b> las columnas del <code>GROUP BY</code> y los agregados: <code>m.Monto</code>, <code>m.FechaHora</code> y <code>c.SaldoInicial</code> ya no se pueden nombrar sueltas.</p>
+<div class="tw"><table class="t">
+<tr><th>Grupo (Dia)</th><th>Movs dentro</th><th class="num">SUM(m.Monto)</th><th class="num">MAX(c.SaldoInicial)</th></tr>
+<tr><td>2024-01-02</td><td>1, 2</td><td class="num">500 − 200 = 300</td><td class="num">1000</td></tr>
+<tr><td>2024-01-03</td><td>3</td><td class="num">-150</td><td class="num">1000</td></tr>
+<tr><td>2024-01-05</td><td>4, 5, 6</td><td class="num">1000 − 300 − 50 = 650</td><td class="num">1000</td></tr>
+<tr><td>2024-01-08</td><td>7</td><td class="num">-400</td><td class="num">1000</td></tr>
+</table></div>
+<p>Este <code>SUM(m.Monto)</code> por grupo es el <b>SUM interno</b>. Es un agregado normal, el mismo que saldría en la columna <code>NetoDia</code>.</p>
+
+<p><b>Paso 5 · la ventana.</b> Ahora entra el <b>SUM externo</b>: <code>SUM( &lt;SUM interno&gt; ) OVER (PARTITION BY CuentaId ORDER BY Dia ROWS UNBOUNDED PRECEDING)</code>. Recorre los 4 renglones del paso anterior en orden de día y va acumulando el neto diario.</p>
+<div class="tw"><table class="t">
+<tr><th>Renglón</th><th>Dia</th><th class="num">SUM interno (neto del día)</th><th>Frame: renglones que ve</th><th class="num">SUM externo (acumulado)</th></tr>
+<tr><td>1</td><td>2024-01-02</td><td class="num">300</td><td>1</td><td class="num">300</td></tr>
+<tr><td>2</td><td>2024-01-03</td><td class="num">-150</td><td>1 – 2</td><td class="num">300 − 150 = 150</td></tr>
+<tr><td>3</td><td>2024-01-05</td><td class="num">650</td><td>1 – 3</td><td class="num">150 + 650 = 800</td></tr>
+<tr><td>4</td><td>2024-01-08</td><td class="num">-400</td><td>1 – 4</td><td class="num">800 − 400 = 400</td></tr>
+</table></div>
+
+<p><b>Paso 6 · SELECT.</b> Se suma el saldo inicial al acumulado y nacen los alias.</p>
+<div class="tw"><table class="t">
+<tr><th>CuentaId</th><th>Dia</th><th class="num">NetoDia</th><th class="num">MAX(SaldoInicial) + acumulado</th><th class="num">SaldoCierre</th></tr>
+<tr><td>1</td><td>2024-01-02</td><td class="num">300</td><td class="num">1000 + 300</td><td class="num">1300</td></tr>
+<tr><td>1</td><td>2024-01-03</td><td class="num">-150</td><td class="num">1000 + 150</td><td class="num">1150</td></tr>
+<tr><td>1</td><td>2024-01-05</td><td class="num">650</td><td class="num">1000 + 800</td><td class="num">1800</td></tr>
+<tr><td>1</td><td>2024-01-08</td><td class="num">-400</td><td class="num">1000 + 400</td><td class="num">1400</td></tr>
+</table></div>
+<p>Compruébalo contra el saldo por movimiento de arriba: 1 300 es el saldo después del mov 2, 1 150 después del 3, 1 800 después del 6 y 1 400 después del 7. El saldo de cierre de cada día es el saldo del último movimiento de ese día.</p>
+<div class="rule"><b>la lectura correcta de SUM(SUM(x)) OVER</b>Léelo de adentro hacia afuera: <b>SUM(x)</b> = "cuánto se movió en este grupo" (lo calcula el <code>GROUP BY</code>); <b>SUM(…) OVER (…)</b> = "acumula ese número a lo largo de los grupos" (lo calcula la ventana, después). Son dos operaciones distintas en dos pasos distintos que comparten nombre de función.</div>
+
+<h3><span class="tag-letter">3</span> Por qué ROWS no necesita desempate aquí</h3>
+<p>En el saldo por movimiento, <code>ORDER BY FechaHora</code> tenía empates (movs 1-2 y 4-5-6) y había que agregar <code>MovimientoId</code>. Aquí la ventana ordena los renglones <b>después</b> del <code>GROUP BY</code>, y dentro de cada cuenta hay exactamente un renglón por día: la clave de orden <code>Dia</code> es única en la partición. Sin empates, ROWS es determinista y además da el mismo resultado que RANGE (tema 1), pero más barato.</p>
+<p>Detalle importante: el <code>ORDER BY</code> de la ventana es <code>CAST(m.FechaHora AS date)</code>, <b>la misma expresión</b> del <code>GROUP BY</code>. Si escribieras <code>ORDER BY m.FechaHora</code> fallaría: <code>m.FechaHora</code> suelta ya no existe después de agrupar.</p>
+
+<h3><span class="tag-letter">4</span> Por qué MAX(c.SaldoInicial)</h3>
+<p>Después del <code>GROUP BY</code>, T-SQL solo deja nombrar columnas del <code>GROUP BY</code> o agregados. <code>c.SaldoInicial</code> no es ninguna de las dos, aunque nosotros sepamos que es <b>el mismo valor</b> en todas las filas del grupo: cada cuenta tiene un solo saldo inicial porque el join es por la clave primaria de <code>dbo.Cuenta</code>. Eso se llama <b>dependencia funcional</b>: <code>CuentaId</code> determina <code>SaldoInicial</code>.</p>
+<p>T-SQL no razona dependencias funcionales (PostgreSQL sí, si agrupas por la PK de la tabla; módulo 01, tema 2). Entonces hay que "envolver" la columna en un agregado que devuelva ese único valor. Con 1 000 repetido tres veces, <code>MAX</code> = <code>MIN</code> = 1 000. <code>SUM</code> sería un error: daría 3 000 para el día 5.</p>
+<div class="tw"><table class="t">
+<tr><th>Forma</th><th>Ventaja</th><th>Cuidado</th></tr>
+<tr><td><code>MAX(c.SaldoInicial)</code></td><td>no cambia el grano del <code>GROUP BY</code></td><td>esconde la intención: quien lee no sabe si de verdad hay un solo valor</td></tr>
+<tr><td>agregar <code>c.SaldoInicial</code> al <code>GROUP BY</code></td><td>explícito: "un valor por cuenta"</td><td>si algún día el join devolviera dos saldos para una cuenta, el grupo se partiría en dos (pero lo verías)</td></tr>
+<tr><td>agregar primero y unir después (CTE)</td><td>la más legible; cada paso hace una sola cosa</td><td>un poco más de texto</td></tr>
+</table></div>
+<div class="code good"><span class="cap">alternativa · columna en el GROUP BY</span><button class="cp">copiar</button><pre>SELECT m.CuentaId,
+       CAST(m.FechaHora AS date) AS Dia,
+       SUM(m.Monto)              AS NetoDia,
+       c.SaldoInicial
+     + SUM(SUM(m.Monto)) OVER (PARTITION BY m.CuentaId
+                               ORDER BY CAST(m.FechaHora AS date)
+                               ROWS UNBOUNDED PRECEDING) AS SaldoCierre
+FROM dbo.Movimiento m
+JOIN dbo.Cuenta c ON c.CuentaId = m.CuentaId
+GROUP BY m.CuentaId, CAST(m.FechaHora AS date), c.SaldoInicial;</pre></div>
+<div class="code good"><span class="cap">alternativa · un paso por CTE, sin SUM(SUM())</span><button class="cp">copiar</button><pre>WITH netoDia AS (                               -- paso A: agregar por día
+    SELECT CuentaId, CAST(FechaHora AS date) AS Dia, SUM(Monto) AS NetoDia
+    FROM dbo.Movimiento
+    GROUP BY CuentaId, CAST(FechaHora AS date)
+)
+SELECT n.CuentaId, n.Dia, n.NetoDia,           -- paso B: unir y acumular
+       c.SaldoInicial
+     + SUM(n.NetoDia) OVER (PARTITION BY n.CuentaId
+                            ORDER BY n.Dia
+                            ROWS UNBOUNDED PRECEDING) AS SaldoCierre
+FROM netoDia n
+JOIN dbo.Cuenta c ON c.CuentaId = n.CuentaId;</pre></div>
+<p>En la versión con CTE <code>NetoDia</code> ya es una columna real del paso B, así que la ventana la usa directo y no hay que agregar <code>SaldoInicial</code>. Las tres versiones producen el mismo plan o uno casi idéntico: la elección es de legibilidad.</p>
+
+<h3><span class="tag-letter">5</span> Qué pasa si lo escribes "más simple"</h3>
+<div class="tw"><table class="t">
+<tr><th>Lo que escribes</th><th>Resultado</th><th>Por qué</th></tr>
+<tr><td><code>SUM(m.Monto) OVER (…)</code> sin el SUM interno</td><td class="no">Msg 8120</td><td>la ventana corre después del <code>GROUP BY</code>; <code>m.Monto</code> suelta ya no existe</td></tr>
+<tr><td><code>SUM(NetoDia) OVER (…)</code></td><td class="no">Msg 207</td><td>el alias <code>NetoDia</code> nace en el SELECT, después de la ventana</td></tr>
+<tr><td><code>c.SaldoInicial + …</code> sin <code>MAX</code> ni GROUP BY</td><td class="no">Msg 8120</td><td>no es columna agrupada ni agregado</td></tr>
+<tr><td><code>OVER (… ORDER BY m.FechaHora …)</code></td><td class="no">Msg 8120</td><td>la expresión de orden tiene que ser la agrupada: <code>CAST(m.FechaHora AS date)</code></td></tr>
+<tr><td><code>SUM(c.SaldoInicial)</code> en vez de <code>MAX</code></td><td class="no">sin error, número mal</td><td>suma el saldo inicial una vez por movimiento del día: 3 000 el día 5</td></tr>
+</table></div>
+<div class="rule warn"><b>la cuenta 4 no aparece</b>Esta consulta parte de los movimientos (<code>JOIN</code>), así que la cuenta 4, sin movimientos, no tiene renglones; tampoco aparecen los días sin movimientos de las otras cuentas (el 01-04 de la cuenta 1, por ejemplo). Si el reporte necesita un renglón por cuenta y por día, eso se resuelve densificando contra el calendario (tema 10 y ejercicio 6).</div>
+<div class="code"><span class="cap">(b) saldo por movimiento y quedarse con el último del día</span><button class="cp">copiar</button><pre>WITH s AS (
+    SELECT m.CuentaId, CAST(m.FechaHora AS date) AS Dia,
+           c.SaldoInicial + SUM(m.Monto) OVER (PARTITION BY m.CuentaId
+                                               ORDER BY m.FechaHora, m.MovimientoId
+                                               ROWS UNBOUNDED PRECEDING) AS Saldo,
+           ROW_NUMBER() OVER (PARTITION BY m.CuentaId, CAST(m.FechaHora AS date)
+                              ORDER BY m.FechaHora DESC, m.MovimientoId DESC) AS rnDesc
+    FROM dbo.Movimiento m
+    JOIN dbo.Cuenta c ON c.CuentaId = m.CuentaId
+)
+SELECT CuentaId, Dia, Saldo AS SaldoCierre
+FROM s
+WHERE rnDesc = 1;</pre></div>
+<p>La (a) es más barata (una sola ventana sobre menos filas). La (b) es la que necesitas si además quieres el saldo mínimo intradía o el movimiento que lo causó. Ninguna de las dos produce filas para días sin movimientos: eso es el tema 10.</p>
+<h3>Reiniciar el acumulado</h3>
+<ul class="plain">
+<li><b>Por periodo</b> (acumulado del mes): el reinicio es una partición. <code>PARTITION BY CuentaId, YEAR(FechaHora), MONTH(FechaHora)</code>; o mejor, una columna de periodo ya calculada, para no repetir la expresión en cada ventana.</li>
+<li><b>Por condición</b> (el acumulado vuelve a cero cuando el saldo se hace negativo, o cuando cambia un estado): no es una partición fija, es un problema de islas. Se resuelve en el módulo 05.</li>
+</ul>
+<div class="rule warn"><b>tipos</b>Acumula siempre sobre <code>decimal</code>. Un <code>SUM</code> de <code>float</code> depende del orden de las sumas, y en un plan paralelo ese orden cambia entre ejecuciones: el saldo puede diferir en los últimos decimales sin que nadie haya tocado los datos. <code>SUM(decimal(14,2))</code> devuelve <code>decimal(38,2)</code>: no hay desbordamiento práctico.</div>
+<div class="engines"><p class="kicker">otros motores</p>
+<div class="engine"><b class="eng">PostgreSQL / Spark</b><p>Misma sintaxis y mismo default. En Spark, si la partición es la cuenta y hay millones de cuentas pequeñas, el costo dominante es el shuffle, no el frame.</p></div>
+<div class="engine"><b class="eng">SQL Server antes de 2012</b><p>El "quirky update" (<code>UPDATE … SET @saldo = Saldo = @saldo + Monto</code>) no es un comportamiento documentado ni garantizado. Si lo encuentras en un procedimiento heredado, reemplázalo por la ventana.</p></div>
+</div>`},
+
+{id:"05", min:45, t:"Medias y sumas móviles de N periodos", html:`
+<div class="code bad"><span class="cap">ingenua · tres defectos en cuatro líneas</span><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       AVG(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS Media3
+FROM dbo.VentaDiaria;</pre></div>
+<ul class="plain">
+<li><b>Ventana incompleta</b>: el primer día promedia 1 fila y el segundo 2, y ambos se publican como "media de 3".</li>
+<li><b>Filas, no días</b>: con huecos, el 08 de GYE promedia 04, 05 y 08. Se resuelve en el tema 10.</li>
+<li><b>NULL</b>: <code>AVG</code> ignora NULL, así que una fila con <code>Monto</code> NULL achica el denominador sin avisar (módulo 01, tema 5b).</li>
+</ul>
+<div class="code good"><span class="cap">correcta · solo publica ventanas completas</span><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       CASE WHEN COUNT(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                                    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3
+            THEN AVG(Monto * 1.0) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                                        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)
+       END AS Media3
+FROM dbo.VentaDiaria;</pre></div>
+<p><code>COUNT(Monto)</code> en lugar de <code>COUNT(*)</code> exige además 3 valores no nulos. Las dos ventanas tienen la misma especificación, así que el optimizador las resuelve con un solo Sort; la repetición es solo textual (el tema 9 la elimina).</p>
+<h3>AVG sobre enteros</h3>
+<div class="code"><button class="cp">copiar</button><pre>SELECT VentaId, Cantidad,
+       AVG(Cantidad)       OVER (ORDER BY VentaId ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS MediaInt,  -- trunca
+       AVG(Cantidad * 1.0) OVER (ORDER BY VentaId ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS MediaDec
+FROM dbo.Venta;</pre></div>
+<h3>N grande: diferencia de acumulados</h3>
+<p>En modo fila, un frame <code>ROWS BETWEEN N-1 PRECEDING AND CURRENT ROW</code> escribe N filas en el spool por cada fila de salida: una media de 30 días hace 30 veces más trabajo que una de 1. La alternativa es O(1) por fila: un acumulado menos el acumulado de N filas atrás.</p>
+<div class="code good"><span class="cap">suma móvil de 3 = acumulado(t) - acumulado(t-3)</span><button class="cp">copiar</button><pre>WITH a AS (
+    SELECT Sucursal, Fecha, Monto,
+           SUM(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                            ROWS UNBOUNDED PRECEDING) AS Acum
+    FROM dbo.VentaDiaria
+)
+SELECT Sucursal, Fecha, Monto,
+       Acum - LAG(Acum, 3, 0) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS Suma3
+FROM a;</pre></div>
+<p>Aquí el default 0 de <code>LAG</code> sí tiene significado: "antes del inicio no había nada acumulado". Y como el offset de <code>LAG</code> sí acepta variables (tema 6), esta técnica resuelve también el "N variable" que el frame no admite. En modo batch o en PostgreSQL (con transición inversa) no hace falta: el motor ya desliza el frame en O(1).</p>
+<h3>Media ponderada</h3>
+<div class="code"><span class="cap">pesos 3-2-1 sobre los últimos 3 días</span><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       (3 * Monto
+      + 2 * LAG(Monto, 1) OVER (PARTITION BY Sucursal ORDER BY Fecha)
+      + 1 * LAG(Monto, 2) OVER (PARTITION BY Sucursal ORDER BY Fecha)) / 6.0 AS MediaPonderada3
+FROM dbo.VentaDiaria;   -- NULL en los dos primeros días: correcto, no hay 3 valores</pre></div>
+<div class="rule warn"><b>mediana móvil</b>No existe con ventanas en SQL Server: <code>PERCENTILE_CONT</code> no admite frame. Se resuelve con <code>CROSS APPLY</code> sobre los N días anteriores (módulo 02, tema 8). PostgreSQL tampoco la admite como ventana; Spark tampoco con frame deslizante de forma nativa.</div>`},
+
+{id:"06", min:40, t:"LAG y LEAD con offset y valor por defecto", html:`
+<div class="code"><span class="cap">firma</span><button class="cp">copiar</button><pre>LAG  ( expresion [, offset [, default ]] ) [ IGNORE NULLS | RESPECT NULLS ]
+     OVER ( [PARTITION BY …] ORDER BY … )      -- ORDER BY obligatorio, frame prohibido
+LEAD ( … )                                     -- igual, hacia adelante</pre></div>
+<ul class="plain">
+<li><b>offset</b>: entero no negativo, por defecto 1. A diferencia del frame, en SQL Server <b>sí</b> acepta variables, columnas o expresiones. <code>LAG(x, 0)</code> devuelve la fila actual.</li>
+<li><b>default</b>: valor cuando el offset cae <b>fuera de la partición</b>. No reemplaza un NULL real de la fila anterior. Puede ser una columna o una expresión, pero no otra función de ventana. Se convierte al tipo de <code>expresion</code>: <code>LAG(Fecha, 1, 'sin dato')</code> falla en ejecución.</li>
+<li><b>IGNORE NULLS</b>: SQL Server 2022+ y Azure SQL. PostgreSQL no lo implementa. En Spark existe en versiones 3.x recientes; verifica tu DBR.</li>
+</ul>
+<div class="code good"><span class="cap">T-SQL · comparación contra el periodo anterior</span><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       LAG(Fecha) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS FechaAnt,
+       LAG(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS MontoAnt,
+       Monto - LAG(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS Delta,
+       CAST(100.0 * (Monto - LAG(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha))
+            / NULLIF(LAG(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha), 0)
+            AS decimal(9,2)) AS PctVar,
+       LEAD(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha) AS MontoSig
+FROM dbo.VentaDiaria
+ORDER BY Sucursal, Fecha;</pre></div>
+<h3>El default que miente y el que informa</h3>
+<div class="code"><button class="cp">copiar</button><pre>-- Miente: el primer día "varió" 120 respecto de un cero inventado
+SELECT Fecha, Monto - LAG(Monto, 1, 0) OVER (ORDER BY Fecha) AS Var
+FROM dbo.VentaDiaria WHERE Sucursal = 'GYE';
+
+-- Informa: el saldo antes del primer movimiento ES el saldo inicial
+SELECT m.MovimientoId, s.Saldo,
+       LAG(s.Saldo, 1, c.SaldoInicial) OVER (PARTITION BY m.CuentaId
+                                             ORDER BY m.FechaHora, m.MovimientoId) AS SaldoPrevio
+FROM dbo.Movimiento m
+JOIN dbo.Cuenta c ON c.CuentaId = m.CuentaId
+CROSS APPLY (SELECT c.SaldoInicial + SUM(m2.Monto) AS Saldo
+             FROM dbo.Movimiento m2
+             WHERE m2.CuentaId = m.CuentaId
+               AND (m2.FechaHora &lt; m.FechaHora
+                    OR (m2.FechaHora = m.FechaHora AND m2.MovimientoId &lt;= m.MovimientoId))) s;
+-- (el APPLY está solo para no adelantar el ejercicio 3; con ventanas va en una CTE)</pre></div>
+<h3>Fila anterior no es periodo anterior</h3>
+<p><code>LAG</code> cuenta filas. En GYE, la fila anterior al 08 es el 05 y la anterior al 11 es el 09: el "delta diario" de esas filas compara contra tres y dos días atrás. Para detectarlo, <code>DATEDIFF(day, FechaAnt, Fecha) &lt;&gt; 1</code>; para resolverlo, densificar (tema 10).</p>
+<div class="code"><span class="cap">YoY robusto a huecos: self join por fecha, no LAG(…, 12)</span><button class="cp">copiar</button><pre>-- LAG(Monto, 12) sobre una serie mensual asume que hay exactamente 12 filas entre un mes y el mismo
+-- mes del año anterior. Si falta un mes, compara contra el periodo equivocado sin avisar.
+SELECT a.Sucursal, a.Fecha, a.Monto, b.Monto AS MontoAnioAnterior
+FROM dbo.VentaDiaria a
+LEFT JOIN dbo.VentaDiaria b
+       ON b.Sucursal = a.Sucursal
+      AND b.Fecha    = DATEADD(year, -1, a.Fecha);   -- non-equi semántico, equi físico (módulo 02, tema 6)</pre></div>
+<div class="rule"><b>regla</b><code>LAG</code> y <code>LEAD</code> son seguros solo sobre series densas o cuando "anterior" significa literalmente "evento anterior" (el movimiento previo, la visita previa). Para "periodo anterior", densifica o une por fecha.</div>`},
+
+{id:"07", min:40, t:"FIRST_VALUE, LAST_VALUE, NTH_VALUE y el error clásico de LAST_VALUE", html:`
+<p>Las tres respetan el frame. Con el frame por defecto (<code>RANGE … AND CURRENT ROW</code>), el "último" valor del frame es el de la fila actual — o, con empates, el del último par.</p>
+<div class="code"><span class="cap">T-SQL · el error y las dos correcciones</span><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       FIRST_VALUE(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                                ROWS UNBOUNDED PRECEDING)                         AS PrimerDia,
+       LAST_VALUE(Monto)  OVER (PARTITION BY Sucursal ORDER BY Fecha)              AS UltimoDia_MAL,
+       LAST_VALUE(Monto)  OVER (PARTITION BY Sucursal ORDER BY Fecha
+                                ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS UltimoDia_OK,
+       FIRST_VALUE(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha DESC
+                                ROWS UNBOUNDED PRECEDING)                         AS UltimoDia_Alt
+FROM dbo.VentaDiaria
+ORDER BY Sucursal, Fecha;
+-- GYE: PrimerDia 120, UltimoDia_OK 250 · UIO: 80 y 90</pre></div>
+<div class="tw"><table class="t">
+<tr><th>Variante</th><th>Correcta</th><th>Costo en modo fila</th></tr>
+<tr><td><code>LAST_VALUE</code> + frame completo</td><td class="yes">sí</td><td>Window Spool en disco (frame no acotado hacia adelante)</td></tr>
+<tr><td><code>FIRST_VALUE</code> + <code>ORDER BY … DESC</code> + <code>ROWS UNBOUNDED PRECEDING</code></td><td class="yes">sí</td><td>spool en memoria, pero si otras ventanas ordenan ASC aparece un Sort adicional</td></tr>
+</table></div>
+<p>No hay una ganadora universal: mide. Lo que sí es universal es no dejar el frame implícito, porque incluso <code>FIRST_VALUE</code> con el default paga el spool en disco de <code>RANGE</code>.</p>
+<h3>Primer y último movimiento del día (apertura y cierre)</h3>
+<div class="code"><button class="cp">copiar</button><pre>SELECT DISTINCT m.CuentaId, CAST(m.FechaHora AS date) AS Dia,
+       FIRST_VALUE(m.MovimientoId) OVER w_dia AS PrimerMov,
+       LAST_VALUE(m.MovimientoId)  OVER (PARTITION BY m.CuentaId, CAST(m.FechaHora AS date)
+                                         ORDER BY m.FechaHora, m.MovimientoId
+                                         ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS UltimoMov
+FROM dbo.Movimiento m
+WINDOW w_dia AS (PARTITION BY m.CuentaId, CAST(m.FechaHora AS date)
+                 ORDER BY m.FechaHora, m.MovimientoId ROWS UNBOUNDED PRECEDING);
+-- WINDOW requiere SQL Server 2022 (tema 9); en 2019 repite la especificación</pre></div>
+<p>Sin <code>MovimientoId</code> en el orden, el "primer" movimiento del 02-01 de la cuenta 1 sería el 1 o el 2 según el plan.</p>
+<h3>NTH_VALUE</h3>
+<div class="code"><span class="cap">PostgreSQL / Spark 3.1+</span><button class="cp">copiar</button><pre>SELECT sucursal, fecha, monto,
+       nth_value(monto, 2) OVER (PARTITION BY sucursal ORDER BY fecha) AS segundo_default,  -- NULL en la fila 1
+       nth_value(monto, 2) OVER (PARTITION BY sucursal ORDER BY fecha
+                                 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS segundo
+FROM venta_diaria;</pre></div>
+<p>El mismo error de frame en otra función: con el default, en la primera fila el frame todavía no llegó a la segunda. SQL Server no tiene <code>NTH_VALUE</code> (ni en 2022). Emulación exacta del frame completo:</p>
+<div class="code good"><span class="cap">T-SQL · emulación</span><button class="cp">copiar</button><pre>WITH r AS (
+    SELECT Sucursal, Fecha, Monto,
+           ROW_NUMBER() OVER (PARTITION BY Sucursal ORDER BY Fecha) AS rn
+    FROM dbo.VentaDiaria
+)
+SELECT Sucursal, Fecha, Monto,
+       MAX(CASE WHEN rn = 2 THEN Monto END) OVER (PARTITION BY Sucursal) AS SegundoDia   -- 150 / 80
+FROM r;</pre></div>
+<div class="engines"><p class="kicker">nulos y motores</p>
+<div class="engine"><b class="eng">SQL Server 2022+</b><p><code>FIRST_VALUE(x) IGNORE NULLS</code> y <code>LAST_VALUE(x) IGNORE NULLS</code>: la forma directa de arrastrar el último valor conocido (tema 10).</p></div>
+<div class="engine"><b class="eng">PostgreSQL</b><p>Sin <code>IGNORE NULLS</code>; <code>nth_value</code> solo admite <code>FROM FIRST</code>.</p></div>
+<div class="engine"><b class="eng">Spark</b><p><code>first_value</code>/<code>last_value</code> aceptan ignorar nulos; ojo con <code>first()</code>/<code>last()</code> como agregados en un <code>GROUP BY</code>: no son deterministas sin un orden.</p></div>
+</div>`},
+
+{id:"08", min:45, t:"PERCENT_RANK, CUME_DIST, PERCENTILE_CONT / PERCENTILE_DISC", html:`
+<div class="tw"><table class="t">
+<tr><th>Función</th><th>Definición</th><th>Rango</th><th>Con empates</th></tr>
+<tr><td><code>PERCENT_RANK</code></td><td>(RANK − 1) / (n − 1)</td><td>[0, 1]; partición de 1 fila → 0</td><td>los pares comparten el menor</td></tr>
+<tr><td><code>CUME_DIST</code></td><td>filas con valor ≤ actual / n</td><td>(0, 1]</td><td>los pares comparten el mayor</td></tr>
+<tr><td><code>PERCENTILE_CONT(p)</code></td><td>interpola linealmente en la posición 1 + p·(n − 1)</td><td>puede no existir en los datos</td><td>—</td></tr>
+<tr><td><code>PERCENTILE_DISC(p)</code></td><td>primer valor cuyo <code>CUME_DIST</code> ≥ p</td><td>siempre es un valor real</td><td>—</td></tr>
+</table></div>
+<div class="code"><span class="cap">T-SQL · distribución dentro de UIO</span><button class="cp">copiar</button><pre>SELECT Fecha, Monto,
+       RANK()         OVER (ORDER BY Monto) AS Rnk,
+       PERCENT_RANK() OVER (ORDER BY Monto) AS PctRank,
+       CUME_DIST()    OVER (ORDER BY Monto) AS CumeDist
+FROM dbo.VentaDiaria
+WHERE Sucursal = 'UIO'
+ORDER BY Monto, Fecha;</pre></div>
+<div class="tw"><table class="t">
+<tr><th class="num">Monto</th><th class="num">Rnk</th><th class="num">PctRank</th><th class="num">CumeDist</th></tr>
+<tr><td class="num">60</td><td class="num">1</td><td class="num">0.000</td><td class="num">0.111</td></tr>
+<tr><td class="num">80 (×2)</td><td class="num">2</td><td class="num">0.125</td><td class="num">0.333</td></tr>
+<tr><td class="num">90</td><td class="num">4</td><td class="num">0.375</td><td class="num">0.444</td></tr>
+<tr><td class="num">100</td><td class="num">5</td><td class="num">0.500</td><td class="num">0.556</td></tr>
+<tr><td class="num">110 · 120 · 130</td><td class="num">6 · 7 · 8</td><td class="num">0.625 · 0.750 · 0.875</td><td class="num">0.667 · 0.778 · 0.889</td></tr>
+<tr><td class="num">140</td><td class="num">9</td><td class="num">1.000</td><td class="num">1.000</td></tr>
+</table></div>
+<h3>Percentiles en SQL Server: solo como ventana</h3>
+<div class="code"><button class="cp">copiar</button><pre>SELECT DISTINCT Sucursal,
+       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Monto) OVER (PARTITION BY Sucursal) AS MedianaCont,
+       PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY Monto) OVER (PARTITION BY Sucursal) AS MedianaDisc,
+       PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY Monto) OVER (PARTITION BY Sucursal) AS P90Cont,
+       PERCENTILE_DISC(0.9) WITHIN GROUP (ORDER BY Monto) OVER (PARTITION BY Sucursal) AS P90Disc
+FROM dbo.VentaDiaria;
+-- GYE: 180 | 180 | 230 | 230      UIO: 100 | 100 | 132 | 140</pre></div>
+<p>UIO P90: posición 1 + 0.9·8 = 8.2 → entre el 8.º (130) y el 9.º (140): <code>CONT</code> = 130 + 0.2·10 = 132. <code>DISC</code> busca el primer <code>CUME_DIST</code> ≥ 0.9: 130 tiene 0.889, así que devuelve 140. Restricciones de T-SQL: <code>OVER</code> admite solo <code>PARTITION BY</code> (sin <code>ORDER BY</code> ni frame), <code>CONT</code> devuelve <code>float</code> y el <code>DISTINCT</code> es obligatorio para no obtener una fila por fila de entrada (costo en comparación 3.4).</p>
+<div class="engines"><p class="kicker">otros motores</p>
+<div class="engine"><b class="eng">SQL Server 2022 / Azure SQL</b><p><code>APPROX_PERCENTILE_CONT</code> y <code>APPROX_PERCENTILE_DISC</code> como agregados con <code>GROUP BY</code>: una pasada, memoria acotada, resultado aproximado.</p></div>
+<div class="engine"><b class="eng">PostgreSQL</b><p>Al revés que SQL Server: <code>percentile_cont(0.5) WITHIN GROUP (ORDER BY monto)</code> es un <em>ordered-set aggregate</em> con <code>GROUP BY</code> y <b>no</b> se puede usar con <code>OVER</code>. Si necesitas el percentil al lado de cada fila, calcúlalo agrupado y únelo.</p></div>
+<div class="engine"><b class="eng">Spark SQL</b><p><code>percentile(col, 0.5)</code> exacto, <code>percentile_approx</code> / <code>approx_percentile</code> aproximado, y <code>percentile_cont</code>/<code>percentile_disc</code> con <code>WITHIN GROUP</code> en 3.3+. Sobre tablas grandes, el aproximado es la opción por defecto razonable.</p></div>
+</div>
+<div class="rule"><b>cuándo cuál</b><code>PERCENT_RANK</code> para "en qué posición relativa está este cliente"; <code>CUME_DIST</code> para "qué fracción está por debajo o igual"; <code>NTILE</code> (módulo 03, tema 3) reparte en cubetas de tamaño igual aunque eso parta empates; <code>PERCENTILE_*</code> para obtener el umbral.</div>`},
+
+{id:"09", min:20, t:"Cláusula WINDOW con nombre", html:`
+<p>Define la especificación una vez y la referencia por nombre. SQL Server la incorpora en 2022 (nivel de compatibilidad 160) y en Azure SQL; PostgreSQL la tiene desde 8.4; Spark SQL la soporta. Va después de <code>HAVING</code> y antes de <code>ORDER BY</code>.</p>
+<div class="code good"><span class="cap">T-SQL 2022 · ventanas que se extienden</span><button class="cp">copiar</button><pre>SELECT Sucursal, Fecha, Monto,
+       SUM(Monto)        OVER w_acum AS Acum,
+       AVG(Monto * 1.0)  OVER w_3    AS Media3,
+       COUNT(Monto)      OVER w_3    AS FilasEnFrame,
+       LAG(Monto)        OVER w_ord  AS MontoAnt,
+       PERCENT_RANK()    OVER (PARTITION BY Sucursal ORDER BY Monto) AS PctRank
+FROM dbo.VentaDiaria
+WINDOW w_ord  AS (PARTITION BY Sucursal ORDER BY Fecha),
+       w_acum AS (w_ord ROWS UNBOUNDED PRECEDING),
+       w_3    AS (w_ord ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)
+ORDER BY Sucursal, Fecha;</pre></div>
+<ul class="plain">
+<li><code>LAG</code> usa <code>w_ord</code> (sin frame). Si usara <code>w_acum</code>, fallaría: <code>LAG</code> no admite frame, tampoco heredado.</li>
+<li>Una ventana que referencia a otra puede <b>agregar</b> lo que la base no tiene (orden, frame), no redefinir lo que ya tiene. En PostgreSQL las reglas son explícitas: no se puede volver a declarar <code>PARTITION BY</code>, solo se puede agregar <code>ORDER BY</code> si la base no lo tiene y la base no puede traer frame. En SQL Server las restricciones son análogas; si dudas, el compilador te lo dice.</li>
+<li>Mezclar ventanas con nombre y en línea es válido (<code>PctRank</code>).</li>
+</ul>
+<div class="rule"><b>qué gana y qué no</b>Gana mantenimiento: cambiar el orden en un solo lugar. <b>No</b> gana rendimiento por sí misma: el optimizador ya comparte el Sort entre ventanas con especificación idéntica, tengan nombre o no. Lo que sí cuesta es tener especificaciones distintas — cada combinación nueva de partición y orden puede agregar un Sort (módulo 03, tema 10). En el ejemplo, <code>PctRank</code> ordena por <code>Monto</code> y obliga a un segundo Sort.</div>
+<p><b>Antes de 2022</b> no hay alternativa sintáctica: se repite la especificación. Mantén las ventanas idénticas carácter por carácter para facilitar la revisión.</p>`},
+
+{id:"10", min:50, t:"Huecos en la serie: unir contra un calendario antes de la ventana", html:`
+<p><code>ROWS N PRECEDING</code> y <code>LAG</code> cuentan filas. Una serie de tiempo con huecos tiene menos filas que días, así que "los últimos 3 días" se convierte en "las últimas 3 filas". La solución es <b>densificar</b>: generar todas las combinaciones entidad × día, unir los hechos con <code>LEFT JOIN</code> y recién entonces calcular la ventana.</p>
+<div class="code good"><span class="cap">T-SQL · densificar y luego ventana, en el mismo FROM</span><button class="cp">copiar</button><pre>WITH rango AS (
+    SELECT Sucursal, MIN(Fecha) AS Desde, MAX(Fecha) AS Hasta
+    FROM dbo.VentaDiaria
+    GROUP BY Sucursal
+), serie AS (
+    SELECT r.Sucursal, c.Fecha, c.EsFinSemana
+    FROM rango r
+    JOIN dbo.Calendario c ON c.Fecha BETWEEN r.Desde AND r.Hasta
+)
+SELECT s.Sucursal, s.Fecha, s.EsFinSemana,
+       v.Monto                                   AS MontoReal,     -- NULL = no hubo fila
+       ISNULL(v.Monto, 0)                        AS MontoCero,
+       SUM(ISNULL(v.Monto, 0)) OVER (PARTITION BY s.Sucursal ORDER BY s.Fecha
+                                     ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS Suma3Dias,
+       LAG(v.Monto) OVER (PARTITION BY s.Sucursal ORDER BY s.Fecha)            AS MontoAyer
+FROM serie s
+LEFT JOIN dbo.VentaDiaria v ON v.Sucursal = s.Sucursal AND v.Fecha = s.Fecha
+ORDER BY s.Sucursal, s.Fecha;
+-- GYE 08: Suma3Dias = 0 + 0 + 210 = 210   (sobre filas daba 200 + 180 + 210 = 590)
+-- GYE 11: MontoAyer = NULL (el 10 no tiene dato) en vez de 160</pre></div>
+<div class="rule"><b>por qué tiene que ser en el mismo FROM</b>La ventana se evalúa después del <code>FROM</code>/<code>JOIN</code> (módulo 03, tema 2). Si calculas la ventana en una CTE sobre los hechos y después unes el calendario, la ventana ya vio la serie con huecos (error 9 del §4).</div>
+<h3>Tres decisiones de negocio que el SQL no toma por ti</h3>
+<ul class="plain">
+<li><b>¿Un día sin fila es 0 o es desconocido?</b> GYE no tiene fila el 06 y 07 (sábado y domingo), pero sí vendió el 13 y 14, que también fueron fin de semana. El calendario dice qué día es; no dice si la sucursal abrió. <code>MontoCero</code> y <code>MontoReal</code> son dos respuestas legítimas a dos preguntas distintas.</li>
+<li><b>¿Días calendario o días hábiles?</b> "Media de 3 días hábiles" se obtiene filtrando <code>EsFinSemana = 0</code> en la serie antes de la ventana — pero en UIO eso descarta la venta real del sábado 06. Filtrar el calendario también filtra hechos.</li>
+<li><b>¿Desde y hasta cuándo?</b> Rango global, por entidad desde su primer hecho, o desde una fecha de alta (<code>FechaApertura</code>). Cada opción cambia cuántas filas tiene la serie y, por lo tanto, todos los promedios.</li>
+</ul>
+<h3>Aditivo vs estado: acumular o arrastrar</h3>
+<p>Para medidas <b>aditivas</b> (ventas, movimientos) el día vacío vale 0 y el saldo diario se obtiene acumulando: no hace falta arrastrar nada. Para medidas de <b>estado</b> (tipo de cambio, precio, calificación, saldo leído de un snapshot) el día vacío hereda el último valor conocido: <em>last observation carried forward</em> (LOCF). La distinción aditivo/semiaditivo se formaliza en el módulo 14.</p>
+<div class="code good"><span class="cap">LOCF · SQL Server 2022+</span><button class="cp">copiar</button><pre>SELECT s.Sucursal, s.Fecha, v.Monto,
+       LAST_VALUE(v.Monto) IGNORE NULLS
+         OVER (PARTITION BY s.Sucursal ORDER BY s.Fecha ROWS UNBOUNDED PRECEDING) AS UltimoConocido
+FROM (SELECT DISTINCT v.Sucursal, c.Fecha
+      FROM dbo.VentaDiaria v
+      CROSS JOIN dbo.Calendario c
+      WHERE c.Fecha BETWEEN '2024-01-01' AND '2024-01-14') s
+LEFT JOIN dbo.VentaDiaria v ON v.Sucursal = s.Sucursal AND v.Fecha = s.Fecha;</pre></div>
+<div class="code good"><span class="cap">LOCF · 2012–2019: grupo = cuántos valores conocidos van hasta aquí</span><button class="cp">copiar</button><pre>WITH d AS (
+    SELECT s.Sucursal, s.Fecha, v.Monto
+    FROM (SELECT DISTINCT v.Sucursal, c.Fecha
+          FROM dbo.VentaDiaria v
+          CROSS JOIN dbo.Calendario c
+          WHERE c.Fecha BETWEEN '2024-01-01' AND '2024-01-14') s
+    LEFT JOIN dbo.VentaDiaria v ON v.Sucursal = s.Sucursal AND v.Fecha = s.Fecha
+), g AS (
+    SELECT *, COUNT(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                                 ROWS UNBOUNDED PRECEDING) AS Grupo   -- solo sube con valores no nulos
+    FROM d
+)
+SELECT Sucursal, Fecha, Monto,
+       MAX(Monto) OVER (PARTITION BY Sucursal, Grupo) AS UltimoConocido
+FROM g
+ORDER BY Sucursal, Fecha;</pre></div>
+<p><code>COUNT(columna)</code> ignora NULL (módulo 01, tema 5b): cada valor conocido abre un grupo nuevo y los días vacíos se quedan en el grupo del último valor. Es la primera aparición de una técnica de islas que el módulo 05 explota a fondo.</p>
+<h3>Otros motores: ventanas por tiempo sin densificar</h3>
+<div class="code"><span class="cap">PostgreSQL 11+ · RANGE con intervalo</span><button class="cp">copiar</button><pre>SELECT sucursal, fecha, monto,
+       sum(monto) OVER (PARTITION BY sucursal ORDER BY fecha
+                        RANGE BETWEEN INTERVAL '2 days' PRECEDING AND CURRENT ROW) AS suma_3_dias
+FROM venta_diaria;
+-- correcto por días calendario, pero NO genera filas para los días sin venta</pre></div>
+<div class="code"><span class="cap">Spark SQL · rango numérico sobre días desde epoch (portable entre versiones)</span><button class="cp">copiar</button><pre>SELECT sucursal, fecha, monto,
+       sum(monto) OVER (PARTITION BY sucursal
+                        ORDER BY datediff(fecha, DATE'1970-01-01')
+                        RANGE BETWEEN 2 PRECEDING AND CURRENT ROW) AS suma_3_dias
+FROM venta_diaria;</pre></div>
+<div class="code"><span class="cap">SQL Server 2022 · serie sin tabla calendario</span><button class="cp">copiar</button><pre>SELECT DATEADD(day, s.value, CAST('2024-01-01' AS date)) AS Fecha
+FROM GENERATE_SERIES(0, 13) AS s;</pre></div>
+<div class="rule warn"><b>costo</b>Densificar multiplica filas: entidades × días. 5 000 cuentas × 365 días son 1,8 M filas, perfectamente manejables; 10 M de clientes × 3 años no. Densifica solo el rango activo de cada entidad y solo las entidades que el reporte necesita. El join al calendario por su clave primaria es barato; el volumen resultante es lo que cuesta.</div>`}
+];
+
+/* ══════════ ejercicios ══════════ */
+const EJERCICIOS = [
+{id:"01", niv:"fácil", t:"Predecir el frame sin ejecutar", temas:"temas 1 · 3", enun:`
+<p>Sin ejecutar, da el valor de cada columna para los movimientos <b>2</b> y <b>5</b> de la cuenta 1. Luego verifica.</p>
+<div class="code"><button class="cp">copiar</button><pre>SELECT MovimientoId,
+       SUM(Monto) OVER (PARTITION BY CuentaId ORDER BY FechaHora)                AS A,
+       SUM(Monto) OVER (PARTITION BY CuentaId ORDER BY FechaHora, MovimientoId
+                        ROWS UNBOUNDED PRECEDING)                                 AS B,
+       COUNT(*)   OVER (PARTITION BY CuentaId ORDER BY FechaHora)                AS C,
+       MAX(Monto) OVER (PARTITION BY CuentaId ORDER BY FechaHora)                AS D
+FROM dbo.Movimiento
+WHERE CuentaId = 1;</pre></div>`,
+sol:`<div class="tw"><table class="t">
+<tr><th>Mov</th><th class="num">A</th><th class="num">B</th><th class="num">C</th><th class="num">D</th></tr>
+<tr><td>2</td><td class="num">300</td><td class="num">300</td><td class="num">2</td><td class="num">500</td></tr>
+<tr><td>5</td><td class="num">800</td><td class="num">850</td><td class="num">6</td><td class="num">1000</td></tr>
+</table></div>
+<ul class="plain">
+<li><b>A</b> y <b>C</b> usan el default <code>RANGE</code>: en el movimiento 5 el frame llega hasta el 6 (su par), por eso <code>C = 6</code> aunque sea la quinta fila.</li>
+<li><b>B</b> coincide con <b>A</b> en el movimiento 2 por casualidad: el 2 es el último de su grupo de pares. En el 5 difieren porque el 6 todavía no entró.</li>
+<li><b>D</b> en el 5 ve el 1 000 del movimiento 4 (par anterior) — y también lo vería si fuera el 4, porque con <code>RANGE</code> los tres pares del día 5 ven el bloque completo.</li>
+</ul>
+<p><b>La lección:</b> <code>COUNT(*)</code> con el frame por defecto no es "número de fila". Si lo usas para numerar o para condicionar una media móvil, los empates lo rompen.</p>`},
+
+{id:"02", niv:"fácil", t:"Anomalía contra los días anteriores", temas:"temas 2 · 5", enun:`
+<p>Para GYE, marca los días en que el monto supera en más de 30 % al promedio de las <b>tres filas anteriores</b> (sin incluir la actual). Solo evalúa cuando haya tres filas anteriores completas. Explica por qué el resultado del 08 merece desconfianza.</p>`,
+sol:`<div class="code good"><button class="cp">copiar</button><pre>WITH b AS (
+    SELECT Sucursal, Fecha, Monto,
+           AVG(Monto * 1.0) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                                  ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING) AS MediaPrev3,
+           COUNT(*)         OVER (PARTITION BY Sucursal ORDER BY Fecha
+                                  ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING) AS NPrev
+    FROM dbo.VentaDiaria
+    WHERE Sucursal = 'GYE'      -- seguro: el filtro coincide con la partición (error 10)
+)
+SELECT Fecha, Monto, CAST(MediaPrev3 AS decimal(9,2)) AS MediaPrev3,
+       CASE WHEN NPrev = 3 AND Monto &gt; 1.3 * MediaPrev3 THEN 1 ELSE 0 END AS Anomalia
+FROM b
+ORDER BY Fecha;</pre></div>
+<p>Marca el <b>2024-01-04</b> (200 contra 120.00) y el <b>2024-01-08</b> (210 contra 156.67). Ningún otro día cruza el umbral: el 14 (250) queda por debajo de 1.3 × 196.67 = 255.67.</p>
+<p>El 08 se compara contra 03, 04 y 05 porque no hay filas el 06 y 07: la referencia tiene cinco días de antigüedad, no tres. Si esos días la sucursal estuvo cerrada, la comparación es razonable; si faltan datos, la alerta se disparó sobre una referencia incompleta. El SQL no puede saberlo — por eso existe el tema 10.</p>`},
+
+{id:"03", niv:"medio", t:"Caídas de saldo con LAG", temas:"temas 4 · 6", enun:`
+<p>Para cada movimiento, calcula el saldo después del movimiento y el saldo previo (el primer movimiento de cada cuenta parte del <code>SaldoInicial</code>). Devuelve los movimientos que hicieron caer el saldo <b>más</b> de un 20 %. Cuida la división por cero.</p>`,
+sol:`<div class="code good"><button class="cp">copiar</button><pre>WITH s AS (
+    SELECT m.CuentaId, m.MovimientoId, m.FechaHora, m.Monto, c.SaldoInicial,
+           c.SaldoInicial + SUM(m.Monto) OVER (PARTITION BY m.CuentaId
+                                               ORDER BY m.FechaHora, m.MovimientoId
+                                               ROWS UNBOUNDED PRECEDING) AS Saldo
+    FROM dbo.Movimiento m
+    JOIN dbo.Cuenta c ON c.CuentaId = m.CuentaId
+), p AS (
+    SELECT *,
+           LAG(Saldo, 1, SaldoInicial) OVER (PARTITION BY CuentaId
+                                             ORDER BY FechaHora, MovimientoId) AS SaldoPrevio
+    FROM s
+)
+SELECT CuentaId, MovimientoId, SaldoPrevio, Saldo,
+       CAST(100.0 * (Saldo - SaldoPrevio) / NULLIF(SaldoPrevio, 0) AS decimal(9,2)) AS PctVar
+FROM p
+WHERE (Saldo - SaldoPrevio) / NULLIF(SaldoPrevio, 0) &lt; -0.20
+ORDER BY CuentaId, MovimientoId;</pre></div>
+<p>Resultado: <b>solo el movimiento 7</b> (1 800 → 1 400, −22.22 %). El movimiento 12 (5 000 → 4 000) cae <b>exactamente</b> un 20 % y queda fuera por el "más de": vale la pena leerle el requerimiento al negocio antes de decidir entre <code>&lt;</code> y <code>&lt;=</code>. El movimiento 8 tiene saldo previo 0: <code>NULLIF</code> lo convierte en NULL y la comparación da UNKNOWN, así que tampoco aparece — que es lo correcto, porque no existe variación porcentual desde cero.</p>
+<p>Dos detalles de diseño: <code>LAG(Saldo, …)</code> necesita la CTE previa porque no se pueden anidar funciones de ventana; y el default <code>SaldoInicial</code> es una columna, válido en T-SQL, PostgreSQL y Spark.</p>`},
+
+{id:"04", niv:"medio", t:"Ficha resumen por sucursal", temas:"temas 7 · 8", enun:`
+<p>Devuelve <b>una fila por sucursal</b> con: primer día con venta, último día con venta, monto del último día, mediana (CONT y DISC) y P90 (CONT y DISC). Usa funciones de ventana; justifica cómo colapsas a una fila.</p>`,
+sol:`<div class="code good"><button class="cp">copiar</button><pre>SELECT DISTINCT Sucursal,
+       FIRST_VALUE(Fecha) OVER (PARTITION BY Sucursal ORDER BY Fecha
+                                ROWS UNBOUNDED PRECEDING)                         AS PrimerDia,
+       FIRST_VALUE(Fecha) OVER (PARTITION BY Sucursal ORDER BY Fecha DESC
+                                ROWS UNBOUNDED PRECEDING)                         AS UltimoDia,
+       FIRST_VALUE(Monto) OVER (PARTITION BY Sucursal ORDER BY Fecha DESC
+                                ROWS UNBOUNDED PRECEDING)                         AS MontoUltimoDia,
+       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Monto) OVER (PARTITION BY Sucursal) AS MedCont,
+       PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY Monto) OVER (PARTITION BY Sucursal) AS MedDisc,
+       PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY Monto) OVER (PARTITION BY Sucursal) AS P90Cont,
+       PERCENTILE_DISC(0.9) WITHIN GROUP (ORDER BY Monto) OVER (PARTITION BY Sucursal) AS P90Disc
+FROM dbo.VentaDiaria;</pre></div>
+<div class="tw"><table class="t">
+<tr><th>Sucursal</th><th>Primer</th><th>Último</th><th class="num">Monto últ.</th><th class="num">Med C/D</th><th class="num">P90 C/D</th></tr>
+<tr><td>GYE</td><td>2024-01-01</td><td>2024-01-14</td><td class="num">250</td><td class="num">180 / 180</td><td class="num">230 / 230</td></tr>
+<tr><td>UIO</td><td>2024-01-01</td><td>2024-01-13</td><td class="num">90</td><td class="num">100 / 100</td><td class="num">132 / 140</td></tr>
+</table></div>
+<p>El <code>DISTINCT</code> funciona porque <b>todas</b> las columnas son constantes dentro de la partición. Si añadieras una columna que varía por fila (por ejemplo <code>Fecha</code>), el <code>DISTINCT</code> dejaría de colapsar sin avisar. Primer y último día también salen con <code>MIN/MAX</code> en un <code>GROUP BY</code>, que es más barato; el monto del último día es lo que obliga a una función de valor (o a un top-1 por grupo del módulo 02, tema 9).</p>
+<p>En PostgreSQL la consulta se reescribe con <code>GROUP BY sucursal</code> y <code>percentile_cont(…) WITHIN GROUP</code> como agregado; el monto del último día sale con <code>(array_agg(monto ORDER BY fecha DESC))[1]</code> o con un <code>DISTINCT ON</code>.</p>`},
+
+{id:"05", niv:"difícil", t:"Suma y media de 3 días calendario", temas:"combina temas 1 · 5 · 10", enun:`
+<p>Para cada sucursal y <b>cada día calendario</b> entre su primera y su última venta, calcula la suma y la media de los últimos 3 días calendario (día sin fila = 0 venta). La media es NULL mientras no haya 3 días de historia. Escribe la solución en T-SQL, la equivalente en PostgreSQL sin densificar y explica la diferencia con <code>ROWS 2 PRECEDING</code> sobre la tabla original en GYE los días 08 y 11.</p>`,
+sol:`<div class="code good"><span class="cap">T-SQL</span><button class="cp">copiar</button><pre>WITH rango AS (
+    SELECT Sucursal, MIN(Fecha) AS Desde, MAX(Fecha) AS Hasta
+    FROM dbo.VentaDiaria GROUP BY Sucursal
+), serie AS (
+    SELECT r.Sucursal, c.Fecha
+    FROM rango r JOIN dbo.Calendario c ON c.Fecha BETWEEN r.Desde AND r.Hasta
+)
+SELECT s.Sucursal, s.Fecha, v.Monto,
+       SUM(ISNULL(v.Monto, 0)) OVER (PARTITION BY s.Sucursal ORDER BY s.Fecha
+                                     ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS Suma3Dias,
+       CASE WHEN COUNT(*) OVER (PARTITION BY s.Sucursal ORDER BY s.Fecha
+                                ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3
+            THEN SUM(ISNULL(v.Monto, 0)) OVER (PARTITION BY s.Sucursal ORDER BY s.Fecha
+                                               ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) / 3.0
+       END AS Media3Dias
+FROM serie s
+LEFT JOIN dbo.VentaDiaria v ON v.Sucursal = s.Sucursal AND v.Fecha = s.Fecha
+ORDER BY s.Sucursal, s.Fecha;</pre></div>
+<p>Sobre la serie densa, <code>COUNT(*)</code> cuenta días y no filas de hechos, así que "3 filas" ya es "3 días". Usar <code>COUNT(v.Monto)</code> aquí sería un error: exigiría tres días <b>con venta</b>.</p>
+<div class="code good"><span class="cap">PostgreSQL · sin densificar</span><button class="cp">copiar</button><pre>SELECT sucursal, fecha, monto,
+       sum(monto) OVER w AS suma_3_dias,
+       CASE WHEN fecha - min(fecha) OVER (PARTITION BY sucursal) &gt;= 2
+            THEN sum(monto) OVER w / 3.0 END AS media_3_dias
+FROM venta_diaria
+WINDOW w AS (PARTITION BY sucursal ORDER BY fecha
+             RANGE BETWEEN INTERVAL '2 days' PRECEDING AND CURRENT ROW);</pre></div>
+<div class="tw"><table class="t">
+<tr><th>GYE</th><th class="num">ROWS 2 PRECEDING sobre hechos</th><th class="num">3 días calendario</th></tr>
+<tr><td>2024-01-08</td><td class="num">200 + 180 + 210 = 590</td><td class="num">0 + 0 + 210 = 210</td></tr>
+<tr><td>2024-01-11</td><td class="num">210 + 160 + 230 = 600</td><td class="num">160 + 0 + 230 = 390</td></tr>
+</table></div>
+<p>La versión PostgreSQL da los mismos valores en los días que existen pero <b>no devuelve filas</b> para el 06, 07 y 10: si el tablero necesita un punto por día, sigue haciendo falta la serie. Y queda la pregunta de negocio: ¿el 10 (miércoles, sin fila) es realmente 0 o es un dato que no llegó? Si es lo segundo, la media de 3 días del 10, 11 y 12 está subestimada y lo honesto es publicarla como NULL.</p>`},
+
+{id:"06", niv:"difícil", t:"Saldo diario denso con variación y máximo", temas:"combina temas 4 · 6 · 7 · 9 · 10", enun:`
+<p>Para cada cuenta y cada día desde su <code>FechaApertura</code> hasta el 2024-01-10, devuelve: saldo de cierre, saldo del día anterior (el primer día, el saldo inicial), variación diaria y la <b>primera</b> fecha en que la cuenta alcanzó su saldo de cierre máximo dentro del periodo. Usa la cláusula <code>WINDOW</code> donde tenga sentido y explica qué cambia si no tienes SQL Server 2022.</p>`,
+sol:`<div class="code good"><button class="cp">copiar</button><pre>DECLARE @Hasta date = '2024-01-10';
+
+WITH serie AS (
+    SELECT c.CuentaId, c.SaldoInicial, cal.Fecha
+    FROM dbo.Cuenta c
+    JOIN dbo.Calendario cal ON cal.Fecha &gt;= c.FechaApertura AND cal.Fecha &lt;= @Hasta
+), movDia AS (
+    SELECT CuentaId, CAST(FechaHora AS date) AS Fecha, SUM(Monto) AS Neto
+    FROM dbo.Movimiento
+    GROUP BY CuentaId, CAST(FechaHora AS date)
+), diario AS (
+    SELECT s.CuentaId, s.Fecha, s.SaldoInicial,
+           s.SaldoInicial + SUM(ISNULL(m.Neto, 0)) OVER (PARTITION BY s.CuentaId ORDER BY s.Fecha
+                                                         ROWS UNBOUNDED PRECEDING) AS SaldoCierre
+    FROM serie s
+    LEFT JOIN movDia m ON m.CuentaId = s.CuentaId AND m.Fecha = s.Fecha
+)
+SELECT CuentaId, Fecha, SaldoCierre,
+       LAG(SaldoCierre, 1, SaldoInicial) OVER w                AS SaldoAnterior,
+       SaldoCierre - LAG(SaldoCierre, 1, SaldoInicial) OVER w  AS Variacion,
+       FIRST_VALUE(Fecha) OVER (PARTITION BY CuentaId
+                                ORDER BY SaldoCierre DESC, Fecha
+                                ROWS UNBOUNDED PRECEDING)       AS DiaMaxSaldo
+FROM diario
+WINDOW w AS (PARTITION BY CuentaId ORDER BY Fecha)
+ORDER BY CuentaId, Fecha;</pre></div>
+<div class="tw"><table class="t">
+<tr><th>Cuenta</th><th>Serie de saldos de cierre</th><th>DiaMaxSaldo</th></tr>
+<tr><td>1</td><td>01: 1000 · 02: 1300 · 03–04: 1150 · 05–07: 1800 · 08–10: 1400</td><td>2024-01-05</td></tr>
+<tr><td>2</td><td>01: 0 · 02–03: 300 · 04–08: 500 · 09–10: 750</td><td>2024-01-09</td></tr>
+<tr><td>3</td><td>02: 5000 · 03–05: 4000 · 06: 6000 · 07–10: 5500</td><td>2024-01-06</td></tr>
+<tr><td>4</td><td>05–10: 200 (sin movimientos)</td><td>2024-01-05</td></tr>
+</table></div>
+<ul class="plain">
+<li>El máximo de la cuenta 1 se alcanza tres días seguidos (05, 06, 07). Sin <code>Fecha</code> como desempate en el <code>ORDER BY</code> de <code>FIRST_VALUE</code>, "el día del máximo" sería cualquiera de los tres.</li>
+<li>El máximo de cierre (1 800) no es el máximo intradía (2 150): son dos métricas, y el tablero debe decir cuál muestra.</li>
+<li>Agregar por día <b>antes</b> de unir a la serie evita multiplicar filas: la cuenta 1 tiene tres movimientos el 05 y la serie una fila.</li>
+<li>La cuenta 4 aparece solo porque la serie sale de <code>dbo.Cuenta</code> y no de <code>dbo.Movimiento</code>: el universo lo define la dimensión, no los hechos.</li>
+<li><b>Sin 2022</b>: se quita la cláusula <code>WINDOW</code> y se repite <code>(PARTITION BY CuentaId ORDER BY Fecha)</code> en los dos <code>LAG</code>. El plan es el mismo.</li>
+</ul>`}
+];
+
+/* ══════════ examen ══════════ */
+const EXAMEN = [
+["Si la clave de orden no tiene empates, ¿hay alguna diferencia entre ROWS y RANGE?",
+ "En el resultado no. En el costo sí: en SQL Server modo fila, RANGE usa siempre el Window Spool en disco (worktable en tempdb) y ROWS UNBOUNDED PRECEDING usa el spool en memoria con cálculo incremental. Por eso se escribe ROWS aunque no haya empates. GROUPS (solo PostgreSQL) cuenta grupos de pares; en SQL Server se emula agregando primero por la clave de orden y aplicando ROWS."],
+["¿Cuál es el frame por defecto y cuándo aplica?",
+ "Sin ORDER BY en el OVER, toda la partición. Con ORDER BY y sin frame explícito, RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW. Es igual en SQL Server, PostgreSQL y Spark, y solo afecta a agregados y funciones de valor."],
+["¿Por qué LAST_VALUE devuelve el valor de la fila actual?",
+ "Porque con el frame por defecto el frame termina en CURRENT ROW (o en su último par, al ser RANGE). El último valor del frame es el de la fila actual. Se corrige con ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING o con FIRST_VALUE sobre el orden invertido."],
+["¿Qué funciones de ventana ignoran el frame?",
+ "Las de ranking (ROW_NUMBER, RANK, DENSE_RANK, NTILE), las de desplazamiento (LAG, LEAD), las de distribución (PERCENT_RANK, CUME_DIST) y los percentiles. En SQL Server declararles un frame es un error de compilación; en PostgreSQL se ignora."],
+["Un saldo con ROWS UNBOUNDED PRECEDING da valores distintos en dos ejecuciones sin que cambien los datos. ¿Por qué?",
+ "Porque el ORDER BY de la ventana tiene empates y ROWS los recorre en un orden que depende del plan (paralelismo, índice elegido). Se arregla terminando el ORDER BY en una columna única. Otra causa posible: acumular float en un plan paralelo."],
+["En LAG(Monto, 1, 0), ¿cuándo se devuelve el 0?",
+ "Solo cuando el offset cae fuera de la partición (la primera fila). Si la fila anterior existe y su Monto es NULL, devuelve NULL, no 0. El default debe tener significado de negocio — el saldo inicial sí, un cero inventado no. A diferencia del frame, el offset de LAG sí acepta variables en SQL Server."],
+["PERCENTILE_CONT vs PERCENTILE_DISC, y ¿por qué en SQL Server suele ir con DISTINCT?",
+ "CONT interpola en la posición 1 + p·(n−1) y puede devolver un valor que no existe; DISC devuelve el primer valor real cuyo CUME_DIST ≥ p. En SQL Server solo existen como funciones de ventana (OVER con PARTITION BY, sin ORDER BY ni frame), así que devuelven un valor por fila y hay que colapsar con DISTINCT. 2022 añade APPROX_PERCENTILE_* como agregados; en PostgreSQL es al revés: agregado sí, ventana no."],
+["¿Cómo calculas una media móvil de 7 días calendario sobre una serie con huecos?",
+ "En T-SQL: densificar uniendo la entidad × calendario con LEFT JOIN a los hechos y, en el mismo FROM, aplicar ROWS BETWEEN 6 PRECEDING AND CURRENT ROW, condicionando a que el frame tenga 7 días. En PostgreSQL basta RANGE BETWEEN INTERVAL '6 days' PRECEDING; en Spark, RANGE numérico sobre días desde epoch. Antes, decidir si un día sin fila vale 0 o es desconocido."],
+["¿Cómo ves en el plan que un frame está costando caro?",
+ "En modo fila: Window Spool seguido de Stream Aggregate, y en SET STATISTICS IO una Worktable con muchas lecturas lógicas (spool en disco por RANGE o por frames que pueden superar 10 000 filas). Un Sort antes del Segment indica que falta un índice POC. En modo batch aparece un único Window Aggregate y el spool desaparece."],
+["¿Qué pasa en Spark con una ventana sin PARTITION BY sobre una tabla grande?",
+ "Compila y corre, pero el motor lleva todos los datos a una sola partición (lo avisa en el log): una sola tarea hace todo el trabajo, sin paralelismo y con riesgo de spill u OOM. Se particiona por la unidad de negocio o se calcula por bloques y se suma el offset de los bloques anteriores."]
+];
+
+/* ══════════ render ══════════ */
+const $ = s => document.querySelector(s);
+const estado = new Map(TEMAS.map(t => [t.id, false]));
+
+function nodo({id, t, meta, bodyHtml}){
+  const el = document.createElement("article");
+  el.className = "node";
+  el.dataset.id = id;
+  el.innerHTML =
+    '<div class="node-inner">' +
+      '<button class="node-head" aria-expanded="false">' +
+        '<span class="idx">→ ' + id + '</span>' +
+        '<span class="ttl">' + t + '</span>' +
+        '<span class="meta">' + meta + '</span>' +
+        '<span class="caret" aria-hidden="true">&rsaquo;</span>' +
+      '</button>' +
+      '<div class="body">' + bodyHtml + '</div>' +
+    '</div>';
+  const head = el.querySelector(".node-head");
+  head.addEventListener("click", () => {
+    const open = el.classList.toggle("open");
+    head.setAttribute("aria-expanded", open);
+  });
+  return el;
+}
+
+const cont = $("#temas");
+TEMAS.forEach(t => {
+  const el = nodo({
+    id: t.id, t: t.t,
+    meta: '<span>' + t.min + ' min</span>',
+    bodyHtml: t.html +
+      '<div style="margin-top:16px;padding-top:13px;border-top:1px dashed var(--hair)">' +
+        '<label class="chk"><input type="checkbox" data-tema="' + t.id + '"><span>Tema ' + t.id + ' cubierto · ' + t.min + ' min de costo</span></label>' +
+      '</div>'
+  });
+  el.dataset.tema = t.id;
+  el.querySelector("input[data-tema]").addEventListener("change", e => {
+    estado.set(t.id, e.target.checked);
+    el.classList.toggle("done", e.target.checked);
+    refrescar();
+  });
+  cont.appendChild(el);
+});
+
+const ce = $("#ejercicios");
+EJERCICIOS.forEach(x => {
+  const el = nodo({
+    id: x.id, t: x.t,
+    meta: '<span>' + x.niv + '</span><span>' + x.temas + '</span>',
+    bodyHtml: x.enun +
+      '<div style="margin-top:14px"><button class="reveal" data-t="#sol' + x.id + '" aria-expanded="false">ver solución</button></div>' +
+      '<div class="hidden" id="sol' + x.id + '" style="margin-top:12px">' + x.sol + '</div>'
+  });
+  ce.appendChild(el);
+});
+
+const ex = $("#examen");
+EXAMEN.forEach((q, i) => {
+  const n = i + 1;
+  const d = document.createElement("div");
+  d.className = "qa";
+  d.innerHTML =
+    '<p class="q"><span>' + String(n).padStart(2,"0") + '</span>' + q[0] + '</p>' +
+    '<button class="reveal" data-t="#ans' + n + '" aria-expanded="false">ver respuesta</button>' +
+    '<div class="hidden ans" id="ans' + n + '">' + q[1] + '</div>';
+  ex.appendChild(d);
+});
+
+/* barra de costo ponderada por minutos */
+const track = $("#track");
+const segs = new Map();
+TEMAS.forEach(t => {
+  const s = document.createElement("button");
+  s.className = "seg";
+  s.style.flex = t.min;
+  s.dataset.done = "0";
+  s.title = t.id + " · " + t.t + " — " + t.min + " min";
+  s.setAttribute("aria-label", "Tema " + t.id + ": " + t.t + ", " + t.min + " minutos");
+  s.innerHTML = '<span class="fill"></span><span class="tag">' + t.id + '</span>';
+  s.addEventListener("click", () => {
+    mostrar("temas");
+    const n = document.querySelector('.node[data-tema="' + t.id + '"]');
+    n.classList.add("open");
+    n.querySelector(".node-head").setAttribute("aria-expanded", "true");
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    n.scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "start"});
+  });
+  track.appendChild(s);
+  segs.set(t.id, s);
+});
+
+function refrescar(){
+  let done = 0, total = 0;
+  TEMAS.forEach(t => {
+    total += t.min;
+    const ok = estado.get(t.id);
+    if(ok) done += t.min;
+    const s = segs.get(t.id);
+    s.dataset.done = ok ? "1" : "0";
+    s.querySelector(".fill").style.right = ok ? "0%" : "100%";
+  });
+  const pct = Math.round(done / total * 100);
+  $("#pct").textContent = pct + " % · " + done + " de " + total + " min";
+  $("#pctBig").textContent = pct + " %";
+}
+refrescar();
+
+/* navegación por secciones */
+let vista = "modelo";
+function mostrar(id){
+  vista = id;
+  document.querySelectorAll("section.sec").forEach(s => s.classList.toggle("on", id === "todo" || s.id === "sec-" + id));
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.s === id));
+  $("#todo").textContent = id === "todo" ? "ver por secciones" : "ver todo";
+}
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+  mostrar(c.dataset.s);
+  window.scrollTo({top:0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+}));
+$("#todo").addEventListener("click", () => mostrar(vista === "todo" ? "modelo" : "todo"));
+
+/* revelar soluciones y respuestas */
+document.addEventListener("click", e => {
+  const b = e.target.closest(".reveal");
+  if(!b) return;
+  const t = document.querySelector(b.dataset.t);
+  const on = t.classList.toggle("show");
+  b.setAttribute("aria-expanded", on);
+  b.textContent = on ? b.textContent.replace("ver", "ocultar") : b.textContent.replace("ocultar", "ver");
+});
+
+/* copiar bloques de código */
+const toast = $("#toast");
+let toastTimer;
+function flash(msg){
+  toast.textContent = msg;
+  toast.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("on"), 1600);
+}
+function seleccionar(pre){
+  const r = document.createRange();
+  r.selectNodeContents(pre);
+  const sel = window.getSelection();
+  sel.removeAllRanges(); sel.addRange(r);
+  flash("bloqueado por el navegador: texto seleccionado, usa Ctrl+C");
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".cp");
+  if(!b) return;
+  const pre = b.parentElement.querySelector("pre");
+  if(!navigator.clipboard || !window.isSecureContext){ seleccionar(pre); return; }
+  try{
+    await navigator.clipboard.writeText(pre.textContent);
+    flash("copiado");
+  }catch(err){
+    seleccionar(pre);
+  }
+});
+
+/* prompt del siguiente módulo */
+const PROMPT05 = `Contexto del estudiante: trabaja a diario con SQL Server (T-SQL), procesos de carga y datos en Azure/Databricks. Ya escribe consultas complejas; no necesita explicaciones de nivel introductorio.
+
+Ya completó los módulos 01 a 04. Da por conocido lo siguiente y cítalo por número ("ver módulo 04, tema 10") en vez de reexplicarlo:
+- Módulo 01 · Semántica y orden lógico: álgebra relacional mínima, orden lógico de ejecución, alcance de alias, lógica de tres valores, NULL en filtros/agregados/UNIQUE/CHECK, comparación null-safe, conversión implícita y precedencia de tipos, colaciones, determinismo del orden, conjunto vs multiconjunto.
+- Módulo 02 · Joins y cardinalidad: semántica real de cada join, ON vs WHERE en outer joins, semi/anti join, NOT IN con NULL, self joins, non-equi joins y rangos de fechas, solapamiento de intervalos, CROSS/OUTER APPLY y LATERAL, top-N por grupo, explosión de filas por granularidad distinta.
+- Módulo 03 · Ventanas I: anatomía de OVER(), dónde puede aparecer una ventana, ROW_NUMBER/RANK/DENSE_RANK/NTILE, deduplicación con ROW_NUMBER, agregados como ventana, porcentaje sobre total y sobre grupo, top-N por partición con desempate estable, QUALIFY, ventanas vs GROUP BY, costo del Sort e índices POC.
+- Módulo 04 · Ventanas II: ROWS vs RANGE vs GROUPS, límites del frame, frame por defecto y sus empates, acumulados y saldos corrientes, medias y sumas móviles (ventanas incompletas, diferencia de acumulados), LAG/LEAD con offset y default, FIRST_VALUE/LAST_VALUE/NTH_VALUE, PERCENT_RANK/CUME_DIST/PERCENTILE_CONT/DISC, cláusula WINDOW, densificación contra calendario y arrastre del último valor conocido (LOCF con COUNT + MAX y con IGNORE NULLS).
+
+Actúa como instructor senior de bases de datos relacionales. Desarrolla una clase completa y a profundidad del siguiente módulo de su plan de estudio.
+
+MÓDULO 05 — Patrones analíticos que se repiten siempre
+Resultado esperado: Reconocer el patrón detrás del pedido de negocio y escribirlo de memoria.
+
+Temas que debe cubrir la clase:
+1. Gaps and islands: rachas, días consecutivos, estados continuos
+2. Sesiones de usuario por umbral de inactividad
+3. Cohortes y curvas de retención
+4. Comparativos YoY / MoM y variaciones
+5. Deduplicación con criterio de supervivencia de registro
+6. GROUPING SETS, ROLLUP, CUBE y GROUPING_ID
+7. Subtotales y totales generales en una sola pasada
+8. PIVOT / UNPIVOT y pivot dinámico con SQL dinámico
+9. Agregados condicionales: CASE dentro de SUM, FILTER
+10. Matrices de cruce y tablas de contingencia
+
+Formato de la clase:
+1. Modelo mental primero: qué problema resuelve el tema y cómo lo piensa el motor internamente.
+2. Explicación tema por tema, cada uno con un ejemplo ejecutable en T-SQL (SQL Server 2019+) y la equivalencia en PostgreSQL y Spark SQL cuando difiera.
+3. Un dataset de ejemplo reproducible al inicio (scripts CREATE TABLE + INSERT) que se use en todos los ejemplos.
+4. Al menos tres comparaciones "consulta ingenua vs consulta correcta" mostrando el plan de ejecución esperado y por qué cambia el costo.
+5. Errores comunes y resultados silenciosamente incorrectos, con el caso mínimo que los reproduce.
+6. Seis ejercicios de dificultad creciente con solución comentada; los dos últimos deben exigir combinar varios temas del módulo.
+7. Un mini-proyecto de cierre con datos realistas y criterios de aceptación verificables.
+8. Diez preguntas de autoevaluación tipo entrevista técnica, con respuesta modelo breve.
+
+Sé preciso y técnico. Cita el comportamiento por versión de motor cuando importe. No resumas: prefiere profundidad sobre cobertura superficial.
+
+FORMATO DE ENTREGA (obligatorio)
+
+Entrega la clase como UN ÚNICO ARCHIVO HTML AUTOCONTENIDO, no como texto en el chat ni como markdown. Sin dependencias externas salvo Google Fonts. Sin frameworks, sin build. Nómbralo modulo-NN-slug.html.
+
+PROHIBIDO usar localStorage, sessionStorage o cualquier almacenamiento del navegador. El avance vive en memoria durante la sesión y se reinicia al recargar; dilo en el footer.
+
+1) TOKENS VISUALES — cópialos literalmente:
+:root{
+  --paper:#E7EAF0; --card:#FFFFFF; --tint:#F3F5F9;
+  --ink:#101A33; --slate:#5A688F; --hair:#C9D0DE;
+  --seek:#12715C; --cost:#A31A56; --warn:#8A5A12;
+  --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:3px;
+}
+Fuentes: https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap
+Uso del color: --seek (verde) = completado, eficiente, consulta correcta. --cost (vino) = acento de marca, coste alto, consulta ingenua, error. --warn (ámbar) solo advertencias. No introduzcas colores nuevos.
+El body lleva retícula vertical tenue: background-image:linear-gradient(to right,rgba(16,26,51,.035) 1px,transparent 1px); background-size:28px 100%. Contenedor max-width:1080px; margin:0 auto; padding:34px 20px 90px.
+
+2) METÁFORA DE DISEÑO: todo el proyecto se lee como un plan de ejecución de SQL. Los temas son nodos de un árbol (conector dibujado con border-left en .branch y un ::before de 17px en .node) y el progreso se mide en COSTE, no en cantidad de ítems. Mantén ese vocabulario en la redacción: coste estimado, avance ponderado, nodo, operador.
+
+3) ESTRUCTURA OBLIGATORIA, EN ESTE ORDEN:
+   a. Migaja mono (.plan-call): plan_de_estudio_sql > módulo NN > fase XX · nombre de la fase.
+   b. H1 en dos líneas con --display a 800, letter-spacing:-.028em, y un <em> final con un punto en color --cost.
+   c. Lede de 2-3 líneas: resultado esperado del módulo y motores de referencia.
+   d. .stats: fila de 5-6 celdas con .k (etiqueta mono en versalitas) y .v (número en display). Incluye siempre temas, costo estimado y avance.
+   e. .costbar: barra de segmentos flex proporcionales a los minutos de cada tema; cada segmento se rellena de --seek al marcar el tema, es clicable y salta a su nodo.
+   f. .bar de navegación: chips mono redondeados, uno por sección, más un botón "ver todo" y otro "prompt módulo NN+1".
+   g. Secciones <section class="sec"> visibles de a una: §0 Dataset · §1 Modelo mental · §2 Los N temas · §3 Ingenua vs correcta · §4 Errores silenciosos · §5 Ejercicios · §6 Mini-proyecto · §7 Autoevaluación. Cada una con .sec-head (.n mono en --cost, h2 en display, .c a la derecha) y una .sec-note de una o dos líneas.
+   h. Footer mono: número de módulo, coste, aviso de que el avance no persiste y nombre del módulo siguiente.
+
+4) COMPONENTES CON SUS CLASES EXACTAS:
+   .branch + .node + .node-head + .body  -> acordeón de temas y ejercicios; .node.open y .node.done cambian borde e índice.
+   .card                                  -> contenedor blanco con borde --hair.
+   .code (+ .bad / .good)                 -> bloque de SQL con <span class="cap"> de etiqueta mono y <button class="cp">copiar</button> que aparece al hover.
+   .split                                 -> grid de dos columnas para ingenua vs correcta; colapsa a una en móvil.
+   table.t (+ .yes / .no)                 -> tabla de comparación; th mono en versalitas con borde inferior --ink.
+   .rule                                  -> caja de regla o advertencia con borde izquierdo --cost y <b> de etiqueta mono.
+   .err (+ .fix)                          -> entrada del catálogo de errores: h4, repro mínimo y línea de solución en --seek.
+   .qa + .reveal + .hidden/.show          -> pregunta con respuesta oculta.
+   .chk                                   -> checkbox custom de 14px que alimenta la barra de coste.
+   dialog#dl + .toast                     -> panel del prompt siguiente y aviso de copiado.
+
+5) COMPORTAMIENTO JS REQUERIDO: acordeones con aria-expanded; checkbox por tema que recalcula la barra y el porcentaje ponderado por minutos; botón copiar en CADA bloque de código con navigator.clipboard y respaldo que selecciona el texto si el navegador lo bloquea; soluciones y respuestas ocultas tras un botón .reveal que alterna ver/ocultar; navegación por chips que muestra una sección a la vez más "ver todo"; y un botón final que abre un <dialog> con el prompt completo del módulo siguiente, listo para copiar.
+
+6) CONTENIDO EN DATOS, NO EN MARCADO: declara el contenido al inicio del <script> en tres arrays — TEMAS (id, minutos, título, html), EJERCICIOS (id, nivel, temas que combina, enunciado, solución) y EXAMEN (pares pregunta/respuesta) — y renderízalo con JS. Dentro de los bloques <pre> escapa el signo menor-que como entidad HTML.
+
+7) CONTINUIDAD ENTRE MÓDULOS: reutiliza el dataset del módulo 01 (dbo.Cliente, dbo.Producto, dbo.Venta, dbo.ClienteExterno, dbo.ClienteMasivo, dbo.VentaHist), las tablas que añadió el módulo 02 y las del módulo 04 (dbo.Cuenta, dbo.Movimiento, dbo.VentaDiaria, dbo.Calendario, dbo.MovimientoHist); en §0 incluye solo las tablas NUEVAS que necesite este módulo con su script y una nota de qué se asume ya creado. Da por conocido lo cubierto antes y cita por número cuando dependa de ello ("ver módulo 04, tema 10") en vez de reexplicarlo. El prompt que genera el <dialog> debe incluir la lista de lo ya cubierto. Mantén minutos por tema que sumen el coste del módulo declarado en el roadmap (módulo 05: 7 h = 420 min).
+
+8) PISO DE CALIDAD: responsive hasta 380px (el .split colapsa, la retícula de fondo se apaga, los botones de copiar quedan visibles), foco de teclado visible, @media (prefers-reduced-motion: reduce) que desactiva animaciones y transiciones, y lang="es" en el html.`;
+
+const dl = $("#dl");
+$("#next").addEventListener("click", () => {
+  $("#dlTitle").textContent = "Prompt · módulo 05 (patrones analíticos)";
+  $("#dlText").value = PROMPT05;
+  $("#dlMsg").textContent = "";
+  dl.showModal();
+});
+$("#dlClose").addEventListener("click", () => dl.close());
+$("#dlCopy").addEventListener("click", async () => {
+  const ta = $("#dlText");
+  try{
+    if(!navigator.clipboard || !window.isSecureContext) throw new Error("sin portapapeles");
+    await navigator.clipboard.writeText(ta.value);
+    $("#dlMsg").textContent = "Copiado.";
+  }catch(e){
+    ta.removeAttribute("readonly"); ta.focus(); ta.select();
+    $("#dlMsg").textContent = "El navegador bloqueó el portapapeles: el texto quedó seleccionado, usa Ctrl+C.";
+  }
+});
+</script>
+</body>
+</html>
