@@ -1,0 +1,1214 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Módulo 05 · Patrones analíticos que se repiten siempre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E7EAF0; --card:#FFFFFF; --tint:#F3F5F9;
+  --ink:#101A33; --slate:#5A688F; --hair:#C9D0DE;
+  --seek:#12715C; --cost:#A31A56; --warn:#8A5A12;
+  --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:3px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; color:var(--ink); background:var(--paper);
+  font-family:var(--body); font-size:15.5px; line-height:1.62;
+  background-image:linear-gradient(to right,rgba(16,26,51,.035) 1px,transparent 1px);
+  background-size:28px 100%;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto; padding:34px 20px 90px}
+a{color:var(--seek)}
+::selection{background:rgba(163,26,86,.16)}
+
+/* a. migaja */
+.plan-call{
+  font-family:var(--mono); font-size:12px; color:var(--slate);
+  letter-spacing:.01em; margin:0 0 22px; word-break:break-word;
+}
+.plan-call b{color:var(--cost); font-weight:600}
+
+/* b. H1 */
+h1{
+  font-family:var(--display); font-weight:800; font-size:clamp(30px,6.2vw,52px);
+  letter-spacing:-.028em; line-height:1.04; margin:0 0 16px;
+}
+h1 em{font-style:normal}
+h1 .dot{color:var(--cost)}
+
+/* c. lede */
+.lede{font-size:17px; color:var(--slate); max-width:66ch; margin:0 0 26px}
+.lede b{color:var(--ink); font-weight:600}
+
+/* d. stats */
+.stats{
+  display:grid; grid-template-columns:repeat(6,1fr); gap:1px;
+  background:var(--hair); border:1px solid var(--hair); border-radius:var(--r);
+  overflow:hidden; margin:0 0 20px;
+}
+.stats .cell{background:var(--card); padding:12px 13px}
+.stats .k{font-family:var(--mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--slate); display:block}
+.stats .v{font-family:var(--display); font-weight:700; font-size:23px; line-height:1.1; margin-top:3px}
+.stats .v small{font-size:12px; color:var(--slate); font-weight:500}
+
+/* e. costbar */
+.costbar{display:flex; gap:2px; height:30px; margin:0 0 6px; border-radius:var(--r); overflow:hidden; border:1px solid var(--hair)}
+.costbar .seg{
+  position:relative; background:var(--tint); cursor:pointer; min-width:4px;
+  border:none; padding:0; transition:background .25s ease;
+}
+.costbar .seg .fill{position:absolute; inset:0; background:var(--seek); transform:scaleX(0); transform-origin:left; transition:transform .3s ease}
+.costbar .seg.on .fill{transform:scaleX(1)}
+.costbar .seg .lbl{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:var(--slate); z-index:2}
+.costbar .seg.on .lbl{color:#fff}
+.costbar .seg:hover{outline:2px solid var(--cost); outline-offset:-2px}
+.costcap{font-family:var(--mono); font-size:11px; color:var(--slate); margin:0 0 24px}
+
+/* f. nav bar */
+.bar{display:flex; flex-wrap:wrap; gap:7px; margin:0 0 30px}
+.chip{
+  font-family:var(--mono); font-size:12px; border:1px solid var(--hair);
+  background:var(--card); color:var(--ink); padding:6px 12px; border-radius:999px;
+  cursor:pointer; transition:all .15s ease;
+}
+.chip:hover{border-color:var(--slate)}
+.chip.active{background:var(--ink); color:#fff; border-color:var(--ink)}
+.chip.cta{border-color:var(--cost); color:var(--cost)}
+.chip.cta:hover{background:var(--cost); color:#fff}
+
+/* g. sections */
+.sec{display:none; margin:0 0 34px; animation:fade .3s ease}
+.sec.show{display:block}
+@keyframes fade{from{opacity:0; transform:translateY(4px)}to{opacity:1; transform:none}}
+.sec-head{display:flex; align-items:baseline; gap:12px; border-bottom:2px solid var(--ink); padding-bottom:9px; margin-bottom:6px}
+.sec-head .n{font-family:var(--mono); font-size:13px; color:var(--cost); font-weight:600}
+.sec-head h2{font-family:var(--display); font-weight:700; font-size:clamp(21px,3.6vw,28px); letter-spacing:-.02em; margin:0; flex:1}
+.sec-head .c{font-family:var(--mono); font-size:11px; color:var(--slate); white-space:nowrap}
+.sec-note{color:var(--slate); font-size:14px; margin:10px 0 20px; max-width:72ch}
+
+/* cards */
+.card{background:var(--card); border:1px solid var(--hair); border-radius:var(--r); padding:18px 19px; margin:14px 0}
+.card h3{font-family:var(--display); font-weight:700; font-size:18px; margin:0 0 8px; letter-spacing:-.01em}
+.card h4{font-family:var(--body); font-weight:600; font-size:15px; margin:16px 0 6px}
+.card p{margin:9px 0}
+.card ul,.card ol{margin:9px 0; padding-left:20px}
+.card li{margin:4px 0}
+.muted{color:var(--slate)}
+
+/* branch / node */
+.branch{border-left:2px solid var(--hair); margin:16px 0 16px 8px; padding-left:0}
+.node{position:relative; margin:0 0 10px 0; background:var(--card); border:1px solid var(--hair); border-radius:var(--r); margin-left:22px}
+.node::before{
+  content:""; position:absolute; left:-23px; top:20px; width:17px; height:0;
+  border-top:2px solid var(--hair);
+}
+.node-head{
+  display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer;
+  user-select:none;
+}
+.node-head .idx{font-family:var(--mono); font-size:12px; color:var(--cost); font-weight:600; min-width:26px}
+.node-head .tt{font-family:var(--display); font-weight:700; font-size:16.5px; flex:1; letter-spacing:-.01em}
+.node-head .mn{font-family:var(--mono); font-size:11px; color:var(--slate); white-space:nowrap}
+.node-head .tog{font-family:var(--mono); font-size:16px; color:var(--slate); transition:transform .2s ease}
+.node.open .node-head .tog{transform:rotate(90deg)}
+.node.open{border-color:var(--slate)}
+.node.done{border-left:3px solid var(--seek)}
+.node.done .node-head .idx{color:var(--seek)}
+.node .body{display:none; padding:0 16px 18px; border-top:1px solid var(--hair)}
+.node.open .body{display:block}
+.node .body p:first-child{margin-top:14px}
+
+/* chk */
+.chk{appearance:none; -webkit-appearance:none; width:14px; height:14px; min-width:14px; border:1.5px solid var(--slate); border-radius:2px; cursor:pointer; position:relative; background:var(--card)}
+.chk:checked{background:var(--seek); border-color:var(--seek)}
+.chk:checked::after{content:""; position:absolute; left:3.5px; top:.5px; width:4px; height:8px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg)}
+.chk:focus-visible{outline:2px solid var(--cost); outline-offset:2px}
+
+/* code */
+.code{position:relative; background:#0d1526; border:1px solid var(--hair); border-radius:var(--r); margin:12px 0; overflow:hidden}
+.code .cap{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:#8ea0c9; padding:8px 12px 0}
+.code.bad .cap{color:#e67aa6}
+.code.good .cap{color:#5fd0b2}
+.code pre{margin:0; padding:10px 12px 13px; overflow-x:auto; font-family:var(--mono); font-size:12.8px; line-height:1.58; color:#dbe4f5; white-space:pre}
+.code.bad{border-left:3px solid var(--cost)}
+.code.good{border-left:3px solid var(--seek)}
+.code .cp{
+  position:absolute; top:7px; right:7px; font-family:var(--mono); font-size:10px;
+  background:rgba(255,255,255,.08); color:#cfe; border:1px solid rgba(255,255,255,.14);
+  padding:3px 8px; border-radius:2px; cursor:pointer; opacity:0; transition:opacity .15s ease;
+}
+.code:hover .cp, .code:focus-within .cp{opacity:1}
+.code .cp:hover{background:rgba(255,255,255,.16)}
+
+/* split */
+.split{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:12px 0}
+.split>div{min-width:0}
+
+/* table */
+table.t{border-collapse:collapse; width:100%; margin:12px 0; font-size:13.5px}
+table.t th{font-family:var(--mono); font-size:10px; letter-spacing:.07em; text-transform:uppercase; text-align:left; border-bottom:2px solid var(--ink); padding:7px 9px; color:var(--ink)}
+table.t td{border-bottom:1px solid var(--hair); padding:7px 9px; vertical-align:top}
+table.t td.yes{color:var(--seek); font-weight:600}
+table.t td.no{color:var(--cost); font-weight:600}
+table.t tr:last-child td{border-bottom:none}
+
+/* rule */
+.rule{border-left:3px solid var(--cost); background:var(--tint); padding:12px 15px; margin:14px 0; border-radius:0 var(--r) var(--r) 0; font-size:14px}
+.rule b{font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--cost); display:block; margin-bottom:4px}
+.rule.warn{border-left-color:var(--warn)}
+.rule.warn b{color:var(--warn)}
+
+/* err */
+.err{border:1px solid var(--hair); border-left:3px solid var(--cost); border-radius:0 var(--r) var(--r) 0; padding:14px 16px; margin:14px 0; background:var(--card)}
+.err h4{font-family:var(--display); font-weight:700; font-size:16px; margin:0 0 8px}
+.err .fix{color:var(--seek); font-weight:500; border-top:1px solid var(--hair); padding-top:9px; margin-top:11px; font-size:14px}
+.err .fix b{font-family:var(--mono); font-size:10px; letter-spacing:.07em; text-transform:uppercase; display:inline-block; margin-right:6px}
+
+/* qa */
+.qa{border:1px solid var(--hair); border-radius:var(--r); padding:14px 16px; margin:11px 0; background:var(--card)}
+.qa .q{font-weight:600; margin:0}
+.qa .q .qn{font-family:var(--mono); color:var(--cost); font-size:12px; margin-right:8px}
+.reveal{
+  font-family:var(--mono); font-size:11px; background:var(--tint); border:1px solid var(--hair);
+  color:var(--ink); padding:5px 11px; border-radius:2px; cursor:pointer; margin-top:10px;
+}
+.reveal:hover{border-color:var(--slate)}
+.hidden{display:none}
+.show{display:block}
+.ans{margin-top:11px; padding-top:11px; border-top:1px dashed var(--hair); color:var(--slate); font-size:14px}
+.ans.show{display:block}
+
+/* footer */
+footer{font-family:var(--mono); font-size:11.5px; color:var(--slate); border-top:1px solid var(--hair); margin-top:40px; padding-top:18px; line-height:1.8}
+footer b{color:var(--cost)}
+
+/* dialog */
+dialog#dl{border:1px solid var(--hair); border-radius:var(--r); padding:0; max-width:760px; width:92vw; background:var(--card); color:var(--ink)}
+dialog#dl::backdrop{background:rgba(16,26,51,.42)}
+dialog#dl .dh{display:flex; align-items:center; justify-content:space-between; padding:15px 18px; border-bottom:1px solid var(--hair)}
+dialog#dl .dh h3{font-family:var(--display); margin:0; font-size:18px}
+dialog#dl .dh button{font-family:var(--mono); font-size:12px; background:none; border:1px solid var(--hair); border-radius:2px; padding:5px 10px; cursor:pointer}
+dialog#dl pre{margin:0; padding:16px 18px; max-height:56vh; overflow:auto; font-family:var(--mono); font-size:12px; line-height:1.6; white-space:pre-wrap; color:var(--ink)}
+dialog#dl .da{display:flex; gap:8px; padding:13px 18px; border-top:1px solid var(--hair)}
+dialog#dl .da button{font-family:var(--mono); font-size:12px; padding:7px 13px; border-radius:2px; cursor:pointer; border:1px solid var(--hair); background:var(--card)}
+dialog#dl .da button.pri{background:var(--cost); color:#fff; border-color:var(--cost)}
+
+/* toast */
+.toast{position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; font-family:var(--mono); font-size:12px; padding:9px 16px; border-radius:var(--r); opacity:0; pointer-events:none; transition:all .25s ease; z-index:50}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+:focus-visible{outline:2px solid var(--cost); outline-offset:2px}
+
+@media (max-width:720px){
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .split{grid-template-columns:1fr}
+}
+@media (max-width:380px){
+  body{background-image:none}
+  .wrap{padding:22px 14px 70px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .split{grid-template-columns:1fr}
+  .code .cp{opacity:1}
+  h1{font-size:28px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important; transition:none !important; scroll-behavior:auto !important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="plan-call">plan_de_estudio_sql &gt; módulo <b>05</b> &gt; fase 05 · patrones analíticos</div>
+
+  <h1>Patrones analíticos<br><em>que se escriben de memoria</em><span class="dot">.</span></h1>
+
+  <p class="lede"><b>Resultado esperado:</b> reconocer el patrón detrás del pedido de negocio y escribirlo sin pensar la plomería. Motores de referencia: <b>SQL Server 2019+</b> (T-SQL), con equivalencia en <b>PostgreSQL 14+</b> y <b>Spark SQL 3.x</b> cuando difieren.</p>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="costbar" id="costbar"></div>
+  <div class="costcap" id="costcap"></div>
+
+  <div class="bar" id="bar"></div>
+
+  <!-- §0 DATASET -->
+  <section class="sec" id="s0">
+    <div class="sec-head"><span class="n">§0</span><h2>Dataset reproducible</h2><span class="c">setup</span></div>
+    <p class="sec-note">Reusamos el dataset del <b>módulo 01</b>. Aquí va el recap mínimo para que todo corra aislado, y luego las <b>tablas nuevas</b> que este módulo necesita. Lo cubierto antes se da por conocido y se cita por número.</p>
+
+    <div class="card">
+      <h3>Recap del módulo 01 — se asume ya creado</h3>
+      <p class="muted">Si ya tienes el esquema del módulo 01, salta este bloque. <code>dbo.ClienteExterno</code> y <code>dbo.ClienteMasivo</code> (tablas fuente con duplicados, ver módulo 01, tema 5) no se repiten aquí; para deduplicación usamos una staging nueva.</p>
+      <div class="code">
+        <span class="cap">recap · base del módulo 01</span><button class="cp">copiar</button>
+<pre>IF OBJECT_ID('dbo.Venta','U')     IS NOT NULL DROP TABLE dbo.Venta;
+IF OBJECT_ID('dbo.VentaHist','U') IS NOT NULL DROP TABLE dbo.VentaHist;
+IF OBJECT_ID('dbo.Producto','U')  IS NOT NULL DROP TABLE dbo.Producto;
+IF OBJECT_ID('dbo.Cliente','U')   IS NOT NULL DROP TABLE dbo.Cliente;
+
+CREATE TABLE dbo.Cliente(
+  ClienteID  INT PRIMARY KEY,
+  Nombre     VARCHAR(60),
+  Segmento   VARCHAR(20),   -- 'Masivo','Pyme','Corporativo'
+  Ciudad     VARCHAR(40),
+  FechaAlta  DATE
+);
+CREATE TABLE dbo.Producto(
+  ProductoID INT PRIMARY KEY,
+  Nombre     VARCHAR(60),
+  Categoria  VARCHAR(30),
+  Precio     DECIMAL(12,2)
+);
+CREATE TABLE dbo.Venta(
+  VentaID    INT PRIMARY KEY,
+  ClienteID  INT NOT NULL,
+  ProductoID INT NOT NULL,
+  Fecha      DATE NOT NULL,
+  Cantidad   INT NOT NULL,
+  Monto      DECIMAL(12,2) NOT NULL
+);
+CREATE TABLE dbo.VentaHist(      -- misma forma, años anteriores
+  VentaID INT PRIMARY KEY, ClienteID INT, ProductoID INT,
+  Fecha DATE, Cantidad INT, Monto DECIMAL(12,2)
+);
+
+INSERT INTO dbo.Cliente VALUES
+ (1,'Andrade','Pyme','Guayaquil','2023-11-02'),
+ (2,'Beltran','Masivo','Quito','2024-01-15'),
+ (3,'Cedeno','Corporativo','Guayaquil','2024-02-20'),
+ (4,'Duarte','Masivo','Manta','2024-05-09'),
+ (5,'Erazo','Pyme','Cuenca','2024-08-30');
+
+INSERT INTO dbo.Producto VALUES
+ (10,'Microcredito','Credito',0),
+ (11,'Tarjeta Oro','Tarjeta',0),
+ (12,'Seguro Vida','Seguro',0),
+ (13,'Deposito Plazo','Pasivo',0);
+
+-- Ventas 2024-2025 (grano diario, con huecos deliberados)
+INSERT INTO dbo.Venta VALUES
+ (100,1,10,'2024-12-01',1, 800.00),
+ (101,1,11,'2025-01-05',1, 300.00),
+ (102,1,10,'2025-02-03',1, 900.00),
+ (103,2,12,'2024-12-20',2, 150.00),
+ (104,2,11,'2025-01-20',1, 300.00),
+ (105,3,13,'2025-01-02',1,5000.00),
+ (106,3,10,'2025-02-02',1,2200.00),
+ (107,3,11,'2025-02-18',1, 300.00),
+ (108,4,10,'2025-01-10',1, 450.00),
+ (109,5,13,'2025-02-11',1,1200.00),
+ (110,1,12,'2025-02-25',1, 150.00),
+ (111,2,10,'2025-03-14',1, 700.00),
+ (112,3,13,'2025-03-03',1,3000.00);
+
+INSERT INTO dbo.VentaHist VALUES
+ (90,1,10,'2024-01-05',1, 750.00),
+ (91,1,11,'2024-02-10',1, 300.00),
+ (92,3,13,'2024-02-14',1,4800.00),
+ (93,2,12,'2024-01-20',1, 150.00);</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Tablas nuevas del módulo 05</h3>
+      <p><code>dbo.EventoWeb</code> da grano de evento con timestamp (para sesiones, rachas y actividad). <code>dbo.ClienteStage</code> trae duplicados con criterio de supervivencia (para dedup). <code>dbo.DimCalendario</code> es el espinazo de fechas denso que los comparativos YoY/MoM necesitan.</p>
+      <div class="code">
+        <span class="cap">nuevo · módulo 05</span><button class="cp">copiar</button>
+<pre>IF OBJECT_ID('dbo.EventoWeb','U')    IS NOT NULL DROP TABLE dbo.EventoWeb;
+IF OBJECT_ID('dbo.ClienteStage','U') IS NOT NULL DROP TABLE dbo.ClienteStage;
+IF OBJECT_ID('dbo.DimCalendario','U')IS NOT NULL DROP TABLE dbo.DimCalendario;
+
+CREATE TABLE dbo.EventoWeb(
+  EventoID    BIGINT PRIMARY KEY,
+  ClienteID   INT NOT NULL,
+  TipoEvento  VARCHAR(20) NOT NULL,       -- 'login','view','click','logout'
+  FechaHora   DATETIME2(0) NOT NULL
+);
+INSERT INTO dbo.EventoWeb VALUES
+ (1,1,'login' ,'2025-02-10T09:00:00'),
+ (2,1,'view'  ,'2025-02-10T09:04:00'),
+ (3,1,'click' ,'2025-02-10T09:12:00'),   -- +8 min  -> misma sesion
+ (4,1,'view'  ,'2025-02-10T10:05:00'),   -- +53 min -> sesion nueva
+ (5,1,'logout','2025-02-10T10:09:00'),
+ (6,2,'login' ,'2025-02-10T22:30:00'),
+ (7,2,'view'  ,'2025-02-10T22:33:00'),
+ (8,2,'view'  ,'2025-02-11T07:50:00'),   -- cruza medianoche -> sesion nueva
+ (9,3,'login' ,'2025-02-12T14:00:00'),
+ (10,3,'click','2025-02-12T14:29:59'),   -- +29:59 -> MISMA sesion (umbral 30)
+ (11,3,'view' ,'2025-02-12T15:00:00');   -- +30:01 -> sesion nueva
+
+CREATE TABLE dbo.ClienteStage(
+  FilaID             INT PRIMARY KEY,
+  ClienteID          INT NOT NULL,        -- clave de negocio (se repite)
+  Nombre             VARCHAR(60),
+  Email              VARCHAR(80),
+  Telefono           VARCHAR(20),
+  FechaActualizacion DATETIME2(0),
+  Fuente             VARCHAR(20)
+);
+INSERT INTO dbo.ClienteStage VALUES
+ (1,1,'Andrade J.', NULL,              '099-111','2025-01-10','core'),
+ (2,1,'Andrade',    'a@bg.com',        '099-111','2025-02-01','crm'),   -- gana: mas nuevo + email
+ (3,1,'ANDRADE',    'andrade@old.com', NULL,     '2024-12-01','legacy'),
+ (4,2,'Beltran',    'b@bg.com',        NULL,     '2025-02-05','crm'),
+ (5,2,'Beltran R.', NULL,              '098-222','2025-02-05','core'), -- empate de fecha: desempata email
+ (6,3,'Cedeno',     'c@bg.com',        '097-333','2025-01-30','crm');
+
+-- Calendario mensual denso 2024-01 .. 2025-12
+CREATE TABLE dbo.DimCalendario(PrimerDiaMes DATE PRIMARY KEY, Anio INT, Mes INT);
+;WITH m AS (
+  SELECT CAST('2024-01-01' AS DATE) d
+  UNION ALL SELECT DATEADD(MONTH,1,d) FROM m WHERE d &lt; '2025-12-01'
+)
+INSERT INTO dbo.DimCalendario SELECT d, YEAR(d), MONTH(d) FROM m OPTION (MAXRECURSION 0);</pre>
+      </div>
+      <div class="rule"><b>Nota de precisión</b>Los timestamps de <code>EventoWeb</code> están elegidos para pegar justo en los bordes del umbral de 30 min (29:59 vs 30:01). Esos casos frontera son los que rompen la sesionización ingenua — los explotamos en el tema 2 y en §4.</div>
+    </div>
+  </section>
+
+  <!-- §1 MODELO MENTAL -->
+  <section class="sec" id="s1">
+    <div class="sec-head"><span class="n">§1</span><h2>Modelo mental primero</h2><span class="c">cómo lo piensa el motor</span></div>
+    <p class="sec-note">Casi todo este módulo es una variación de un solo gesto: <b>ordenar filas dentro de una partición y mirar a los vecinos</b>. Si internalizas cómo el motor ejecuta una window function, los diez patrones dejan de ser recetas sueltas.</p>
+
+    <div class="card">
+      <h3>El operador que está debajo de todo: Window Spool</h3>
+      <p>Una función de ventana (<code>ROW_NUMBER</code>, <code>LAG</code>, <code>SUM() OVER</code>) se resuelve con una tubería fija en el plan:</p>
+      <ol>
+        <li><b>Sort</b> (o Index Scan ordenado si hay índice que cubra <code>PARTITION BY ... ORDER BY</code>): el motor necesita las filas en orden. Este Sort suele ser el operador más caro del plan.</li>
+        <li><b>Segment</b>: marca dónde empieza cada partición.</li>
+        <li><b>Sequence Project / Window Spool</b>: calcula el valor de ventana recorriendo el frame. Un frame <code>ROWS</code> usa un spool en memoria barato; un frame <code>RANGE</code> (el default de <code>ORDER BY</code> sin cláusula explícita) puede caer a un <b>spool en disco</b> y es mucho más caro.</li>
+      </ol>
+      <div class="rule"><b>Regla de coste</b>Si pones <code>ORDER BY</code> en un <code>SUM() OVER</code> sin especificar el frame, heredas <code>RANGE UNBOUNDED PRECEDING</code>. Casi siempre quieres <code>ROWS UNBOUNDED PRECEDING</code>: mismo resultado para un acumulado sin empates, pero evita el on-disk worktable. Es la optimización gratis más común del módulo.</div>
+      <p>Los diez patrones se reducen a tres gestos sobre esa tubería:</p>
+      <ul>
+        <li><b>Comparar con el vecino</b> — <code>LAG/LEAD</code>: sesiones, YoY/MoM, gaps.</li>
+        <li><b>Numerar dentro del grupo</b> — <code>ROW_NUMBER/DENSE_RANK</code>: dedup, islas, cohortes.</li>
+        <li><b>Agregar condicionalmente</b> — <code>SUM(CASE...)</code> / <code>GROUPING SETS</code>: pivots, matrices, subtotales.</li>
+      </ul>
+      <p class="muted">Equivalencia de motor: PostgreSQL y Spark SQL implementan el mismo pipeline (WindowAgg en PG; <code>Window</code> + <code>Sort</code> en el plan físico de Spark). La diferencia práctica aparece en el frame default y en qué funciones existen, no en el modelo mental.</p>
+    </div>
+  </section>
+
+  <!-- §2 TEMAS -->
+  <section class="sec" id="s2">
+    <div class="sec-head"><span class="n">§2</span><h2>Los diez patrones</h2><span class="c" id="s2count"></span></div>
+    <p class="sec-note">Cada nodo abre con el <b>modelo mental</b> del patrón, su ejemplo <b>ejecutable</b> en T-SQL y la <b>equivalencia</b> en PostgreSQL / Spark SQL solo cuando difiere. Marca el check para ponderar el avance por minutos.</p>
+    <div class="branch" id="temas"></div>
+  </section>
+
+  <!-- §3 INGENUA VS CORRECTA -->
+  <section class="sec" id="s3">
+    <div class="sec-head"><span class="n">§3</span><h2>Ingenua vs correcta</h2><span class="c">plan &amp; coste</span></div>
+    <p class="sec-note">Tres duelos. En los tres, la ingenua compila sin error y a veces hasta es más barata — pero una da resultado silenciosamente incorrecto y las otras dos escalan mal.</p>
+
+    <div class="card">
+      <h3>Duelo A — Variación MoM sobre meses con huecos</h3>
+      <p>Pedido: variación mensual de monto por cliente. La ingenua asume que las filas mensuales son contiguas.</p>
+      <div class="split">
+        <div>
+          <div class="code bad">
+            <span class="cap">ingenua · LAG por posición</span><button class="cp">copiar</button>
+<pre>WITH mv AS (
+  SELECT ClienteID,
+         DATEFROMPARTS(YEAR(Fecha),MONTH(Fecha),1) m,
+         SUM(Monto) monto
+  FROM dbo.Venta GROUP BY ClienteID,
+         DATEFROMPARTS(YEAR(Fecha),MONTH(Fecha),1))
+SELECT ClienteID, m, monto,
+  monto - LAG(monto) OVER(PARTITION BY ClienteID
+                          ORDER BY m) AS mom
+FROM mv;</pre>
+          </div>
+          <p class="muted"><b>Plan:</b> Hash/Stream Aggregate → Sort → Sequence Project (LAG). Barato: 1 sola pasada.<br><b>Pero:</b> si el cliente 1 no vendió en marzo, <code>LAG</code> compara abril contra <b>febrero</b> y lo etiqueta como “mes anterior”. Resultado incorrecto, sin aviso.</p>
+        </div>
+        <div>
+          <div class="code good">
+            <span class="cap">correcta · join al mes calendario</span><button class="cp">copiar</button>
+<pre>WITH mv AS (
+  SELECT ClienteID,
+         DATEFROMPARTS(YEAR(Fecha),MONTH(Fecha),1) m,
+         SUM(Monto) monto
+  FROM dbo.Venta GROUP BY ClienteID,
+         DATEFROMPARTS(YEAR(Fecha),MONTH(Fecha),1))
+SELECT c.ClienteID, c.m, c.monto,
+       c.monto - p.monto AS mom
+FROM mv c
+LEFT JOIN mv p
+  ON p.ClienteID = c.ClienteID
+ AND p.m = DATEADD(MONTH,-1,c.m);   -- mes anterior REAL</pre>
+          </div>
+          <p class="muted"><b>Plan:</b> agrega una vez, luego <b>Hash Match (left join)</b> de <code>mv</code> contra sí misma por clave calendárica. Un operador más, pero el “mes anterior” es el mes real: si no existe, da <code>NULL</code> (correcto), no el mes previo que sí tiene datos.</p>
+        </div>
+      </div>
+      <div class="rule"><b>Veredicto</b>El <code>LAG</code> por posición solo es correcto si garantizas una fila por mes por cliente. La forma robusta y además rápida es densificar una vez contra <code>DimCalendario</code> y recién ahí aplicar <code>LAG</code> (ver tema 4).</div>
+    </div>
+
+    <div class="card">
+      <h3>Duelo B — Subtotales por segmento + total general</h3>
+      <div class="split">
+        <div>
+          <div class="code bad">
+            <span class="cap">ingenua · UNION ALL (N pasadas)</span><button class="cp">copiar</button>
+<pre>SELECT Segmento, SUM(Monto) monto
+FROM dbo.Venta v JOIN dbo.Cliente c
+  ON c.ClienteID=v.ClienteID
+GROUP BY Segmento
+UNION ALL
+SELECT 'TOTAL', SUM(Monto)
+FROM dbo.Venta;        -- segunda lectura de la tabla</pre>
+          </div>
+          <p class="muted"><b>Plan:</b> dos ramas con <b>Table/Index Scan</b> independientes, dos Stream Aggregate, un Concatenation. La tabla base se lee <b>dos veces</b>. Con k niveles de subtotal son k+1 scans.</p>
+        </div>
+        <div>
+          <div class="code good">
+            <span class="cap">correcta · ROLLUP (1 pasada)</span><button class="cp">copiar</button>
+<pre>SELECT CASE WHEN GROUPING(c.Segmento)=1
+            THEN 'TOTAL' ELSE c.Segmento END AS Segmento,
+       SUM(v.Monto) monto
+FROM dbo.Venta v JOIN dbo.Cliente c
+  ON c.ClienteID=v.ClienteID
+GROUP BY ROLLUP(c.Segmento);</pre>
+          </div>
+          <p class="muted"><b>Plan:</b> <b>un solo scan</b>, un Sort y un Stream Aggregate que emite las filas de detalle y la fila super-agregada en el mismo recorrido. Menos I/O lógico y escala a varios niveles sin multiplicar lecturas.</p>
+        </div>
+      </div>
+      <div class="rule"><b>Veredicto</b><code>ROLLUP</code> gana por I/O: una pasada vs k+1. Además <code>GROUPING()</code> distingue la fila total de un <code>NULL</code> real — el <code>'TOTAL'</code> literal de la ingenua se rompe si algún segmento es <code>NULL</code>.</div>
+    </div>
+
+    <div class="card">
+      <h3>Duelo C — Deduplicar al registro superviviente</h3>
+      <p>Pedido: una fila por <code>ClienteID</code> en <code>ClienteStage</code>, la más reciente. Refuerza lo que ya probaste en el trabajo real (ver módulo 01, tema 5).</p>
+      <div class="split">
+        <div>
+          <div class="code bad">
+            <span class="cap">ingenua · CROSS APPLY TOP 1</span><button class="cp">copiar</button>
+<pre>SELECT k.ClienteID, s.*
+FROM (SELECT DISTINCT ClienteID FROM dbo.ClienteStage) k
+CROSS APPLY (
+  SELECT TOP 1 *
+  FROM dbo.ClienteStage s
+  WHERE s.ClienteID = k.ClienteID
+  ORDER BY s.FechaActualizacion DESC
+) s;</pre>
+          </div>
+          <p class="muted"><b>Plan:</b> <b>Nested Loops</b>: por cada clave distinta, un Top-N Sort + scan del inner. Es O(claves × filas): un seek/scan por grupo. En tablas grandes sin índice de cobertura, mortal.</p>
+        </div>
+        <div>
+          <div class="code good">
+            <span class="cap">correcta · ROW_NUMBER, 1 pasada</span><button class="cp">copiar</button>
+<pre>WITH r AS (
+  SELECT *,
+    ROW_NUMBER() OVER(
+      PARTITION BY ClienteID
+      ORDER BY FechaActualizacion DESC,
+               CASE WHEN Email IS NULL THEN 1 ELSE 0 END
+    ) rn
+  FROM dbo.ClienteStage)
+SELECT * FROM r WHERE rn = 1;</pre>
+          </div>
+          <p class="muted"><b>Plan:</b> un <b>solo Sort</b> + Sequence Project sobre toda la tabla, luego filtro <code>rn=1</code>. Una pasada, sin bucle anidado. El criterio de supervivencia (más nuevo, y a igualdad el que tiene email) vive dentro del <code>ORDER BY</code>.</p>
+        </div>
+      </div>
+      <div class="rule"><b>Veredicto</b>El CTE con <code>ROW_NUMBER()</code> materializa en una pasada y filtra una vez; el <code>CROSS APPLY TOP 1</code> dispara nested loops por fila. Mismo resultado, coste radicalmente distinto — exactamente el hallazgo de tu optimización en producción.</div>
+    </div>
+  </section>
+
+  <!-- §4 ERRORES -->
+  <section class="sec" id="s4">
+    <div class="sec-head"><span class="n">§4</span><h2>Errores silenciosos</h2><span class="c">resultado incorrecto sin excepción</span></div>
+    <p class="sec-note">Ninguno lanza error. Todos devuelven un número que parece razonable y está mal. Cada uno con su repro mínimo.</p>
+    <div id="errs"></div>
+  </section>
+
+  <!-- §5 EJERCICIOS -->
+  <section class="sec" id="s5">
+    <div class="sec-head"><span class="n">§5</span><h2>Ejercicios</h2><span class="c" id="s5count"></span></div>
+    <p class="sec-note">Dificultad creciente sobre el mismo dataset. Los dos últimos exigen combinar varios patrones del módulo. Solución comentada tras el botón.</p>
+    <div class="branch" id="ejs"></div>
+  </section>
+
+  <!-- §6 MINI-PROYECTO -->
+  <section class="sec" id="s6">
+    <div class="sec-head"><span class="n">§6</span><h2>Mini-proyecto de cierre</h2><span class="c">criterios verificables</span></div>
+    <p class="sec-note">Un tablero de actividad y retención sobre <code>Venta</code> + <code>EventoWeb</code>. Entregable: un conjunto de consultas que satisfagan los criterios de aceptación. No hay números mágicos — los criterios son <b>invariantes que validas corriendo una query de chequeo</b>.</p>
+    <div class="card">
+      <h3>Pedido de negocio</h3>
+      <p>“Quiero entender cómo se comportan las cohortes de clientes y si vuelven. Dame el tablero mensual con retención, variación de ingresos y comportamiento de sesión, más un registro dorado de clientes sin duplicados.”</p>
+      <h4>Entregables</h4>
+      <ol>
+        <li><b>Triángulo de retención por cohorte</b> (mes de primera compra × offset de periodo), con clientes distintos activos y % respecto al tamaño de la cohorte.</li>
+        <li><b>Variación MoM y YoY</b> del monto total, usando <code>DimCalendario</code> para que los meses sin venta cuenten como cero y no se salten.</li>
+        <li><b>Sesionización</b> de <code>EventoWeb</code> con umbral 30 min: nº de sesiones por cliente y duración media de sesión.</li>
+        <li><b>Racha de meses activos</b> consecutivos más larga por cliente (gaps &amp; islands sobre meses con compra).</li>
+        <li><b>Registro dorado</b>: una fila por <code>ClienteID</code> desde <code>ClienteStage</code>, con criterio de supervivencia documentado.</li>
+        <li><b>Matriz segmento × mes</b> de ingresos con subtotales <code>ROLLUP</code> y etiquetas correctas vía <code>GROUPING()</code>.</li>
+      </ol>
+      <h4>Criterios de aceptación (verificables)</h4>
+      <ul>
+        <li><b>Retención coherente:</b> el offset 0 de toda cohorte es 100%. <code>SUM</code> de clientes distintos de la fila cohorte (todos los offsets contados una vez) nunca supera el tamaño de la cohorte.</li>
+        <li><b>Sin doble conteo:</b> un cliente con dos compras en el mismo mes cuenta como <b>1</b> activo. Chequeo: la retención usa <code>COUNT(DISTINCT ClienteID)</code>, no <code>COUNT(*)</code>.</li>
+        <li><b>Meses densos:</b> existe fila para todo mes del rango por segmento, aun con monto 0. Chequeo: <code>COUNT(*)</code> del tablero = nº segmentos × nº meses.</li>
+        <li><b>Reconciliación de totales:</b> el gran total del <code>ROLLUP</code> = <code>SELECT SUM(Monto) FROM Venta</code> sin agrupar. Si no cuadran al centavo, hay filas perdidas en un join.</li>
+        <li><b>Sesión frontera:</b> con umbral de 30 min exactos, el evento 10 (29:59) queda en la misma sesión que el 9; el evento 11 (30:01) abre sesión nueva. El cliente 3 debe dar exactamente <b>2</b> sesiones.</li>
+        <li><b>Dedup determinista:</b> el registro dorado del cliente 1 es la fila 2 (<code>crm</code>, con email, más reciente); el del cliente 2 es la fila 4 (<code>crm</code>, tie-break por email no nulo). Si tu <code>ORDER BY</code> no es determinista, el resultado cambia entre corridas.</li>
+      </ul>
+      <div class="rule warn"><b>Trampa de diseño</b>Si construyes la retención contando actividad en <code>Venta</code> pero la cohorte la defines con <code>EventoWeb</code>, un cliente puede “retener” sin existir en su propia cohorte. Define cohorte y actividad sobre <b>la misma fuente</b>, o justifica el cruce por escrito.</div>
+    </div>
+  </section>
+
+  <!-- §7 AUTOEVALUACIÓN -->
+  <section class="sec" id="s7">
+    <div class="sec-head"><span class="n">§7</span><h2>Autoevaluación</h2><span class="c">tipo entrevista</span></div>
+    <p class="sec-note">Diez preguntas de entrevista técnica. Respuesta modelo breve tras el botón.</p>
+    <div id="exam"></div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<dialog id="dl">
+  <div class="dh"><h3>Prompt · Módulo 06</h3><button id="dlx">cerrar</button></div>
+  <pre id="dlpre"></pre>
+  <div class="da"><button class="pri" id="dlcopy">copiar prompt</button><button id="dlclose">cerrar</button></div>
+</dialog>
+<div class="toast" id="toast">copiado</div>
+
+<script>
+/* ============ CONTENIDO EN DATOS ============ */
+const COST = 132; // coste del modulo en el roadmap
+
+const TEMAS = [
+{id:'t1', min:18, titulo:'Gaps and islands: rachas y estados continuos', html:`
+<p><b>Modelo mental.</b> Una "isla" es una racha de filas consecutivas (días de compra seguidos, periodo en el mismo estado). El truco universal: restar al valor su numeración ordenada. Si las filas son consecutivas, <code>valor − ROW_NUMBER()</code> es <b>constante</b> dentro de la isla; ese constante es la clave de grupo. El motor solo necesita un Sort + Sequence Project — no hay self-join.</p>
+<div class="code"><span class="cap">t-sql · islas de meses con compra por cliente</span><button class="cp">copiar</button>
+<pre>WITH meses AS (   -- un mes por cliente donde hubo venta
+  SELECT DISTINCT ClienteID,
+         DATEFROMPARTS(YEAR(Fecha),MONTH(Fecha),1) AS m
+  FROM dbo.Venta),
+num AS (
+  SELECT ClienteID, m,
+    ROW_NUMBER() OVER(PARTITION BY ClienteID ORDER BY m) AS rn
+  FROM meses)
+SELECT ClienteID,
+       MIN(m) AS inicio, MAX(m) AS fin,
+       COUNT(*) AS meses_racha,
+       -- clave de isla: el mes menos N meses de offset es constante
+       DATEADD(MONTH, -rn, m) AS isla
+FROM num
+GROUP BY ClienteID, DATEADD(MONTH, -rn, m)
+ORDER BY ClienteID, inicio;</pre></div>
+<p>Para <b>huecos</b> (gaps) en vez de islas, mira al vecino con <code>LEAD</code> y reporta donde el salto excede 1 unidad:</p>
+<div class="code"><span class="cap">t-sql · huecos entre meses</span><button class="cp">copiar</button>
+<pre>WITH meses AS (
+  SELECT DISTINCT ClienteID,
+         DATEFROMPARTS(YEAR(Fecha),MONTH(Fecha),1) AS m
+  FROM dbo.Venta),
+sig AS (   -- LEAD va en SELECT, nunca en WHERE
+  SELECT ClienteID, m,
+         LEAD(m) OVER(PARTITION BY ClienteID ORDER BY m) AS reanuda
+  FROM meses)
+SELECT ClienteID, m AS fin_actividad, reanuda
+FROM sig
+WHERE DATEDIFF(MONTH, m, reanuda) &gt; 1;   -- hueco &gt; 1 mes</pre></div>
+<div class="rule"><b>Datos con empates</b>Si la columna que numeras tiene <b>duplicados</b> (dos ventas el mismo día y numeras por día), <code>ROW_NUMBER</code> los separa y rompe la isla. Deduplica a grano único primero (el <code>DISTINCT</code> de arriba) o usa <code>DENSE_RANK</code> si quieres que los empates compartan número.</div>
+<p class="muted"><b>PostgreSQL / Spark SQL:</b> idéntico. Cambia solo la aritmética de fecha: PG <code>m - (rn * interval '1 month')</code>; Spark <code>add_months(m, -rn)</code>. El patrón <code>valor − row_number</code> es portable 1:1.</p>
+`},
+
+{id:'t2', min:14, titulo:'Sesiones por umbral de inactividad', html:`
+<p><b>Modelo mental.</b> Sesionizar = cortar un flujo de eventos cada vez que el silencio entre dos supera un umbral. Tres pasos en una tubería de ventana: (1) <code>LAG</code> trae el evento previo; (2) un flag marca "sesión nueva" cuando el gap ≥ umbral; (3) un <code>SUM() OVER</code> acumulado convierte los flags en un id de sesión. Cero self-joins: una sola pasada ordenada.</p>
+<div class="code"><span class="cap">t-sql · sesiones, umbral 30 min</span><button class="cp">copiar</button>
+<pre>WITH g AS (
+  SELECT ClienteID, EventoID, FechaHora,
+    DATEDIFF(SECOND,
+      LAG(FechaHora) OVER(PARTITION BY ClienteID ORDER BY FechaHora),
+      FechaHora) AS gap_seg
+  FROM dbo.EventoWeb),
+flag AS (
+  SELECT *,
+    CASE WHEN gap_seg IS NULL OR gap_seg &gt;= 30*60
+         THEN 1 ELSE 0 END AS nueva
+  FROM g),
+ses AS (
+  SELECT *,
+    SUM(nueva) OVER(PARTITION BY ClienteID ORDER BY FechaHora
+                    ROWS UNBOUNDED PRECEDING) AS sesion_nro
+  FROM flag)
+SELECT ClienteID, sesion_nro,
+       MIN(FechaHora) AS inicio, MAX(FechaHora) AS fin,
+       DATEDIFF(SECOND, MIN(FechaHora), MAX(FechaHora)) AS dur_seg,
+       COUNT(*) AS eventos
+FROM ses
+GROUP BY ClienteID, sesion_nro;</pre></div>
+<div class="rule warn"><b>El bug de DATEDIFF por bordes</b>Usa <code>DATEDIFF(SECOND,...)</code>, no <code>MINUTE</code>. <code>DATEDIFF(MINUTE,'10:00:59','10:01:00')</code> devuelve <b>1</b> aunque pasó 1 segundo: cuenta cruces de borde de minuto, no duración. Con umbral en minutos, eventos a 00:40 de distancia pueden clasificarse mal. Compara siempre en segundos (o milisegundos).</div>
+<p class="muted"><b>PostgreSQL:</b> <code>EXTRACT(EPOCH FROM (FechaHora - LAG(FechaHora) OVER(...)))</code> para el gap en segundos; el resto igual. <b>Spark SQL:</b> <code>unix_timestamp(FechaHora) - lag(unix_timestamp(FechaHora)) OVER(...)</code>; el frame acumulado es <code>ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code>.</p>
+<p class="muted">Por qué importa el frame: con <code>ROWS</code> el <code>SUM</code> acumulado usa spool en memoria. Si lo dejas en <code>RANGE</code> (default) y hay timestamps empatados, el acumulado los suma todos de golpe y corrompe el id de sesión. Ver módulo (§1).</p>
+`},
+
+{id:'t3', min:16, titulo:'Cohortes y curvas de retención', html:`
+<p><b>Modelo mental.</b> Una cohorte agrupa clientes por su <b>primer</b> evento (mes de alta por actividad). La retención mide, para cada cohorte, cuántos siguen activos N periodos después. El patrón: (1) fija el mes-cohorte por cliente con <code>MIN() OVER</code>; (2) calcula el <b>offset</b> = meses entre actividad y cohorte; (3) cuenta clientes <b>distintos</b> por (cohorte, offset). El triángulo sale de un pivot sobre el offset.</p>
+<div class="code"><span class="cap">t-sql · retención mensual (formato largo)</span><button class="cp">copiar</button>
+<pre>WITH act AS (   -- actividad mensual distinta por cliente
+  SELECT DISTINCT ClienteID,
+         DATEFROMPARTS(YEAR(Fecha),MONTH(Fecha),1) AS m
+  FROM dbo.Venta),
+coh AS (
+  SELECT ClienteID, m,
+         MIN(m) OVER(PARTITION BY ClienteID) AS cohorte
+  FROM act)
+SELECT cohorte,
+       DATEDIFF(MONTH, cohorte, m) AS offset,
+       COUNT(DISTINCT ClienteID) AS activos
+FROM coh
+GROUP BY cohorte, DATEDIFF(MONTH, cohorte, m)
+ORDER BY cohorte, offset;</pre></div>
+<p>Para el <b>%</b> de retención, divide cada celda por el tamaño de la cohorte (su columna offset 0):</p>
+<div class="code"><span class="cap">t-sql · % retención</span><button class="cp">copiar</button>
+<pre>WITH act AS (
+  SELECT DISTINCT ClienteID,
+         DATEFROMPARTS(YEAR(Fecha),MONTH(Fecha),1) m FROM dbo.Venta),
+coh AS (
+  SELECT ClienteID, m, MIN(m) OVER(PARTITION BY ClienteID) cohorte FROM act),
+grid AS (
+  SELECT cohorte, DATEDIFF(MONTH,cohorte,m) off_,
+         COUNT(DISTINCT ClienteID) act_
+  FROM coh GROUP BY cohorte, DATEDIFF(MONTH,cohorte,m))
+SELECT cohorte, off_, act_,
+  CAST(100.0*act_ /
+    MAX(CASE WHEN off_=0 THEN act_ END) OVER(PARTITION BY cohorte)
+    AS DECIMAL(5,1)) AS pct
+FROM grid ORDER BY cohorte, off_;</pre></div>
+<div class="rule"><b>El error que infla la retención</b><code>COUNT(DISTINCT ClienteID)</code> es obligatorio. Con <code>COUNT(*)</code>, un cliente que compró 3 veces en el mes cuenta 3 — la retención pasa de 100% y el triángulo deja de tener sentido. Es el fallo #1 en dashboards de retención.</div>
+<p class="muted"><b>PostgreSQL / Spark:</b> mismo patrón; <code>COUNT(DISTINCT)</code> existe en ambos. En Spark, <code>count(distinct)</code> dentro de <code>GROUP BY</code> está soportado pero es costoso en volumen — a escala se precalcula con <code>approx_count_distinct</code> o se desduplica antes del conteo.</p>
+`},
+
+{id:'t4', min:12, titulo:'Comparativos YoY / MoM y variaciones', html:`
+<p><b>Modelo mental.</b> "Mes anterior" y "mismo mes del año pasado" son <b>claves calendáricas</b>, no posiciones. <code>LAG(x,1)</code> y <code>LAG(x,12)</code> solo aciertan si garantizas una fila por periodo sin huecos. La forma robusta: densificar contra <code>DimCalendario</code> (una fila por mes, monto 0 si no hubo venta) y recién ahí comparar por posición — ahora posición y calendario coinciden.</p>
+<div class="code"><span class="cap">t-sql · MoM y YoY sobre serie densa</span><button class="cp">copiar</button>
+<pre>WITH base AS (
+  SELECT cal.PrimerDiaMes AS m,
+         SUM(ISNULL(v.Monto,0)) AS monto
+  FROM dbo.DimCalendario cal
+  LEFT JOIN dbo.Venta v
+    ON DATEFROMPARTS(YEAR(v.Fecha),MONTH(v.Fecha),1) = cal.PrimerDiaMes
+  GROUP BY cal.PrimerDiaMes)
+SELECT m, monto,
+  monto - LAG(monto,1)  OVER(ORDER BY m) AS mom_abs,
+  CAST(100.0*(monto - LAG(monto,1) OVER(ORDER BY m))
+       / NULLIF(LAG(monto,1) OVER(ORDER BY m),0) AS DECIMAL(6,1)) AS mom_pct,
+  monto - LAG(monto,12) OVER(ORDER BY m) AS yoy_abs
+FROM base ORDER BY m;</pre></div>
+<div class="rule"><b>NULLIF en el denominador, siempre</b>La variación % divide por el periodo previo. Si ese periodo fue 0, <code>/0</code> aborta la consulta. <code>NULLIF(prev,0)</code> convierte el divisor en <code>NULL</code> → el % sale <code>NULL</code> (correcto: "no comparable"), sin excepción.</div>
+<p class="muted"><b>Por qué no <code>LAG(x,12)</code> directo sobre la tabla cruda:</b> si falta cualquier mes intermedio, el offset 12 apunta a un mes equivocado (ver §3, duelo A). Densificar primero es la única forma segura; el join a calendario es barato y se hace una vez.</p>
+<p class="muted"><b>PostgreSQL / Spark:</b> igual. PG usa <code>date_trunc('month',Fecha)</code> en vez de <code>DATEFROMPARTS</code>; Spark <code>trunc(Fecha,'MM')</code>. La división segura en PG/Spark también requiere <code>NULLIF</code>.</p>
+`},
+
+{id:'t5', min:14, titulo:'Deduplicación con criterio de supervivencia', html:`
+<p><b>Modelo mental.</b> Dedup no es <code>DISTINCT</code>: <code>DISTINCT</code> colapsa filas <b>idénticas</b> y no te deja elegir cuál sobrevive. Dedup con supervivencia = numerar por clave de negocio ordenando por el criterio ganador, y quedarte con <code>rn=1</code>. El criterio (más reciente, más completo, de la fuente de más confianza) vive entero en el <code>ORDER BY</code>.</p>
+<div class="code"><span class="cap">t-sql · registro dorado por ClienteID</span><button class="cp">copiar</button>
+<pre>WITH r AS (
+  SELECT *,
+    ROW_NUMBER() OVER(
+      PARTITION BY ClienteID
+      ORDER BY FechaActualizacion DESC,                    -- 1) mas reciente
+               CASE WHEN Email IS NULL THEN 1 ELSE 0 END,  -- 2) prefiere con email
+               CASE Fuente WHEN 'crm' THEN 0 WHEN 'core' THEN 1 ELSE 2 END -- 3) confianza
+    ) AS rn
+  FROM dbo.ClienteStage)
+SELECT FilaID, ClienteID, Nombre, Email, Telefono, Fuente
+FROM r WHERE rn = 1;</pre></div>
+<div class="rule warn"><b>ORDER BY no determinista = dedup no reproducible</b>Si el criterio deja empates (ej. solo ordenas por fecha y dos filas comparten fecha), <code>ROW_NUMBER</code> elige arbitrariamente y el resultado cambia entre ejecuciones. Añade suficientes desempates para que el orden sea <b>total</b>. En el dataset, cliente 2 empata en fecha y lo resuelve el email no nulo.</div>
+<p>Si además quieres <b>fusionar</b> campos (sobrevive la fila más nueva, pero rellena el teléfono del más completo), usa agregados condicionales por clave en vez de elegir una sola fila — eso enlaza con el tema 9.</p>
+<p class="muted"><b>PostgreSQL:</b> idéntico; alternativa idiomática <code>DISTINCT ON (ClienteID) ... ORDER BY ClienteID, FechaActualizacion DESC</code> hace lo mismo en una línea, pero el <code>ROW_NUMBER</code> es más explícito y portable. <b>Spark SQL:</b> <code>ROW_NUMBER</code> igual; no existe <code>DISTINCT ON</code>.</p>
+`},
+
+{id:'t6', min:14, titulo:'GROUPING SETS, ROLLUP, CUBE y GROUPING_ID', html:`
+<p><b>Modelo mental.</b> Son azúcar para pedir <b>varias granularidades de agregación en una sola consulta y una sola pasada</b>. <code>GROUPING SETS</code>: tú listas exactamente qué combinaciones quieres. <code>ROLLUP(a,b)</code>: jerárquico — (a,b),(a),(). <code>CUBE(a,b)</code>: todas las combinaciones — (a,b),(a),(b),(). El problema es que las filas super-agregadas traen <code>NULL</code> en las columnas colapsadas, indistinguible de un <code>NULL</code> de datos: para eso está <code>GROUPING()</code> / <code>GROUPING_ID()</code>.</p>
+<div class="code"><span class="cap">t-sql · grouping sets + etiquetado</span><button class="cp">copiar</button>
+<pre>SELECT
+  CASE WHEN GROUPING(c.Segmento)=1 THEN '(todos)' ELSE c.Segmento END AS Segmento,
+  CASE WHEN GROUPING(c.Ciudad)=1   THEN '(todas)' ELSE c.Ciudad   END AS Ciudad,
+  GROUPING_ID(c.Segmento, c.Ciudad) AS gid,   -- bitmask del nivel
+  SUM(v.Monto) AS monto
+FROM dbo.Venta v JOIN dbo.Cliente c ON c.ClienteID=v.ClienteID
+GROUP BY GROUPING SETS (
+  (c.Segmento, c.Ciudad),   -- detalle
+  (c.Segmento),             -- subtotal por segmento
+  ()                        -- total general
+)
+ORDER BY gid, Segmento, Ciudad;</pre></div>
+<p><code>GROUPING_ID(Segmento,Ciudad)</code> devuelve un bitmask: <code>0</code> = ambas agrupadas (detalle), <code>1</code> = Ciudad colapsada, <code>3</code> = total. Ordenar por <code>gid</code> agrupa los niveles limpiamente y permite filtrar un nivel exacto sin adivinar con <code>NULL</code>s.</p>
+<div class="rule"><b>El error de ISNULL/COALESCE</b>Etiquetar subtotales con <code>ISNULL(Ciudad,'(todas)')</code> es un bug: si existe un cliente con <code>Ciudad = NULL</code> real, su detalle se rotula "(todas)" y se confunde con el subtotal. <b>Solo</b> <code>GROUPING()</code> distingue el <code>NULL</code> de agregación del <code>NULL</code> de datos.</div>
+<p class="muted"><b>PostgreSQL 14+:</b> soporta <code>GROUPING SETS</code>, <code>ROLLUP</code>, <code>CUBE</code> y <code>GROUPING()</code> (no <code>GROUPING_ID</code> con ese nombre; usa <code>GROUPING(a,b)</code> que ya devuelve el bitmask). <b>Spark SQL 3.x:</b> soporta los tres y <code>grouping_id()</code>; además admite la sintaxis <code>GROUP BY a, b WITH ROLLUP / WITH CUBE</code>.</p>
+`},
+
+{id:'t7', min:8, titulo:'Subtotales y totales en una sola pasada', html:`
+<p><b>Modelo mental.</b> Es la aplicación directa del tema 6 con foco en <b>coste</b>. El antipatrón clásico es <code>UNION ALL</code> de una consulta por nivel de subtotal: cada rama relee la tabla. <code>ROLLUP</code> produce detalle + subtotales + total leyendo <b>una vez</b>. En el plan ves un único Scan y un Stream Aggregate que emite todos los niveles en el mismo recorrido ordenado.</p>
+<div class="code"><span class="cap">t-sql · subtotal por segmento y total, 1 scan</span><button class="cp">copiar</button>
+<pre>SELECT
+  CASE WHEN GROUPING(c.Segmento)=1 THEN 'TOTAL GENERAL'
+       ELSE c.Segmento END AS Segmento,
+  SUM(v.Monto)  AS monto,
+  COUNT(*)      AS ventas
+FROM dbo.Venta v JOIN dbo.Cliente c ON c.ClienteID=v.ClienteID
+GROUP BY ROLLUP(c.Segmento);</pre></div>
+<table class="t">
+<tr><th>Enfoque</th><th>Lecturas de la tabla</th><th>Escala a k niveles</th></tr>
+<tr><td>UNION ALL por nivel</td><td class="no">k + 1</td><td class="no">lineal en lecturas</td></tr>
+<tr><td>ROLLUP</td><td class="yes">1</td><td class="yes">1 pasada</td></tr>
+</table>
+<div class="rule"><b>Cuándo sí UNION ALL</b>Si los "subtotales" usan <b>filtros distintos</b> (no una jerarquía de agrupación, sino p.ej. "total 2024" vs "total 2025 hasta hoy"), <code>ROLLUP</code> no aplica y <code>UNION ALL</code> (o agregados condicionales del tema 9) es lo correcto. <code>ROLLUP</code> sirve para jerarquías de columnas de agrupación, no para recortes heterogéneos.</div>
+<p class="muted"><b>PostgreSQL / Spark:</b> mismo beneficio de una pasada. Ver tema 6 para la sintaxis por motor.</p>
+`},
+
+{id:'t8', min:16, titulo:'PIVOT / UNPIVOT y pivot dinámico', html:`
+<p><b>Modelo mental.</b> Pivotar = mover valores de filas a columnas. T-SQL tiene el operador <code>PIVOT</code>, pero exige <b>conocer las columnas de antemano</b> y solo admite una agregación. Para columnas que no sabes en tiempo de escritura (meses, productos nuevos), construyes la lista de columnas con SQL dinámico. En la práctica, la agregación condicional del tema 9 reemplaza a <code>PIVOT</code> casi siempre y es más portable.</p>
+<div class="code"><span class="cap">t-sql · PIVOT estático (monto por categoría)</span><button class="cp">copiar</button>
+<pre>SELECT * FROM (
+  SELECT c.Segmento, p.Categoria, v.Monto
+  FROM dbo.Venta v
+  JOIN dbo.Cliente  c ON c.ClienteID=v.ClienteID
+  JOIN dbo.Producto p ON p.ProductoID=v.ProductoID
+) src
+PIVOT (SUM(Monto) FOR Categoria
+       IN ([Credito],[Tarjeta],[Seguro],[Pasivo])) pv;</pre></div>
+<div class="code good"><span class="cap">t-sql · pivot DINÁMICO (columnas = meses reales)</span><button class="cp">copiar</button>
+<pre>DECLARE @cols NVARCHAR(MAX), @sql NVARCHAR(MAX);
+SELECT @cols = STRING_AGG(QUOTENAME(m),',')
+FROM (SELECT DISTINCT CONVERT(char(7),Fecha,126) m FROM dbo.Venta) t;
+
+SET @sql = N'
+SELECT Segmento, ' + @cols + N'
+FROM (
+  SELECT c.Segmento, CONVERT(char(7),v.Fecha,126) m, v.Monto
+  FROM dbo.Venta v JOIN dbo.Cliente c ON c.ClienteID=v.ClienteID
+) s
+PIVOT (SUM(Monto) FOR m IN (' + @cols + N')) pv;';
+EXEC sys.sp_executesql @sql;   -- parametrizable, no concatenar valores de usuario</pre></div>
+<div class="rule warn"><b>Inyección en pivot dinámico</b>Las columnas deben pasar por <code>QUOTENAME()</code> siempre, y ejecuta con <code>sp_executesql</code> (parametrizable), no concatenando valores de usuario. <code>QUOTENAME</code> neutraliza nombres con corchetes o comillas; sin él, un valor de datos malicioso o con caracteres raros rompe o inyecta.</div>
+<p><b>UNPIVOT</b> hace lo inverso (columnas → filas). Más portable que el operador <code>UNPIVOT</code> es <code>CROSS APPLY (VALUES ...)</code>, que además maneja <code>NULL</code>s sin descartarlos:</p>
+<div class="code"><span class="cap">t-sql · unpivot con CROSS APPLY VALUES</span><button class="cp">copiar</button>
+<pre>SELECT p.ProductoID, u.metrica, u.valor
+FROM dbo.Producto p
+CROSS APPLY (VALUES
+  ('precio', p.Precio),
+  ('producto_id', p.ProductoID)
+) u(metrica, valor);</pre></div>
+<p class="muted"><b>PostgreSQL:</b> no tiene <code>PIVOT</code>; se usa <code>crosstab()</code> (extensión <code>tablefunc</code>) o, mejor, agregados <code>FILTER</code> (tema 9). <b>Spark SQL 3.x:</b> tiene cláusula nativa <code>PIVOT (...) FOR col IN (...)</code> y además permite subconsultas para columnas; el unpivot se hace con <code>stack()</code>.</p>
+`},
+
+{id:'t9', min:10, titulo:'Agregados condicionales: CASE en SUM, FILTER', html:`
+<p><b>Modelo mental.</b> El caballo de batalla del módulo. <code>SUM(CASE WHEN cond THEN x END)</code> agrega solo las filas que cumplen una condición, en una pasada, sin subconsulta. Es un pivot "a mano", más flexible que el operador <code>PIVOT</code> (varias métricas, varias condiciones, cualquier agregación) y portable a todos los motores.</p>
+<div class="code"><span class="cap">t-sql · una fila por cliente, varias métricas</span><button class="cp">copiar</button>
+<pre>SELECT ClienteID,
+  SUM(CASE WHEN YEAR(Fecha)=2025 THEN Monto END)            AS monto_2025,
+  SUM(CASE WHEN Monto &gt;= 1000 THEN Monto END)               AS monto_alto,
+  COUNT(CASE WHEN Monto &gt;= 1000 THEN 1 END)                 AS ventas_altas,
+  AVG(CASE WHEN YEAR(Fecha)=2025 THEN Monto END)            AS ticket_2025
+FROM dbo.Venta
+GROUP BY ClienteID;</pre></div>
+<div class="rule warn"><b>El bug silencioso más frecuente del módulo</b><code>COUNT(CASE WHEN cond THEN 1 ELSE 0 END)</code> cuenta <b>todas</b> las filas: el <code>0</code> no es <code>NULL</code> y <code>COUNT</code> cuenta no-nulos. Para contar solo las que cumplen, <b>omite el ELSE</b> (o pon <code>ELSE NULL</code>): <code>COUNT(CASE WHEN cond THEN 1 END)</code>. Con <code>SUM</code> el <code>ELSE 0</code> es inofensivo; con <code>COUNT</code> es un error que infla el conteo a <code>COUNT(*)</code>.</div>
+<p class="muted"><b>PostgreSQL / Spark SQL:</b> ambos soportan la sintaxis estándar <code>SUM(x) FILTER (WHERE cond)</code>, más legible y sin el riesgo del <code>ELSE</code>. <b>SQL Server (hasta 2022) NO tiene <code>FILTER</code></b>: el <code>CASE</code> dentro del agregado es la única vía. Spark 3.x: <code>count(*) FILTER (WHERE cond)</code> soportado.</p>
+`},
+
+{id:'t10', min:10, titulo:'Matrices de cruce y tablas de contingencia', html:`
+<p><b>Modelo mental.</b> Una tabla de contingencia es un pivot de <b>conteos</b> cruzando dos dimensiones categóricas: filas = dimensión A, columnas = dimensión B, celdas = frecuencia. Es agregación condicional en dos ejes: <code>SUM(CASE WHEN B=valor THEN 1 END)</code> por cada valor de B, agrupando por A. Sumar márgenes (totales de fila y columna) es <code>ROLLUP</code> sobre las dos dimensiones.</p>
+<div class="code"><span class="cap">t-sql · contingencia Segmento × Categoría (conteos)</span><button class="cp">copiar</button>
+<pre>SELECT c.Segmento,
+  COUNT(CASE WHEN p.Categoria='Credito' THEN 1 END) AS Credito,
+  COUNT(CASE WHEN p.Categoria='Tarjeta' THEN 1 END) AS Tarjeta,
+  COUNT(CASE WHEN p.Categoria='Seguro'  THEN 1 END) AS Seguro,
+  COUNT(CASE WHEN p.Categoria='Pasivo'  THEN 1 END) AS Pasivo,
+  COUNT(*) AS Total_fila
+FROM dbo.Venta v
+JOIN dbo.Cliente  c ON c.ClienteID=v.ClienteID
+JOIN dbo.Producto p ON p.ProductoID=v.ProductoID
+GROUP BY c.Segmento;</pre></div>
+<p>Para los <b>totales de columna</b> en la misma pasada, añade una fila de márgenes con <code>ROLLUP</code> sobre el segmento (o <code>GROUPING SETS</code> si quieres control exacto de qué márgenes aparecen). Para la versión de <b>proporciones</b> (cada celda como % del total general), divide por un <code>SUM(COUNT(*)) OVER()</code> o por un total precalculado con <code>NULLIF</code> al denominador.</p>
+<div class="rule"><b>Recuerda el tema 9</b>Aquí también: <code>COUNT(CASE WHEN ... THEN 1 END)</code> sin <code>ELSE</code>. Si pones <code>ELSE 0</code>, toda celda cuenta el total de filas del grupo y la matriz queda uniforme y mal.</div>
+<p class="muted"><b>PostgreSQL / Spark:</b> idéntico con <code>count(*) FILTER (WHERE Categoria='...')</code>, que es la forma más limpia de escribir una matriz de contingencia y evita el <code>ELSE</code> por completo.</p>
+`}
+];
+
+const ERRORES = [
+{h:'COUNT con ELSE 0 infla a COUNT(*)', repro:`SELECT COUNT(CASE WHEN Monto&gt;=1000 THEN 1 ELSE 0 END) FROM dbo.Venta;
+-- devuelve 13 (todas las filas), no las ventas altas`, fix:'Omite el ELSE: COUNT(CASE WHEN Monto>=1000 THEN 1 END). El 0 es no-nulo y COUNT cuenta no-nulos.'},
+{h:'LAG por posición sobre meses con huecos', repro:`-- cliente sin venta en marzo: LAG(monto) en abril
+-- compara abril vs FEBRERO y lo llama "mes anterior"`, fix:'Densifica contra DimCalendario (monto 0 por mes faltante) antes de aplicar LAG, o une por DATEADD(MONTH,-1,m). Ver tema 4.'},
+{h:'DATEDIFF(MINUTE) cuenta bordes, no duración', repro:`SELECT DATEDIFF(MINUTE,'2025-02-12T14:00:59','2025-02-12T14:01:00');
+-- devuelve 1 (paso 1 segundo). Umbral de sesion mal clasificado.`, fix:'Mide en SECOND o MILLISECOND y compara contra umbral*60. Ver tema 2.'},
+{h:'ISNULL para etiquetar subtotales de ROLLUP', repro:`-- un cliente con Ciudad = NULL real
+SELECT ISNULL(Ciudad,'(todas)') ... GROUP BY ROLLUP(Ciudad);
+-- su detalle se rotula "(todas)" = se confunde con el subtotal`, fix:'Usa GROUPING(Ciudad)=1 para detectar la fila de agregación; solo eso distingue NULL de datos de NULL de rollup. Ver tema 6.'},
+{h:'Retención con COUNT(*) en vez de DISTINCT', repro:`-- cliente con 3 compras en el mes-cohorte
+SELECT COUNT(*) activos ... -- cuenta 3, retencion &gt; 100%`, fix:'COUNT(DISTINCT ClienteID). La actividad mensual debe deduplicarse a grano cliente-mes. Ver tema 3.'},
+{h:'ORDER BY no total en dedup → resultado no reproducible', repro:`ROW_NUMBER() OVER(PARTITION BY ClienteID ORDER BY FechaActualizacion DESC)
+-- dos filas con misma fecha: gana una arbitraria, distinta cada corrida`, fix:'Añade desempates hasta que el orden sea total (email no nulo, fuente, FilaID). Ver tema 5.'},
+{h:'RANGE default en SUM() OVER acumulado', repro:`SUM(x) OVER(ORDER BY m)  -- hereda RANGE UNBOUNDED PRECEDING
+-- con empates en m, suma TODAS las filas empatadas de golpe`, fix:'Especifica ROWS UNBOUNDED PRECEDING. Corrige el valor con empates y evita el worktable en disco. Ver §1.'},
+{h:'ROW_NUMBER sobre columna con duplicados rompe la isla', repro:`-- dos ventas el mismo dia, numeradas por dia
+-- valor - row_number deja de ser constante en la racha`, fix:'Deduplica a grano único (DISTINCT) antes de numerar, o usa DENSE_RANK si los empates deben compartir número. Ver tema 1.'}
+];
+
+const EJERCICIOS = [
+{id:'e1', nivel:'1 · básico', combina:'tema 9', enun:`Para cada <b>Segmento</b>, cuenta ventas altas (Monto ≥ 1000) y bajas en una sola fila por segmento, más el ticket promedio de las altas. Sin subconsultas.`,
+sol:`<div class="code good"><span class="cap">solución</span><button class="cp">copiar</button>
+<pre>SELECT c.Segmento,
+  COUNT(CASE WHEN v.Monto&gt;=1000 THEN 1 END) AS altas,
+  COUNT(CASE WHEN v.Monto&lt; 1000 THEN 1 END) AS bajas,
+  AVG(CASE WHEN v.Monto&gt;=1000 THEN v.Monto END) AS ticket_alto
+FROM dbo.Venta v JOIN dbo.Cliente c ON c.ClienteID=v.ClienteID
+GROUP BY c.Segmento;</pre></div>
+<p class="muted">Clave: <b>sin ELSE</b> en los COUNT. El AVG ignora NULLs, así que el ticket promedio es solo sobre altas automáticamente.</p>`},
+
+{id:'e2', nivel:'2 · básico+', combina:'tema 1', enun:`Lista, por cliente, la <b>racha más larga de meses consecutivos</b> con al menos una venta, devolviendo cliente, mes inicio, mes fin y nº de meses.`,
+sol:`<div class="code good"><span class="cap">solución</span><button class="cp">copiar</button>
+<pre>WITH meses AS (
+  SELECT DISTINCT ClienteID,
+         DATEFROMPARTS(YEAR(Fecha),MONTH(Fecha),1) m FROM dbo.Venta),
+num AS (
+  SELECT ClienteID, m,
+    DATEADD(MONTH,-ROW_NUMBER() OVER(PARTITION BY ClienteID ORDER BY m),m) isla
+  FROM meses),
+rachas AS (
+  SELECT ClienteID, MIN(m) ini, MAX(m) fin, COUNT(*) n
+  FROM num GROUP BY ClienteID, isla)
+SELECT * FROM (
+  SELECT *, ROW_NUMBER() OVER(PARTITION BY ClienteID ORDER BY n DESC, ini) rk
+  FROM rachas) t
+WHERE rk=1;</pre></div>
+<p class="muted">La clave de isla <code>m − rn meses</code> es constante dentro de la racha; agrupas por ella, luego eliges la racha más larga por cliente con otro ROW_NUMBER.</p>`},
+
+{id:'e3', nivel:'3 · intermedio', combina:'tema 2', enun:`Sesioniza <code>EventoWeb</code> con umbral de <b>30 min</b> y devuelve, por cliente, nº de sesiones y duración media en minutos. Cuida el caso frontera (29:59 misma sesión, 30:01 nueva).`,
+sol:`<div class="code good"><span class="cap">solución</span><button class="cp">copiar</button>
+<pre>WITH g AS (
+  SELECT ClienteID, FechaHora,
+    DATEDIFF(SECOND, LAG(FechaHora) OVER(PARTITION BY ClienteID ORDER BY FechaHora),
+             FechaHora) gap
+  FROM dbo.EventoWeb),
+s AS (
+  SELECT *, SUM(CASE WHEN gap IS NULL OR gap&gt;=1800 THEN 1 ELSE 0 END)
+       OVER(PARTITION BY ClienteID ORDER BY FechaHora ROWS UNBOUNDED PRECEDING) sid
+  FROM g),
+dur AS (
+  SELECT ClienteID, sid,
+    DATEDIFF(SECOND,MIN(FechaHora),MAX(FechaHora)) d
+  FROM s GROUP BY ClienteID, sid)
+SELECT ClienteID, COUNT(*) sesiones, AVG(d)/60.0 dur_min
+FROM dur GROUP BY ClienteID;</pre></div>
+<p class="muted">Umbral en segundos (1800). El cliente 3 debe dar 2 sesiones: 29:59 &lt; 1800 (misma), 30:01 ≥ 1800 (nueva).</p>`},
+
+{id:'e4', nivel:'4 · intermedio+', combina:'tema 4 + tema 6', enun:`Serie mensual <b>densa</b> de monto total (meses sin venta = 0) con variación MoM%. Añade una fila de <b>total anual</b> por año usando subtotales, etiquetada correctamente.`,
+sol:`<div class="code good"><span class="cap">solución</span><button class="cp">copiar</button>
+<pre>WITH base AS (
+  SELECT cal.PrimerDiaMes m, YEAR(cal.PrimerDiaMes) a,
+         SUM(ISNULL(v.Monto,0)) monto
+  FROM dbo.DimCalendario cal
+  LEFT JOIN dbo.Venta v
+    ON DATEFROMPARTS(YEAR(v.Fecha),MONTH(v.Fecha),1)=cal.PrimerDiaMes
+  GROUP BY cal.PrimerDiaMes, YEAR(cal.PrimerDiaMes)),
+mom AS (
+  SELECT m, a, monto,
+    CAST(100.0*(monto-LAG(monto) OVER(ORDER BY m))
+      /NULLIF(LAG(monto) OVER(ORDER BY m),0) AS DECIMAL(6,1)) mom_pct
+  FROM base)
+SELECT CASE WHEN GROUPING(m)=1 THEN CONCAT('TOTAL ',a) ELSE CONVERT(char(7),m,126) END periodo,
+       SUM(monto) monto
+FROM mom
+GROUP BY ROLLUP(a, m)
+HAVING GROUPING(a)=0           -- descarta el gran total, deja meses + total anual
+ORDER BY a, GROUPING(m), m;</pre></div>
+<p class="muted">Combina densificación (tema 4) con ROLLUP jerárquico año→mes (tema 6). <code>GROUPING()</code> etiqueta la fila de total anual; el <code>HAVING</code> recorta el nivel que no quieres. El MoM% se calcula en el CTE <code>mom</code> antes de agregar.</p>`},
+
+{id:'e5', nivel:'5 · avanzado', combina:'tema 3 + tema 1 + tema 9', enun:`Construye el triángulo de <b>retención por cohorte</b> (cohorte × offset 0–3) <b>pivotado</b> a columnas, con el % respecto a la cohorte. Usa agregación condicional, no el operador PIVOT. Marca con un flag las cohortes cuya retención en offset 1 cae por debajo de 50%.`,
+sol:`<div class="code good"><span class="cap">solución</span><button class="cp">copiar</button>
+<pre>WITH act AS (
+  SELECT DISTINCT ClienteID,
+         DATEFROMPARTS(YEAR(Fecha),MONTH(Fecha),1) m FROM dbo.Venta),
+coh AS (
+  SELECT ClienteID, m, MIN(m) OVER(PARTITION BY ClienteID) cohorte FROM act),
+grid AS (
+  SELECT cohorte, DATEDIFF(MONTH,cohorte,m) off_,
+         COUNT(DISTINCT ClienteID) act_
+  FROM coh GROUP BY cohorte, DATEDIFF(MONTH,cohorte,m)),
+piv AS (
+  SELECT cohorte,
+    MAX(CASE WHEN off_=0 THEN act_ END) m0,
+    MAX(CASE WHEN off_=1 THEN act_ END) m1,
+    MAX(CASE WHEN off_=2 THEN act_ END) m2,
+    MAX(CASE WHEN off_=3 THEN act_ END) m3
+  FROM grid GROUP BY cohorte)
+SELECT cohorte, m0,
+  CAST(100.0*m1/NULLIF(m0,0) AS DECIMAL(5,1)) pct1,
+  CAST(100.0*m2/NULLIF(m0,0) AS DECIMAL(5,1)) pct2,
+  CAST(100.0*m3/NULLIF(m0,0) AS DECIMAL(5,1)) pct3,
+  CASE WHEN 100.0*m1/NULLIF(m0,0) &lt; 50 THEN 'ALERTA' ELSE '' END flag
+FROM piv ORDER BY cohorte;</pre></div>
+<p class="muted">Tres patrones: cohorte con <code>MIN() OVER</code> (tema 3), pivot por <code>MAX(CASE...)</code> a columnas de offset (tema 9), y <code>NULLIF</code> en el denominador para cohortes vacías. El flag aplica el umbral de negocio.</p>`},
+
+{id:'e6', nivel:'6 · avanzado+', combina:'tema 5 + tema 9 + tema 2', enun:`Produce un <b>registro dorado</b> por <code>ClienteID</code> desde <code>ClienteStage</code> que <b>fusione</b> campos: Nombre/Email de la fila superviviente (más reciente, con email), pero Teléfono tomado de <b>cualquier</b> fila que lo tenga. Luego enriquece cada dorado con el nº de sesiones del cliente (umbral 30 min sobre EventoWeb).`,
+sol:`<div class="code good"><span class="cap">solución</span><button class="cp">copiar</button>
+<pre>WITH r AS (
+  SELECT *, ROW_NUMBER() OVER(
+      PARTITION BY ClienteID
+      ORDER BY FechaActualizacion DESC,
+               CASE WHEN Email IS NULL THEN 1 ELSE 0 END) rn
+  FROM dbo.ClienteStage),
+dorado AS (   -- fusion: superviviente + telefono de rescate
+  SELECT s.ClienteID,
+    MAX(CASE WHEN s.rn=1 THEN s.Nombre END) Nombre,
+    MAX(CASE WHEN s.rn=1 THEN s.Email  END) Email,
+    MAX(s.Telefono) Telefono          -- cualquiera no nulo
+  FROM r s GROUP BY s.ClienteID),
+ses AS (
+  SELECT ClienteID,
+    SUM(CASE WHEN gap IS NULL OR gap&gt;=1800 THEN 1 ELSE 0 END) sesiones
+  FROM (SELECT ClienteID,
+          DATEDIFF(SECOND,LAG(FechaHora) OVER(PARTITION BY ClienteID ORDER BY FechaHora),
+                   FechaHora) gap
+        FROM dbo.EventoWeb) g
+  GROUP BY ClienteID)
+SELECT d.*, ISNULL(x.sesiones,0) sesiones
+FROM dorado d LEFT JOIN ses x ON x.ClienteID=d.ClienteID
+ORDER BY d.ClienteID;</pre></div>
+<p class="muted">La fusión usa <code>MAX(CASE WHEN rn=1 ...)</code> para campos que siguen al superviviente y <code>MAX(Telefono)</code> para el rescate de cualquier fila (tema 5 + 9). El conteo de sesiones reusa el flag del tema 2 agregado directamente (sin materializar sesiones individuales). <code>MAX</code> sobre el flag acumulado no sirve aquí — por eso se cuenta sumando los arranques de sesión.</p>`}
+];
+
+const EXAMEN = [
+{q:'¿Por qué <code>valor − ROW_NUMBER()</code> identifica islas de valores consecutivos?', a:'Porque en una secuencia consecutiva, valor y número de fila crecen al mismo paso, así que su diferencia es constante dentro de la racha y cambia al primer hueco. Ese constante sirve de clave de grupo sin self-join.'},
+{q:'Diferencia entre <code>ROLLUP</code>, <code>CUBE</code> y <code>GROUPING SETS</code>.', a:'ROLLUP(a,b) da subtotales jerárquicos: (a,b),(a),(). CUBE(a,b) da todas las combinaciones: (a,b),(a),(b),(). GROUPING SETS lista exactamente las combinaciones que quieres, sin jerarquía impuesta.'},
+{q:'¿Para qué sirve <code>GROUPING()</code> y qué error evita?', a:'Devuelve 1 en las filas super-agregadas de ROLLUP/CUBE, distinguiendo el NULL de agregación del NULL real de datos. Evita que etiquetar subtotales con ISNULL confunda un NULL de datos con una fila de subtotal.'},
+{q:'¿Por qué <code>LAG(x,1)</code> es peligroso para calcular MoM?', a:'LAG opera por posición, no por calendario. Si faltan meses, compara contra el mes previo existente y no el mes anterior real. Hay que densificar la serie (join a calendario) antes de usar LAG.'},
+{q:'¿Qué bug tiene <code>COUNT(CASE WHEN c THEN 1 ELSE 0 END)</code>?', a:'Cuenta todas las filas, porque 0 no es NULL y COUNT cuenta no-nulos. Para contar solo las que cumplen se omite el ELSE (o se usa ELSE NULL).'},
+{q:'¿Cómo sesionizas eventos por umbral de inactividad sin self-join?', a:'LAG trae el timestamp previo, un CASE marca 1 cuando el gap ≥ umbral, y un SUM() OVER acumulado (ROWS UNBOUNDED PRECEDING) convierte esos flags en id de sesión. Una sola pasada ordenada.'},
+{q:'¿Por qué <code>ROW_NUMBER()</code> supera a <code>CROSS APPLY TOP 1</code> para dedup?', a:'El CTE con ROW_NUMBER materializa en una pasada y filtra una vez; CROSS APPLY TOP 1 ejecuta un Top-N por cada clave vía nested loops (O(claves×filas)). Mismo resultado, mucho menos coste.'},
+{q:'¿Qué hace no determinista una deduplicación y cómo se corrige?', a:'Un ORDER BY que deja empates: ROW_NUMBER elige arbitrariamente y el resultado varía entre corridas. Se corrige añadiendo desempates hasta que el orden sea total (p.ej. fecha, luego email no nulo, luego PK).'},
+{q:'¿Por qué especificar <code>ROWS</code> en un <code>SUM() OVER</code> acumulado?', a:'El default con ORDER BY es RANGE UNBOUNDED PRECEDING, que ante empates suma todas las filas empatadas juntas y puede usar worktable en disco. ROWS UNBOUNDED PRECEDING da el acumulado fila a fila y evita el spool costoso.'},
+{q:'¿Cómo evitas el error de retención mayor a 100%?', a:'Contando clientes distintos (COUNT(DISTINCT ClienteID)) y deduplicando la actividad a grano cliente-mes antes de agregar. Con COUNT(*), un cliente con varias compras en el mes se cuenta varias veces.'}
+];
+
+/* prompt del siguiente modulo */
+const PROMPT_06 = [
+'Contexto del estudiante: ingeniero de datos, trabaja a diario con SQL Server (T-SQL), procesos de carga y datos en Azure/Databricks. Escribe consultas complejas; no necesita nivel introductorio.',
+'',
+'Actua como instructor senior de bases de datos relacionales. Desarrolla una clase completa y a profundidad del siguiente modulo.',
+'',
+'MODULO 06 — Rendimiento y planes de ejecucion a fondo',
+'Resultado esperado: leer un plan de ejecucion y predecir el cuello de botella antes de medir.',
+'',
+'Temas: 1) Operadores fisicos (scan/seek/lookup, nested loops/hash/merge). 2) Estimacion de cardinalidad y por que se equivoca. 3) Indices: cobertura, sargabilidad, included columns, key lookups. 4) Estadisticas y parameter sniffing. 5) Spools, worktables y tempdb. 6) Memory grants y spills a disco. 7) Paralelismo y costes CXPACKET. 8) Lectura comparada de planes estimado vs real. 9) Hints: cuando SI y cuando jamas. 10) Metodologia: de la query lenta a la causa raiz.',
+'',
+'YA CUBIERTO (no reexplicar, citar por numero):',
+'- Mod 01: dataset base (Cliente, Producto, Venta, VentaHist, ClienteExterno, ClienteMasivo), sargabilidad, CTE+ROW_NUMBER vs CROSS APPLY, NOT IN/NOT EXISTS, calificacion de alias, rangos datetime2.',
+'- Mod 05: gaps&islands, sesiones por umbral, cohortes/retencion, YoY/MoM con calendario denso, dedup con supervivencia, GROUPING SETS/ROLLUP/CUBE/GROUPING_ID, PIVOT/UNPIVOT y pivot dinamico, agregados condicionales, matrices de contingencia, y el modelo mental del Window Spool (Sort+Segment+Sequence Project, ROWS vs RANGE).',
+'',
+'Formato de la clase: modelo mental primero; tema por tema con ejemplo ejecutable T-SQL (SQL Server 2019+) y equivalencia PostgreSQL/Spark SQL cuando difiera; dataset reproducible al inicio reusando el del modulo 01 (solo tablas nuevas en seccion 0); minimo tres comparaciones ingenua vs correcta con plan de ejecucion esperado; errores comunes con repro minimo; seis ejercicios de dificultad creciente (los dos ultimos combinan temas); mini-proyecto de cierre con criterios de aceptacion verificables; diez preguntas de autoevaluacion tipo entrevista.',
+'',
+'FORMATO DE ENTREGA: un unico archivo HTML autocontenido, mismos tokens visuales y metafora de plan de ejecucion del modulo 05, nombrado modulo-06-planes-ejecucion.html. Sin almacenamiento del navegador; el avance vive en memoria y se reinicia al recargar (dilo en el footer). Manten la suma de minutos por tema igual al coste del modulo en el roadmap.'
+].join('\\n');
+
+/* ============ RENDER ============ */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+const SECCIONES=[
+  {id:'s0',n:'§0',t:'dataset'},{id:'s1',n:'§1',t:'modelo mental'},
+  {id:'s2',n:'§2',t:'temas'},{id:'s3',n:'§3',t:'ingenua vs correcta'},
+  {id:'s4',n:'§4',t:'errores'},{id:'s5',n:'§5',t:'ejercicios'},
+  {id:'s6',n:'§6',t:'mini-proyecto'},{id:'s7',n:'§7',t:'autoeval'}
+];
+
+/* stats */
+function renderStats(){
+  const done=TEMAS.filter(t=>t.done).reduce((a,t)=>a+t.min,0);
+  const pct=Math.round(100*done/COST);
+  $('#stats').innerHTML=[
+    ['temas', TEMAS.length],
+    ['costo est.', COST+'<small> min</small>'],
+    ['avance', pct+'<small>%</small>'],
+    ['nodos hechos', TEMAS.filter(t=>t.done).length+'<small>/'+TEMAS.length+'</small>'],
+    ['ejercicios', EJERCICIOS.length],
+    ['preguntas', EXAMEN.length]
+  ].map(([k,v])=>`<div class="cell"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+}
+
+/* costbar */
+function renderCostbar(){
+  $('#costbar').innerHTML=TEMAS.map((t,i)=>
+    `<button class="seg${t.done?' on':''}" data-id="${t.id}" style="flex:${t.min}"
+       title="${esc(t.titulo)} · ${t.min} min" aria-label="${esc(t.titulo)}">
+       <span class="fill"></span><span class="lbl">${i+1}</span></button>`).join('');
+  $$('#costbar .seg').forEach(s=>s.addEventListener('click',()=>{
+    showSection('s2'); const n=$('#node-'+s.dataset.id);
+    openNode(n,true); n.scrollIntoView({block:'center'});
+  }));
+  updateCostcap();
+}
+function updateCostcap(){
+  const done=TEMAS.filter(t=>t.done).reduce((a,t)=>a+t.min,0);
+  $('#costcap').innerHTML=`avance ponderado por coste · ${done} / ${COST} min · `+
+    `clic en un segmento salta a su nodo`;
+}
+
+/* nav */
+function renderBar(){
+  const chips=SECCIONES.map(s=>`<button class="chip" data-go="${s.id}">${s.n} ${s.t}</button>`).join('');
+  $('#bar').innerHTML=chips+
+    `<button class="chip" data-go="all">ver todo</button>`+
+    `<button class="chip cta" id="promptBtn">prompt módulo 06</button>`;
+  $$('#bar .chip[data-go]').forEach(c=>c.addEventListener('click',()=>showSection(c.dataset.go)));
+  $('#promptBtn').addEventListener('click',openDialog);
+}
+function showSection(id){
+  $$('#bar .chip[data-go]').forEach(c=>c.classList.toggle('active',c.dataset.go===id));
+  if(id==='all'){ $$('.sec').forEach(s=>s.classList.add('show')); window.scrollTo({top:0}); return; }
+  $$('.sec').forEach(s=>s.classList.toggle('show',s.id===id));
+  const el=$('#'+id); if(el) el.scrollIntoView({block:'start'});
+}
+
+/* temas */
+function renderTemas(){
+  $('#s2count').textContent=TEMAS.length+' nodos · '+COST+' min';
+  $('#temas').innerHTML=TEMAS.map((t,i)=>`
+   <div class="node" id="node-${t.id}" data-id="${t.id}">
+     <div class="node-head" role="button" tabindex="0" aria-expanded="false">
+       <input type="checkbox" class="chk" data-chk="${t.id}" title="marcar completado" aria-label="marcar ${esc(t.titulo)}">
+       <span class="idx">${String(i+1).padStart(2,'0')}</span>
+       <span class="tt">${esc(t.titulo)}</span>
+       <span class="mn">${t.min} min</span>
+       <span class="tog">&#8250;</span>
+     </div>
+     <div class="body">${t.html}</div>
+   </div>`).join('');
+  bindNodes('#temas');
+  $$('#temas .chk').forEach(cb=>cb.addEventListener('click',e=>{
+    e.stopPropagation();
+    const t=TEMAS.find(x=>x.id===cb.dataset.chk); t.done=cb.checked;
+    $('#node-'+t.id).classList.toggle('done',cb.checked);
+    $(`#costbar .seg[data-id="${t.id}"]`)?.classList.toggle('on',cb.checked);
+    renderStats(); updateCostcap();
+  }));
+}
+
+/* ejercicios */
+function renderEjercicios(){
+  $('#s5count').textContent=EJERCICIOS.length+' ejercicios';
+  $('#ejs').innerHTML=EJERCICIOS.map((e,i)=>`
+   <div class="node" id="node-${e.id}">
+     <div class="node-head" role="button" tabindex="0" aria-expanded="false">
+       <span class="idx">${String(i+1).padStart(2,'0')}</span>
+       <span class="tt">Ejercicio ${i+1}</span>
+       <span class="mn">${esc(e.nivel)} · ${esc(e.combina)}</span>
+       <span class="tog">&#8250;</span>
+     </div>
+     <div class="body">
+       <p>${e.enun}</p>
+       <button class="reveal" data-rev="sol-${e.id}">ver solución</button>
+       <div class="hidden" id="sol-${e.id}">${e.sol}</div>
+     </div>
+   </div>`).join('');
+  bindNodes('#ejs');
+  bindReveals('#ejs');
+}
+
+/* errores */
+function renderErrores(){
+  $('#errs').innerHTML=ERRORES.map(e=>`
+   <div class="err">
+     <h4>${esc(e.h)}</h4>
+     <div class="code bad"><span class="cap">repro mínimo</span><button class="cp">copiar</button><pre>${esc(e.repro)}</pre></div>
+     <div class="fix"><b>fix</b>${esc(e.fix)}</div>
+   </div>`).join('');
+}
+
+/* examen */
+function renderExamen(){
+  $('#exam').innerHTML=EXAMEN.map((e,i)=>`
+   <div class="qa">
+     <p class="q"><span class="qn">P${String(i+1).padStart(2,'0')}</span>${e.q}</p>
+     <button class="reveal" data-rev="ans-${i}">ver respuesta</button>
+     <div class="ans hidden" id="ans-${i}">${e.a}</div>
+   </div>`).join('');
+  bindReveals('#exam');
+}
+
+/* footer */
+function renderFooter(){
+  $('#foot').innerHTML=
+    `módulo <b>05</b> · patrones analíticos que se repiten siempre · coste estimado <b>${COST} min</b><br>`+
+    `el avance vive en memoria durante la sesión y <b>se reinicia al recargar</b> — no se guarda nada en el navegador<br>`+
+    `siguiente · módulo 06 · rendimiento y planes de ejecución a fondo`;
+}
+
+/* comportamiento compartido */
+function openNode(n,open){
+  n.classList.toggle('open',open);
+  n.querySelector('.node-head').setAttribute('aria-expanded',open?'true':'false');
+}
+function bindNodes(sel){
+  $$(sel+' .node-head').forEach(h=>{
+    const n=h.parentElement;
+    const toggle=()=>openNode(n,!n.classList.contains('open'));
+    h.addEventListener('click',e=>{ if(e.target.classList.contains('chk'))return; toggle(); });
+    h.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault(); toggle();} });
+  });
+}
+function bindReveals(sel){
+  $$(sel+' .reveal').forEach(b=>b.addEventListener('click',()=>{
+    const el=$('#'+b.dataset.rev); const open=el.classList.contains('show');
+    el.classList.toggle('show',!open); el.classList.toggle('hidden',open);
+    b.textContent = open ? b.textContent.replace('ocultar','ver') : b.textContent.replace('ver','ocultar');
+  }));
+}
+
+/* copiar (delegado, en cada bloque .code) */
+function copyText(txt){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(txt).then(()=>true,()=>false);
+  }
+  return Promise.resolve(false);
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.cp'); if(!b)return;
+  const pre=b.parentElement.querySelector('pre'); if(!pre)return;
+  const txt=pre.innerText;
+  copyText(txt).then(ok=>{
+    if(ok){ toast('copiado'); return; }
+    // respaldo: seleccionar el texto si el navegador bloquea clipboard
+    const r=document.createRange(); r.selectNodeContents(pre);
+    const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    toast('selecciónalo y Ctrl+C');
+  });
+});
+
+/* toast */
+let toastT;
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1600);
+}
+
+/* dialog prompt */
+function openDialog(){ $('#dlpre').textContent=PROMPT_06; $('#dl').showModal(); }
+$('#dlx').addEventListener('click',()=>$('#dl').close());
+$('#dlclose').addEventListener('click',()=>$('#dl').close());
+$('#dlcopy').addEventListener('click',()=>copyText(PROMPT_06).then(ok=>toast(ok?'prompt copiado':'selecciónalo y Ctrl+C')));
+
+/* init */
+renderStats(); renderCostbar(); renderBar();
+renderTemas(); renderEjercicios(); renderErrores(); renderExamen(); renderFooter();
+showSection('s0');
+</script>
+</body>
+</html>

@@ -1,0 +1,1046 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Spark: Arquitectura</title>
+<style>
+  /* Lección del curso PySpark — mismo sistema visual que el dashboard Roadmap: tarjetas, acento naranja, claro/oscuro */
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --ink: #1a2230;
+    --ink-soft: #566074;
+    --line: #dde3ec;
+    --accent: #e8622c;
+    --accent-soft: #fbe9e0;
+    --spark: #c77d00;
+    --ok: #2e8b6f;
+    --code-bg: #1d2430;
+    --code-ink: #e7ecf3;
+    --code-line: #323c4b;
+    --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10151d;
+      --surface: #19202b;
+      --surface-2: #212a37;
+      --ink: #eef2f8;
+      --ink-soft: #9aa6b8;
+      --line: #2b3542;
+      --accent: #f2743d;
+      --accent-soft: #35231a;
+      --spark: #f0b429;
+      --ok: #45b48d;
+      --code-bg: #0c1118;
+      --code-ink: #e7ecf3;
+      --code-line: #1f2a37;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10151d;
+    --surface: #19202b;
+    --surface-2: #212a37;
+    --ink: #eef2f8;
+    --ink-soft: #9aa6b8;
+    --line: #2b3542;
+    --accent: #f2743d;
+    --accent-soft: #35231a;
+    --spark: #f0b429;
+    --ok: #45b48d;
+    --code-bg: #0c1118;
+    --code-ink: #e7ecf3;
+    --code-line: #1f2a37;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    margin: 0;
+  }
+  .wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding-left: max(18px, env(safe-area-inset-left, 0px));
+    padding-right: max(18px, env(safe-area-inset-right, 0px));
+    padding-block: 30px 64px;
+  }
+
+  /* Header */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 12px;
+  }
+  .ctx {
+    color: var(--ink-soft);
+    font-size: 1.02rem;
+    max-width: 65ch;
+    margin: 0 0 22px;
+  }
+
+  /* Índice */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 34px;
+  }
+  .toc p {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 10px;
+  }
+  .toc ol {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 20px;
+    counter-reset: toc;
+  }
+  .toc li { counter-increment: toc; }
+  .toc a {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: flex;
+    gap: 8px;
+  }
+  .toc a::before {
+    content: counter(toc);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .toc a:hover { color: var(--accent); }
+
+  /* Secciones */
+  section.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 24px 22px;
+    margin-bottom: 20px;
+    scroll-margin-top: 16px;
+  }
+  section.card h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.35rem;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 11px;
+  }
+  section.card h2 .n {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: #fff;
+    background: var(--accent);
+    border-radius: 6px;
+    padding: 2px 8px;
+    flex-shrink: 0;
+  }
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.05rem;
+    margin: 22px 0 8px;
+    letter-spacing: -0.01em;
+  }
+  p { margin: 0 0 12px; }
+  .wrap a { color: var(--accent); }
+  strong { font-weight: 600; }
+  code.inl {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 1px 5px;
+    border-radius: 5px;
+    word-break: break-word;
+  }
+  ul, ol { margin: 0 0 12px; padding-left: 20px; }
+  li { margin-bottom: 5px; }
+
+  /* Código */
+  .code {
+    position: relative;
+    margin: 14px 0 16px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--code-line);
+  }
+  .code pre {
+    margin: 0;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    padding: 15px 16px;
+    overflow-x: auto;
+  }
+  .code pre code { font-family: inherit; white-space: pre; }
+  .copy-code {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--code-ink);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.16);
+    padding: 4px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .copy-code:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .copy-code.done { background: var(--ok); border-color: var(--ok); color: #fff; }
+
+  /* Aviso ⚠️ */
+  .warn {
+    background: var(--accent-soft);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 13px 15px;
+    margin: 14px 0 16px;
+    font-size: 0.92rem;
+  }
+  .warn b { color: var(--accent); }
+
+  /* Tablas */
+  .tbl-wrap { overflow-x: auto; margin: 14px 0 16px; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.86rem;
+    min-width: 440px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* Ejercicios */
+  details {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 4px 16px;
+    margin: 10px 0;
+  }
+  details summary {
+    font-family: var(--font-display);
+    font-weight: 500;
+    cursor: pointer;
+    padding: 10px 0;
+    list-style: none;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before { content: "▸ "; color: var(--accent); }
+  details[open] summary::before { content: "▾ "; }
+  details .sol { padding: 4px 0 12px; border-top: 1px solid var(--line); margin-top: 2px; }
+  .lvl {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--spark);
+    margin-left: 8px;
+  }
+
+  /* Next */
+  .next {
+    background: linear-gradient(120deg, var(--accent-soft), transparent 75%);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-top: 10px;
+  }
+  .next h2 { font-family: var(--font-display); font-size: 1.2rem; margin: 0 0 6px; }
+  .next .link {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  footer {
+    margin-top: 34px;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    color: var(--ink-soft);
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+  }
+
+  /* Glosario */
+  dl.gloss { margin: 12px 0 4px; }
+  dl.gloss dt {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: 14px;
+    font-size: 0.98rem;
+  }
+  dl.gloss dd { margin: 3px 0 0; color: var(--ink-soft); }
+
+  /* Diagrama */
+  .diagram {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 16px 12px;
+    margin: 16px 0 10px;
+  }
+  .diagram svg { width: 100%; height: auto; display: block; }
+  .diagram .cap {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 12px;
+  }
+
+  /* Bloque "a fondo" mito vs realidad */
+  .deep {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: 20px 22px 18px;
+    margin: 18px 0;
+  }
+  .deep .chip {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #fff; background: var(--accent);
+    padding: 3px 11px; border-radius: 999px; margin-bottom: 11px;
+  }
+  .deep h4 {
+    font-family: var(--font-display); font-weight: 600; font-size: 1.12rem;
+    margin: 0 0 6px; letter-spacing: -0.01em;
+  }
+  .deep > p { font-size: 0.9rem; margin: 0 0 6px; }
+  .mr { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+  .mr > div { border-radius: 9px; padding: 11px 13px; font-size: 0.85rem; line-height: 1.45; }
+  .mr .mito { background: var(--surface); border: 1px solid var(--line); color: var(--ink-soft); }
+  .mr .real { background: var(--accent-soft); border: 1px solid var(--line); color: var(--ink); }
+  .mr b { display: block; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 5px; }
+  .mr .mito b { color: var(--ink-soft); }
+  .mr .real b { color: var(--accent); }
+  .keynote {
+    background: var(--surface); border: 1px dashed var(--accent);
+    border-radius: 9px; padding: 12px 14px; margin-top: 12px; font-size: 0.88rem;
+  }
+  .keynote b { color: var(--accent); }
+
+  @media (max-width: 520px) {
+    .toc ol { grid-template-columns: 1fr; }
+    section.card { padding: 18px 16px; }
+    .mr { grid-template-columns: 1fr; }
+  }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<div class="wrap">
+  <p class="eyebrow">Fase 1 · Tema 1.1 · El motor de Spark</p>
+  <h1>Qué es Apache Spark y su arquitectura</h1>
+  <p class="ctx">El modelo mental base de todo el curso: quién hace qué dentro de un cluster, cómo tu código se convierte en tareas paralelas y dónde encaja Databricks. Para ingeniero de datos con SQL, Python y pandas.</p>
+
+  <nav class="toc">
+    <p>Contenido</p>
+    <ol>
+      <li><a href="#s1">Intuición: el problema que resuelve</a></li>
+      <li><a href="#s2">Cómo funciona por dentro</a></li>
+      <li><a href="#s3">Sintaxis y API de PySpark</a></li>
+      <li><a href="#s4">Errores y malentendidos</a></li>
+      <li><a href="#s5">Rendimiento y cuándo NO usarlo</a></li>
+      <li><a href="#s6">Cómo se aplica en Databricks</a></li>
+      <li><a href="#s7">Ejercicios</a></li>
+      <li><a href="#s8">Checklist de dominio</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <section class="card" id="s1">
+    <h2><span class="n">1</span> Intuición: el problema que resuelve</h2>
+    <p>Spark aparece en el punto donde <strong>una sola máquina ya no alcanza</strong>. Vienes de pandas: cuando haces <code class="inl">pd.read_csv()</code>, todo el DataFrame vive en la RAM de <em>una</em> máquina y lo procesa esencialmente <em>un</em> núcleo. Con 500&nbsp;GB eso no cabe en memoria, y aunque cupiera, procesarlo en secuencia tardaría horas.</p>
+    <p>Spark ataca dos problemas a la vez:</p>
+    <ul>
+      <li><strong>Escala horizontal (scale-out).</strong> Parte los datos en trozos llamados <em>particiones</em> y los procesa en paralelo repartidos entre muchas máquinas (un <em>cluster</em>). ¿Necesitas más capacidad? Añades nodos, no compras una máquina más grande.</li>
+      <li><strong>Tolerancia a fallos.</strong> Si un nodo muere a mitad del job, Spark recalcula solo la parte perdida (gracias al linaje del DAG), en vez de reventar todo el proceso.</li>
+    </ul>
+    <p>La idea rectora: <strong>lleva el cómputo a los datos, no los datos al cómputo</strong>. Mover 500&nbsp;GB por la red es carísimo; mandar tu código (unos KB) a donde ya están los datos es barato.</p>
+    <div class="warn"><b>⚠️ Trampa de entrada.</b> Spark no es "pandas pero más rápido". Para datos que caben cómodos en una máquina, pandas, Polars o DuckDB suelen ganarle, porque Spark paga un coste fijo de arranque (JVM, planificación, serialización, shuffle). Spark gana cuando el volumen o el paralelismo justifican ese overhead.</div>
+
+    <h3>El costo fijo que paga Spark</h3>
+    <p>Esos cuatro términos son el overhead que Spark asume <em>antes</em> de darte paralelismo. Entenderlos explica por qué es lento con datos pequeños:</p>
+    <dl class="gloss">
+      <dt>JVM (Java Virtual Machine)</dt>
+      <dd>Spark está escrito en Scala y corre sobre la JVM: cada driver y cada executor es un proceso JVM. Hay que arrancarla (segundos), reservarle memoria (el <em>heap</em>) y sufrir las pausas del <em>garbage collector</em>. En PySpark hay peso extra: tu código Python corre en un proceso aparte que dialoga con la JVM, y cruzar esa frontera cuesta. Nada de esto existe en pandas (Python puro, un solo proceso).</dd>
+      <dt>Planificación (scheduling)</dt>
+      <dd>Antes de ejecutar, el driver planifica: Catalyst optimiza, el DAGScheduler parte el job en stages y el TaskScheduler crea y reparte las tasks entre executors, vigilando y reintentando las que fallan. Con datos grandes ese trabajo se diluye; con datos chicos, planificar puede tardar más que el cómputo mismo.</dd>
+      <dt>Serialización</dt>
+      <dd>Convertir un objeto en memoria a bytes para mandarlo por red o guardarlo (y deserializar es lo inverso). Spark serializa sin parar: el código y las variables que el driver envía a los executors, y sobre todo los datos que viajan entre executors en un shuffle. En PySpark es doblemente caro por la frontera Python↔JVM. Es CPU gastada en mover datos, no en producir resultado.</dd>
+      <dt>Shuffle</dt>
+      <dd>La operación más cara: redistribuir datos entre executors por la red. Ocurre cuando hay que juntar filas de particiones distintas (<code class="inl">groupBy</code>, <code class="inl">join</code>, <code class="inl">orderBy</code>). Implica serializar, escribir a disco, enviar por red y releer. En <code class="inl">explain()</code> aparece como <code class="inl">Exchange</code> y marca la frontera entre dos stages.</dd>
+    </dl>
+    <p>El hilo conductor: con un CSV de 50&nbsp;MB, arrancar la JVM + planificar + serializar + hacer un shuffle puede costar más que todo el procesamiento (por eso pandas/DuckDB ganan). Con 500&nbsp;GB repartidos en 200 particiones en paralelo, ese costo fijo se vuelve insignificante frente al trabajo real. Por eso el <strong>shuffle</strong> es el primer sospechoso al optimizar: reducir <code class="inl">Exchange</code> ataca la parte más cara.</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="card" id="s2">
+    <h2><span class="n">2</span> Cómo funciona por dentro</h2>
+    <p>Un cluster de Spark tiene tres piezas. Interiorizar quién es quién resuelve el 80% de los malentendidos posteriores.</p>
+
+    <h3>Driver vs executors vs cluster manager</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Pieza</th><th>Qué es</th><th>Qué hace</th><th>Qué NO hace</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Driver</strong></td>
+            <td>El proceso que corre tu programa (tu <code class="inl">main()</code> / notebook). Hospeda la <code class="inl">SparkSession</code>.</td>
+            <td>Construye el plan lógico y el DAG, decide stages y tasks, los agenda, coordina y recoge resultados. Es el cerebro.</td>
+            <td>No procesa las particiones de datos. Si lo saturas (p. ej. <code class="inl">collect()</code>), es el cuello de botella.</td>
+          </tr>
+          <tr>
+            <td><strong>Executors</strong></td>
+            <td>Procesos JVM que corren en los nodos worker. Hay varios y viven mientras dura la aplicación.</td>
+            <td>Ejecutan las tasks (el cómputo real sobre cada partición), guardan datos en caché y se intercambian datos en los shuffles.</td>
+            <td>No deciden el plan. Solo ejecutan lo que el driver les manda.</td>
+          </tr>
+          <tr>
+            <td><strong>Cluster manager</strong></td>
+            <td>El asignador de recursos del cluster (Standalone, YARN, Kubernetes).</td>
+            <td>Levanta y reserva los executors con los cores y la memoria pedidos. Es ajeno a la lógica de tu job.</td>
+            <td>No sabe nada de tu DataFrame; solo reparte CPU y RAM.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Nodos, executors y cores: cómo se reparten</h3>
+    <p><strong>¿Driver y executors corren en el mismo nodo?</strong> Depende del <em>deploy mode</em>, no es fijo. En <code class="inl">client</code> mode el driver corre donde lanzaste el job (tu laptop, el notebook) y los executors en los nodos worker: <strong>separados</strong>. En <code class="inl">cluster</code> mode el driver también se mueve a un nodo del cluster. En <code class="inl">local[*]</code> no hay cluster: driver y "executor" son hilos dentro de una sola JVM. En todos los casos driver y executor son <strong>procesos JVM distintos</strong>, aunque caigan en el mismo nodo físico.</p>
+    <p>La jerarquía real es: <strong>Nodo ⊃ varios executors ⊃ varios cores ⊃ una task por core a la vez</strong>.</p>
+
+    <div class="warn"><b>⚠️ No es "un executor por core" — es al revés.</b> Un executor es un proceso JVM al que le asignas <strong>varios cores</strong> (<code class="inl">--executor-cores</code>). Cada core es un <em>slot</em> que corre <strong>una task a la vez</strong>. Un executor con 4 cores ejecuta 4 tasks en paralelo. Y un mismo nodo puede alojar <strong>varios executors</strong> (un executor nunca se parte entre dos nodos).</div>
+
+    <div class="diagram">
+      <svg viewBox="0 0 600 452" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama: un nodo worker contiene varios executors, cada executor varios cores, y cada core ejecuta una task a la vez">
+        <defs>
+          <marker id="arrow" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L6,3 L0,6 Z" fill="var(--ink-soft)"/>
+          </marker>
+        </defs>
+
+        <!-- Driver -->
+        <rect x="200" y="8" width="200" height="44" rx="9" fill="var(--accent)"/>
+        <text x="300" y="30" text-anchor="middle" fill="#ffffff" font-family="var(--font-display)" font-size="15" font-weight="600">Driver</text>
+        <text x="300" y="45" text-anchor="middle" fill="#ffffff" font-family="var(--font-body)" font-size="10" opacity="0.92">coordina y agenda las tasks</text>
+
+        <line x1="300" y1="52" x2="300" y2="76" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <!-- Nodo worker -->
+        <rect x="24" y="80" width="552" height="360" rx="12" fill="none" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text x="40" y="104" fill="var(--ink-soft)" font-family="var(--font-mono)" font-size="13" font-weight="500">NODO WORKER · 1 máquina física</text>
+
+        <!-- Executor A -->
+        <rect x="44" y="118" width="252" height="306" rx="10" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="170" y="140" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-size="13" font-weight="600">Executor (JVM)</text>
+        <text x="170" y="157" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10">memoria compartida: caché + broadcast</text>
+        <!-- cores A -->
+        <g>
+          <rect x="60" y="172" width="100" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--line)"/>
+          <text x="110" y="217" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="13" font-weight="500">core</text>
+          <text x="110" y="238" text-anchor="middle" fill="var(--accent)" font-family="var(--font-body)" font-size="11">1 task</text>
+
+          <rect x="180" y="172" width="100" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--line)"/>
+          <text x="230" y="217" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="13" font-weight="500">core</text>
+          <text x="230" y="238" text-anchor="middle" fill="var(--accent)" font-family="var(--font-body)" font-size="11">1 task</text>
+
+          <rect x="60" y="300" width="100" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--line)"/>
+          <text x="110" y="345" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="13" font-weight="500">core</text>
+          <text x="110" y="366" text-anchor="middle" fill="var(--accent)" font-family="var(--font-body)" font-size="11">1 task</text>
+
+          <rect x="180" y="300" width="100" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--line)"/>
+          <text x="230" y="345" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="13" font-weight="500">core</text>
+          <text x="230" y="366" text-anchor="middle" fill="var(--accent)" font-family="var(--font-body)" font-size="11">1 task</text>
+        </g>
+
+        <!-- Executor B -->
+        <rect x="304" y="118" width="252" height="306" rx="10" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="430" y="140" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-size="13" font-weight="600">Executor (JVM)</text>
+        <text x="430" y="157" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10">memoria compartida: caché + broadcast</text>
+        <!-- cores B -->
+        <g>
+          <rect x="320" y="172" width="100" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--line)"/>
+          <text x="370" y="217" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="13" font-weight="500">core</text>
+          <text x="370" y="238" text-anchor="middle" fill="var(--accent)" font-family="var(--font-body)" font-size="11">1 task</text>
+
+          <rect x="440" y="172" width="100" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--line)"/>
+          <text x="490" y="217" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="13" font-weight="500">core</text>
+          <text x="490" y="238" text-anchor="middle" fill="var(--accent)" font-family="var(--font-body)" font-size="11">1 task</text>
+
+          <rect x="320" y="300" width="100" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--line)"/>
+          <text x="370" y="345" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="13" font-weight="500">core</text>
+          <text x="370" y="366" text-anchor="middle" fill="var(--accent)" font-family="var(--font-body)" font-size="11">1 task</text>
+
+          <rect x="440" y="300" width="100" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--line)"/>
+          <text x="490" y="345" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)" font-size="13" font-weight="500">core</text>
+          <text x="490" y="366" text-anchor="middle" fill="var(--accent)" font-family="var(--font-body)" font-size="11">1 task</text>
+        </g>
+      </svg>
+      <p class="cap">Esquema ilustrativo: 1 nodo con 2 executors de 4 cores → 8 tasks en paralelo en el nodo.</p>
+    </div>
+
+    <p>Cuántos executors caben en un nodo lo decide cuánta CPU y RAM le pides a cada uno. Ejemplo con un nodo de <strong>16 cores</strong> y <strong>64&nbsp;GB</strong>, pidiendo <code class="inl">--executor-cores 4</code> y <code class="inl">--executor-memory 12g</code>:</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Recurso</th><th>Cálculo</th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td>Executors por nodo (CPU)</td><td>16 cores ÷ 4 cores/exec</td><td><strong>4 executors</strong></td></tr>
+          <tr><td>Executors por nodo (RAM)</td><td>64 GB ÷ 12 GB</td><td>5 cabrían → manda el menor = 4</td></tr>
+          <tr><td>Tasks en paralelo por executor</td><td>= cores del executor</td><td>4</td></tr>
+          <tr><td>Tasks en paralelo en el nodo</td><td>4 exec × 4 cores</td><td><strong>16</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warn"><b>⚠️</b> En la práctica se reserva ~1 core y algo de RAM por nodo para el SO y el daemon del cluster manager, y parte de la memoria del executor es <em>overhead</em> de la JVM, no datos. Rara vez usas los 16 cores limpios.</div>
+
+    <p><strong>¿Executor grande o varios pequeños?</strong> Uno enorme (los 16 cores juntos) castiga al garbage collector con heaps gigantes y pausas largas. Varios de 1 core desperdician el reaprovechamiento de caché y broadcast dentro del executor y multiplican el overhead. <strong>Punto dulce habitual: ~4–5 cores por executor.</strong> En <strong>Databricks</strong> casi no tocas esto: eliges el tipo de VM de los workers y normalmente hay <em>un executor por worker node</em> usando todos sus cores; tú manejas el número de workers y el autoscaling.</p>
+
+    <h3>SparkSession y SparkContext</h3>
+    <p>Desde Spark 2.0, <strong><code class="inl">SparkSession</code> es el único punto de entrada</strong> que necesitas. Unifica lo que antes eran <code class="inl">SQLContext</code> y <code class="inl">HiveContext</code>. Por debajo sigue existiendo el <strong><code class="inl">SparkContext</code></strong>: la conexión de bajo nivel con el cluster manager, responsable de crear RDDs, acumuladores y variables broadcast. Resumen práctico:</p>
+    <ul>
+      <li><code class="inl">SparkSession</code> → tu API moderna (DataFrames, Spark SQL). Es lo que usas el 99% del tiempo.</li>
+      <li><code class="inl">spark.sparkContext</code> (alias <code class="inl">sc</code>) → el motor por debajo; lo tocas para configs, nivel de paralelismo o RDDs crudos.</li>
+    </ul>
+    <div class="warn"><b>⚠️ Una sola por aplicación.</b> Hay <strong>un</strong> <code class="inl">SparkContext</code> por aplicación. Intentar crear un segundo lanza <code class="inl">Only one SparkContext may be running in this JVM</code>. En Databricks ni lo creas: ya viene uno listo como <code class="inl">spark</code>.</div>
+
+    <h3>Qué pasa cuando envías un job: de código a tareas</h3>
+    <p>La jerarquía de ejecución tiene cuatro niveles anidados. Interiorizarla es lo que te deja leer la Spark UI y saber por qué un job tarda lo que tarda:</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Nivel</th><th>Qué es</th><th>Qué lo crea</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Application</strong></td><td>Tu programa entero mientras vive la <code class="inl">SparkSession</code>.</td><td>Arrancar la sesión.</td></tr>
+          <tr><td><strong>Job</strong></td><td>Todo el trabajo necesario para producir <em>un</em> resultado.</td><td>Cada <strong>acción</strong> (<code class="inl">count</code>, <code class="inl">collect</code>, <code class="inl">write</code>).</td></tr>
+          <tr><td><strong>Stage</strong></td><td>Un tramo de trabajo que se ejecuta de corrido sobre las particiones <strong>sin mover datos por la red</strong>.</td><td>Un <strong>shuffle</strong> abre un stage nuevo.</td></tr>
+          <tr><td><strong>Task</strong></td><td>El trabajo sobre <strong>una partición</strong> dentro de un stage. Unidad mínima.</td><td>Hay una task por partición del stage.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>El recorrido completo, de tu código a los executors:</p>
+    <ol>
+      <li><strong>Escribes transformaciones</strong> (<code class="inl">select</code>, <code class="inl">filter</code>, <code class="inl">groupBy</code>). No se ejecuta nada: son <em>lazy</em>, solo construyen un plan lógico.</li>
+      <li><strong>Llamas a una acción</strong>. Eso dispara un <strong>job</strong>.</li>
+      <li>El <strong>Catalyst optimizer</strong> convierte el plan lógico en un <strong>plan físico</strong> optimizado.</li>
+      <li>El <strong>DAGScheduler</strong> parte el job en <strong>stages</strong>, cortando en cada shuffle.</li>
+      <li>Cada stage se divide en <strong>tasks</strong> (una por partición).</li>
+      <li>El <strong>TaskScheduler</strong> envía las tasks a los <strong>executors</strong>, que las corren en sus cores y devuelven resultado/estado.</li>
+    </ol>
+
+    <h3>El stage a fondo: qué lo define y por qué importa</h3>
+    <p>El stage es el nivel que más confunde, así que vale la pena detenerse. La definición exacta: <strong>un stage es el conjunto máximo de operaciones que Spark puede encadenar sobre cada partición sin necesitar datos de otras particiones</strong>. La pared que separa un stage del siguiente es <strong>siempre un shuffle</strong>.</p>
+    <p>Por qué existe esa pared: hay dos clases de transformación (se ven a fondo en el tema 1.3, pero el núcleo es este).</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Tipo</th><th>Dependencia entre particiones</th><th>Ejemplos</th><th>¿Corta el stage?</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Narrow</strong> (angosta)</td><td>Cada partición de salida depende de <strong>una sola</strong> de entrada. No hay que mover datos.</td><td><code class="inl">select</code>, <code class="inl">filter</code>, <code class="inl">withColumn</code></td><td>No — se encadenan en el mismo stage.</td></tr>
+          <tr><td><strong>Wide</strong> (ancha)</td><td>Cada partición de salida necesita datos de <strong>varias</strong> de entrada. Hay que redistribuir por la red.</td><td><code class="inl">groupBy</code>, <code class="inl">join</code>, <code class="inl">orderBy</code></td><td>Sí — abre un stage nuevo (shuffle).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>La clave que hace valioso el concepto es el <strong>pipelining</strong>: dentro de un stage, Spark <strong>no materializa</strong> los pasos intermedios. Si un stage tiene <code class="inl">filter</code> → <code class="inl">withColumn</code> → <code class="inl">select</code>, cada fila atraviesa los tres de corrido, en memoria, sin escribir nada al disco. El shuffle es el único punto donde Spark <strong>escribe a disco</strong> (shuffle write) y el stage siguiente <strong>relee</strong> esos datos ya redistribuidos (shuffle read). Por eso cada frontera de stage es cara: serializa, escribe, manda por red y vuelve a leer.</p>
+
+    <p>Ejemplo concreto. Este pipeline se parte en <strong>3 stages</strong>:</p>
+    <div class="code"><pre><code>from pyspark.sql.functions import col
+
+df  = spark.read.parquet("ventas")             # lectura
+res = (df.filter("monto > 0")                  # narrow
+         .withColumn("iva", col("monto") * 0.12)  # narrow
+         .groupBy("pais").sum("monto")         # WIDE  -> shuffle (corta stage)
+         .orderBy("sum(monto)"))               # WIDE  -> shuffle (corta stage)
+res.count()                                    # ACCIÓN -> dispara el job</code></pre></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Stage</th><th>Qué hace (pipelined)</th><th>Termina en</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Stage 0</strong></td><td>leer + <code class="inl">filter</code> + <code class="inl">withColumn</code></td><td>shuffle write del <code class="inl">groupBy</code></td></tr>
+          <tr><td><strong>Stage 1</strong></td><td>recibe lo agrupado + suma por país</td><td>shuffle write del <code class="inl">orderBy</code></td></tr>
+          <tr><td><strong>Stage 2</strong></td><td>ordena globalmente + cuenta</td><td>resultado al driver</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Un stage <strong>no arranca hasta que el anterior terminó del todo</strong>, porque necesita los datos ya redistribuidos. Y dentro de cada stage, sus tasks se reparten en los slots del cluster y corren en oleadas.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 620 234" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Un job partido en tres stages separados por shuffles; dentro de cada stage las tasks corren en paralelo">
+        <defs>
+          <marker id="arr" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L6,3 L0,6 Z" fill="var(--ink-soft)"/>
+          </marker>
+        </defs>
+
+        <!-- Stage 0 -->
+        <rect x="16" y="48" width="168" height="150" rx="10" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="100" y="72" text-anchor="middle" fill="var(--accent)" font-family="var(--font-display)" font-size="14" font-weight="600">Stage 0</text>
+        <text x="100" y="90" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10">leer · filter · withColumn</text>
+        <rect x="34" y="104" width="132" height="13" rx="3" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <rect x="34" y="124" width="132" height="13" rx="3" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <rect x="34" y="144" width="132" height="13" rx="3" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <text x="100" y="178" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-mono)" font-size="9">tasks ∥ (1 por partición)</text>
+
+        <!-- Shuffle 1 -->
+        <line x1="204" y1="48" x2="204" y2="198" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="204" y="40" text-anchor="middle" fill="var(--accent)" font-family="var(--font-mono)" font-size="10" font-weight="500">shuffle</text>
+        <line x1="184" y1="123" x2="224" y2="123" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Stage 1 -->
+        <rect x="224" y="48" width="168" height="150" rx="10" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="308" y="72" text-anchor="middle" fill="var(--accent)" font-family="var(--font-display)" font-size="14" font-weight="600">Stage 1</text>
+        <text x="308" y="90" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10">sum por país</text>
+        <rect x="242" y="104" width="132" height="13" rx="3" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <rect x="242" y="124" width="132" height="13" rx="3" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <rect x="242" y="144" width="132" height="13" rx="3" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <text x="308" y="178" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-mono)" font-size="9">tasks ∥</text>
+
+        <!-- Shuffle 2 -->
+        <line x1="412" y1="48" x2="412" y2="198" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="412" y="40" text-anchor="middle" fill="var(--accent)" font-family="var(--font-mono)" font-size="10" font-weight="500">shuffle</text>
+        <line x1="392" y1="123" x2="432" y2="123" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Stage 2 -->
+        <rect x="432" y="48" width="168" height="150" rx="10" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="516" y="72" text-anchor="middle" fill="var(--accent)" font-family="var(--font-display)" font-size="14" font-weight="600">Stage 2</text>
+        <text x="516" y="90" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10">orderBy + count</text>
+        <rect x="450" y="104" width="132" height="13" rx="3" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <rect x="450" y="124" width="132" height="13" rx="3" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <rect x="450" y="144" width="132" height="13" rx="3" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <text x="516" y="178" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-mono)" font-size="9">→ driver</text>
+
+        <text x="310" y="222" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-mono)" font-size="10">tiempo de ejecución →  ·  cada línea discontinua = un shuffle = una pared de stage</text>
+      </svg>
+      <p class="cap">1 job → 3 stages. Dentro de cada stage las tasks corren en paralelo; los shuffles son las paredes entre stages.</p>
+    </div>
+
+    <p>Cómo verlo tú mismo: en el plan físico, cada <code class="inl">Exchange</code> es un shuffle, es decir, una frontera de stage. En la <strong>Spark UI</strong> (pestaña <em>Stages</em>, igual en Databricks) cada stage es una fila con su número de tasks y su duración.</p>
+    <div class="code"><pre><code>res.explain(mode="formatted")   # cuenta los 'Exchange' = nº de shuffles = cortes de stage</code></pre></div>
+    <div class="warn"><b>⚠️ Regla práctica.</b> Menos <code class="inl">Exchange</code> = menos stages = job más rápido. Al optimizar, tu objetivo casi siempre es <strong>reducir shuffles</strong> (filtrar temprano, proyectar solo lo necesario, usar broadcast joins), porque cada uno añade una pared de stage con su escritura y relectura a disco.</div>
+
+    <h3>El viaje completo del dato (vista interna)</h3>
+    <p>Juntando todo lo anterior, así fluye una ejecución de principio a fin: dónde planifica el driver, dónde se procesa el dato en los executors y dónde aparece el shuffle.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 600 748" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flujo interno de Spark: del código a la acción, el driver planifica (Catalyst, DAGScheduler, TaskScheduler), el cluster manager asigna recursos, los executors ejecutan las tasks con shuffles entre stages, y el resultado vuelve al driver o se escribe al destino">
+        <defs>
+          <marker id="fl" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L6,3 L0,6 Z" fill="var(--ink-soft)"/>
+          </marker>
+        </defs>
+
+        <!-- A: código -->
+        <rect x="118" y="12" width="420" height="50" rx="9" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="328" y="33" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-size="14" font-weight="600">① Transformaciones (lazy)</text>
+        <text x="328" y="50" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10.5">no ejecutan nada — solo construyen el plan lógico</text>
+        <line x1="328" y1="62" x2="328" y2="82" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#fl)"/>
+
+        <!-- B: acción -->
+        <rect x="118" y="82" width="420" height="48" rx="9" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="328" y="102" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-size="14" font-weight="600">② Acción → dispara el JOB</text>
+        <text x="328" y="119" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10.5">count · collect · write</text>
+        <line x1="328" y1="130" x2="328" y2="150" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#fl)"/>
+
+        <!-- Zona DRIVER -->
+        <rect x="100" y="152" width="458" height="212" rx="12" fill="none" stroke="var(--accent)" stroke-width="1.3" stroke-dasharray="6 5"/>
+        <rect x="116" y="140" width="176" height="24" rx="6" fill="var(--accent)"/>
+        <text x="204" y="156" text-anchor="middle" fill="#ffffff" font-family="var(--font-mono)" font-size="11" font-weight="500">DRIVER · planifica</text>
+
+        <!-- C: Catalyst -->
+        <rect x="120" y="172" width="418" height="48" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="328" y="192" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-size="13" font-weight="600">③ Catalyst optimiza</text>
+        <text x="328" y="209" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10.5">plan lógico → plan FÍSICO optimizado</text>
+        <line x1="328" y1="220" x2="328" y2="234" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#fl)"/>
+
+        <!-- D: DAGScheduler -->
+        <rect x="120" y="234" width="418" height="48" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="328" y="254" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-size="13" font-weight="600">④ DAGScheduler</text>
+        <text x="328" y="271" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10.5">parte el job en STAGES (corta en cada shuffle)</text>
+        <line x1="328" y1="282" x2="328" y2="296" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#fl)"/>
+
+        <!-- E: TaskScheduler -->
+        <rect x="120" y="296" width="418" height="48" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="328" y="316" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-size="13" font-weight="600">⑤ TaskScheduler</text>
+        <text x="328" y="333" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10.5">crea TASKS (1 por partición) y las agenda</text>
+
+        <line x1="328" y1="364" x2="328" y2="384" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#fl)"/>
+
+        <!-- F: cluster manager -->
+        <rect x="150" y="384" width="356" height="42" rx="9" fill="var(--surface-2)" stroke="var(--line)" stroke-dasharray="5 4"/>
+        <text x="328" y="410" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-mono)" font-size="11">Cluster manager asigna slots (cores) en los executors</text>
+        <line x1="328" y1="426" x2="328" y2="446" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#fl)"/>
+
+        <!-- Zona EXECUTORS -->
+        <rect x="100" y="448" width="458" height="226" rx="12" fill="none" stroke="var(--accent)" stroke-width="1.3" stroke-dasharray="6 5"/>
+        <rect x="116" y="436" width="196" height="24" rx="6" fill="var(--accent)"/>
+        <text x="214" y="452" text-anchor="middle" fill="#ffffff" font-family="var(--font-mono)" font-size="11" font-weight="500">EXECUTORS · ejecutan</text>
+
+        <!-- G: Stage 0 ejecuta -->
+        <rect x="120" y="468" width="418" height="50" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="328" y="489" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-size="13" font-weight="600">⑥ Executors ejecutan las TASKS en sus cores</text>
+        <text x="328" y="506" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10.5">Stage 0 · en paralelo, en oleadas (pipelining, sin tocar disco)</text>
+        <line x1="328" y1="518" x2="328" y2="532" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#fl)"/>
+
+        <!-- H: shuffle -->
+        <rect x="120" y="532" width="418" height="58" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="328" y="554" text-anchor="middle" fill="var(--accent)" font-family="var(--font-display)" font-size="13" font-weight="600">⑦ SHUFFLE (la operación cara)</text>
+        <text x="328" y="571" text-anchor="middle" fill="var(--ink)" font-family="var(--font-body)" font-size="10.5">shuffle write a disco → envío por red → shuffle read</text>
+        <text x="328" y="585" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10">abre el Stage siguiente</text>
+        <line x1="328" y1="590" x2="328" y2="604" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#fl)"/>
+
+        <!-- I: stage siguiente -->
+        <rect x="120" y="604" width="418" height="48" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="328" y="624" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-size="13" font-weight="600">⑧ Stage siguiente ejecuta sus tasks</text>
+        <text x="328" y="641" text-anchor="middle" fill="var(--ink-soft)" font-family="var(--font-body)" font-size="10.5">se repite ⑥–⑦ por cada shuffle del plan</text>
+
+        <line x1="328" y1="674" x2="328" y2="694" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#fl)"/>
+
+        <!-- J: resultado -->
+        <rect x="118" y="694" width="420" height="50" rx="9" fill="var(--accent)"/>
+        <text x="328" y="715" text-anchor="middle" fill="#ffffff" font-family="var(--font-display)" font-size="14" font-weight="600">⑨ Resultado</text>
+        <text x="328" y="732" text-anchor="middle" fill="#ffffff" font-family="var(--font-body)" font-size="10.5" opacity="0.92">→ al driver (collect/count) o escrito al destino (write)</text>
+      </svg>
+      <p class="cap">El dato nunca "baja al driver" para procesarse: el driver solo planifica y coordina; el cómputo pesado ocurre en los executors, y solo el resultado final (o una muestra) vuelve al driver.</p>
+    </div>
+    <div class="deep">
+      <span class="chip">A fondo · flujo del dato</span>
+      <h4>El flujo del dato, paso a paso</h4>
+      <p><strong>Paso 0 — cómo se asignan las particiones a los slots.</strong> El driver mantiene una <strong>cola de tasks</strong> (una por partición pendiente del stage). No se reparten todas de golpe: a medida que un <strong>slot (core) de cualquier executor se libera</strong>, el TaskScheduler le entrega la <strong>siguiente task pendiente</strong>, prefiriendo una cuyos datos ya estén cerca (data locality). Por eso el reparto es dinámico y aparecen las oleadas: con 8 slots y 200 particiones, siempre hay 8 corriendo y el resto espera turno.</p>
+
+      <p style="margin-top:14px"><strong>¿Y si reparto esos 8 cores distinto?</strong> Mismo nodo de 8 cores, dos configuraciones:</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Aspecto</th><th>2 executors × 4 cores</th><th>1 executor × 8 cores</th></tr></thead>
+          <tbody>
+            <tr><td>Paralelismo (tasks a la vez)</td><td>8</td><td>8 — <em>igual</em></td></tr>
+            <tr><td>Garbage collection</td><td>Heaps más pequeños → GC ágil</td><td>1 heap grande → pausas de GC más largas</td></tr>
+            <tr><td>Caché y broadcast</td><td>Se <strong>duplican</strong> (1 copia por executor)</td><td>Una sola copia compartida por los 8 cores</td></tr>
+            <tr><td>I/O / throughput</td><td>Mejor; evita saturar</td><td>Riesgo de contención con &gt;5 cores</td></tr>
+            <tr><td>Aislamiento de fallos</td><td>Si cae uno, pierdes la mitad</td><td>Si cae, pierdes todo el nodo</td></tr>
+            <tr><td>Overhead de JVM</td><td>Más (overhead × 2)</td><td>Menos</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="keynote"><b>Conclusión.</b> Mismo paralelismo, distinto comportamiento. El punto dulce suele ser <strong>~4–5 cores por executor</strong>: en un nodo de 8 cores, <strong>2×4 gana a 1×8</strong> en la mayoría de casos (mejor GC e I/O), salvo que dependas mucho de caché/broadcast compartido.</div>
+
+      <p style="margin-top:14px">Con eso claro, así viaja el dato una vez que las tasks ya están asignadas:</p>
+      <ol>
+        <li><strong>Dentro de un stage (sin shuffle):</strong> cada partición se procesa <strong>entera en una sola task, en un solo executor</strong>. Las operaciones <strong>narrow</strong> encadenadas (filter → filter → select) se fusionan en un único bucle sobre las filas. El dato <strong>no se mueve</strong> — no hay nada que lo obligue a viajar.</li>
+        <li><strong>Al terminar el stage (shuffle write):</strong> cada task escribe su salida <strong>al disco local de su propio executor</strong>, clasificada en cubetas según la clave (una cubeta por cada partición del stage siguiente).</li>
+        <li><strong>El driver registra el mapa</strong> (<em>MapOutputTracker</em>): sabe en qué executor quedó cada bloque, pero <strong>no tiene el dato</strong>.</li>
+        <li><strong>Arranca el stage siguiente (shuffle read):</strong> cada task nueva le pregunta al driver <em>dónde</em> están sus bloques y los <strong>jala directamente de executor a executor por la red</strong> (peer to peer). El driver no transporta el dato.</li>
+        <li><strong>Resultado:</strong> solo con <code class="inl">collect()</code> / <code class="inl">count()</code> suben filas reales al driver; con <code class="inl">write()</code> van executor → storage, sin pasar por el driver.</li>
+      </ol>
+      <div class="keynote"><b>Regla de oro.</b> El dato se mueve <strong>solo en los shuffles</strong>, y siempre <strong>entre executors</strong>, nunca a través del driver.</div>
+    </div>
+
+    <div class="deep">
+      <span class="chip">A fondo · modelo de ejecución</span>
+      <h4>Cómo fluye realmente: mito vs realidad</h4>
+      <p>Las confusiones más comunes al imaginar este flujo, aclaradas una por una:</p>
+
+      <div class="mr">
+        <div class="mito"><b>✗ Mito</b>El cluster manager reparte las tasks a los workers.</div>
+        <div class="real"><b>✓ Realidad</b>El cluster manager solo <strong>levanta los executors al inicio</strong>. Después, el <strong>driver</strong> (TaskScheduler) les envía las tasks directamente, prefiriendo mandarlas donde ya está el dato (data locality).</div>
+      </div>
+
+      <div class="mr">
+        <div class="mito"><b>✗ Mito</b>Cada worker tiene una partición fija de la data.</div>
+        <div class="real"><b>✓ Realidad</b>Las particiones (tasks) se reparten <strong>dinámicamente</strong> en los cores libres y corren en <strong>oleadas</strong>. 200 particiones en 2 workers × 4 cores = 8 a la vez → 25 oleadas.</div>
+      </div>
+
+      <div class="mr">
+        <div class="mito"><b>✗ Mito</b>2 filtros + 1 select = 3 tasks distintas.</div>
+        <div class="real"><b>✓ Realidad</b>Es <strong>1 task por partición</strong> que fusiona las operaciones <strong>narrow</strong> encadenadas (filter, filter, select) en un solo bucle (<em>Whole-Stage Codegen</em>). Solo las <strong>narrow</strong> se combinan; una operación <strong>wide</strong> cortaría el stage. Nº de tasks = nº de <strong>particiones</strong>, no de operaciones.</div>
+      </div>
+
+      <div class="mr">
+        <div class="mito"><b>✗ Mito</b>El siguiente stage arranca en un worker apenas ese worker acaba su parte.</div>
+        <div class="real"><b>✓ Realidad</b><strong>Barrier global</strong>: el stage siguiente espera a que termine la <strong>última task del stage actual en TODO el cluster</strong>. Un worker que acaba antes deja cores ociosos; un <em>straggler</em> frena a todos. (Stages independientes —los dos lados de un join— sí corren en paralelo.)</div>
+      </div>
+
+      <div class="mr">
+        <div class="mito"><b>✗ Mito</b>En el shuffle el dato vuelve al driver y él lo reparte.</div>
+        <div class="real"><b>✓ Realidad</b>El dato viaja <strong>executor → executor</strong> por la red. El driver solo guarda el <strong>mapa de dónde quedó cada bloque</strong>. Al driver solo suben filas con <code class="inl">collect()</code> / <code class="inl">count()</code>.</div>
+      </div>
+
+      <div class="keynote"><b>Dos dimensiones que no se mezclan.</b> Nº de <strong>particiones</strong> = nº de <strong>tasks dentro de un stage</strong> (cuánto se paraleliza). Nº de <strong>stages</strong> = nº de <strong>shuffles + 1</strong> (cuántas veces se corta el plan). Son independientes: un job de 3 stages puede tener 200 tasks en cada stage.</div>
+    </div>
+
+    <div class="warn"><b>⚠️ El malentendido que este diagrama corrige.</b> Es fácil imaginar que los datos "pasan por el driver". No es así: el driver maneja <em>metadatos y planificación</em> (plan, stages, tasks), no las filas. Las filas viven y se procesan en los executors. El driver solo recibe datos reales cuando tú se lo pides con <code class="inl">collect()</code> — y por eso ahí es donde revienta si abusas.</div>
+
+    <p>Dicho corto: <strong>acción → job → (Catalyst) → stages separados por shuffles → tasks (1 por partición) → executors</strong>.</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="card" id="s3">
+    <h2><span class="n">3</span> Sintaxis y API de PySpark</h2>
+    <p>Crear la sesión y mirar quién es quién en el cluster:</p>
+    <div class="code"><pre><code>from pyspark.sql import SparkSession
+
+# Punto de entrada único. getOrCreate() reutiliza la sesión si ya existe.
+spark = (SparkSession.builder
+         .appName("leccion_arquitectura")
+         .master("local[*]")          # [*] = tantos hilos como cores locales
+         .config("spark.sql.shuffle.partitions", "8")
+         .getOrCreate())
+
+sc = spark.sparkContext             # el SparkContext por debajo
+
+print(sc.appName)                   # nombre de la aplicación
+print(sc.master)                    # local[*] / yarn / k8s://...
+print(sc.defaultParallelism)        # paralelismo por defecto (≈ nº de cores)
+print(spark.version)                # versión de Spark</code></pre></div>
+
+    <p>Ver cómo un DataFrame se reparte en particiones (las tasks salen de aquí):</p>
+    <div class="code"><pre><code>df = spark.range(0, 1_000_000)      # DataFrame distribuido, no una lista en el driver
+
+print(df.rdd.getNumPartitions())    # nº de particiones = nº de tasks del próximo stage
+
+# Reparticionar cambia cuántas tasks correrán en paralelo
+df8 = df.repartition(8)
+print(df8.rdd.getNumPartitions())   # 8</code></pre></div>
+
+    <p>Observar la frontera lazy/acción y el plan físico (stages y shuffles):</p>
+    <div class="code"><pre><code>res = (df.filter("id % 2 = 0")      # transformación (lazy) -> nada se ejecuta aún
+         .groupBy((df.id % 10).alias("bucket"))
+         .count())                  # sigue siendo lazy: solo plan
+
+res.explain(mode="formatted")       # imprime el plan físico; busca 'Exchange' = shuffle
+total = res.count()                 # ACCIÓN -> aquí se dispara el job real
+print(total)</code></pre></div>
+    <div class="warn"><b>⚠️</b> En <code class="inl">explain()</code>, cada <code class="inl">Exchange</code> es un shuffle y, por tanto, una frontera de stage. Menos <code class="inl">Exchange</code> casi siempre significa un job más rápido.</div>
+
+    <p>Enviar un script fuera del notebook (producción) se hace con <code class="inl">spark-submit</code>:</p>
+    <div class="code"><pre><code># Local, usando todos los cores
+spark-submit --master local[*] mi_job.py
+
+# Contra un cluster YARN, con el driver corriendo DENTRO del cluster
+spark-submit --master yarn --deploy-mode cluster \
+  --num-executors 10 --executor-cores 4 --executor-memory 8g \
+  mi_job.py</code></pre></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="card" id="s4">
+    <h2><span class="n">4</span> Errores y malentendidos comunes</h2>
+
+    <h3>Confundir "deploy mode" con "cluster manager"</h3>
+    <p>Son <strong>ejes ortogonales</strong> y es el error nº 1 al empezar:</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Concepto</th><th>Responde a</th><th>Valores</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Cluster manager</strong> (<code class="inl">--master</code>)</td><td>¿Quién reparte los recursos?</td><td><code class="inl">local</code>, <code class="inl">standalone</code>, <code class="inl">yarn</code>, <code class="inl">k8s</code></td></tr>
+          <tr><td><strong>Deploy mode</strong> (<code class="inl">--deploy-mode</code>)</td><td>¿Dónde corre el <em>driver</em>?</td><td><code class="inl">client</code> (en tu máquina) / <code class="inl">cluster</code> (en un nodo del cluster)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Puedes tener YARN en modo client o YARN en modo cluster; Kubernetes en client o cluster. Una cosa no implica la otra.</p>
+
+    <div class="warn"><b>⚠️ <code class="inl">collect()</code> revienta el driver.</b> <code class="inl">df.collect()</code> trae <em>todas</em> las filas a la RAM del driver. Sobre datos grandes = <code class="inl">OutOfMemoryError</code> o driver colgado. Para inspeccionar usa <code class="inl">df.show(20)</code> o <code class="inl">df.limit(100).collect()</code>. Reserva <code class="inl">collect()</code> para resultados ya reducidos.</div>
+
+    <div class="warn"><b>⚠️ Asumir ejecución eager.</b> Un <code class="inl">df.filter(...)</code> por sí solo no ejecuta nada ni "tarda". El tiempo aparece de golpe en la primera <strong>acción</strong>. Al perfilar, mide dónde está la acción, no la línea de la transformación.</div>
+
+    <div class="warn"><b>⚠️ Particiones mal dimensionadas.</b> Muy pocas → no aprovechas los cores (tasks gigantes, sin paralelismo). Demasiadas → el overhead de agendar millones de tasks diminutas domina. Regla práctica de arranque: 2–4 particiones por core disponible.</div>
+
+    <div class="warn"><b>⚠️ Dos <code class="inl">SparkContext</code>.</b> Crear otra sesión/contexto en la misma JVM falla. Usa siempre <code class="inl">getOrCreate()</code>; en Databricks reutiliza el <code class="inl">spark</code> existente.</div>
+  </section>
+
+  <!-- 5 -->
+  <section class="card" id="s5">
+    <h2><span class="n">5</span> Rendimiento y cuándo NO usar Spark</h2>
+    <ul>
+      <li><strong>Minimiza el trabajo del driver.</strong> El driver coordina; no lo uses para procesar datos. Nada de <code class="inl">collect()</code> sobre volúmenes grandes ni bucles Python que arrastren los datos al driver.</li>
+      <li><strong>Menos shuffles.</strong> Cada <code class="inl">Exchange</code> cuesta red y disco. Filtra temprano, proyecta solo las columnas que usas y prefiere <em>broadcast joins</em> cuando una tabla es pequeña.</li>
+      <li><strong>Dimensiona executors con criterio.</strong> Executors ni enanos (overhead) ni gigantes (mala gestión de GC). Un punto de partida razonable: ~4–5 cores por executor.</li>
+      <li><strong>Formato columnar.</strong> Lee/escribe en Parquet o Delta, no CSV: habilita <em>pushdown</em> de filtros y lee solo las columnas necesarias.</li>
+    </ul>
+    <p><strong>Cuándo NO usar Spark:</strong></p>
+    <ul>
+      <li>Datos que caben en una máquina (hasta decenas de GB): pandas / Polars / DuckDB serán más simples y rápidos.</li>
+      <li>Consultas transaccionales de baja latencia fila a fila: eso es una base de datos OLTP, no Spark.</li>
+      <li>Jobs diminutos y muy frecuentes donde el arranque de la JVM pesa más que el cómputo.</li>
+    </ul>
+    <div class="warn"><b>⚠️</b> "Mis datos son grandes" no basta para justificar Spark. Mide primero el volumen real <em>después</em> de filtrar; muchas veces el dato que de verdad procesas entra en una sola máquina.</div>
+  </section>
+
+  <!-- 6 -->
+  <section class="card" id="s6">
+    <h2><span class="n">6</span> Cómo se aplica en Databricks</h2>
+    <p>Databricks es <strong>Spark gestionado</strong>: te quita de encima montar el cluster manager, el driver y los executors. El mapeo con lo que ya viste:</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Concepto Spark</th><th>En Databricks</th></tr></thead>
+        <tbody>
+          <tr><td>Driver</td><td>El <strong>driver node</strong> del cluster (donde corre tu notebook).</td></tr>
+          <tr><td>Executors</td><td>Los <strong>worker nodes</strong>, que Databricks escala (incluso autoscaling).</td></tr>
+          <tr><td>Cluster manager</td><td>Gestionado por Databricks sobre la nube (AWS/Azure/GCP). No lo configuras tú.</td></tr>
+          <tr><td>SparkSession</td><td>Ya existe como variable <code class="inl">spark</code>; no la creas.</td></tr>
+          <tr><td>Motor de ejecución</td><td>El <strong>Databricks Runtime</strong>, con optimizaciones propias (p. ej. el motor <strong>Photon</strong>).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>En un notebook de Databricks arrancas directamente, sin <code class="inl">builder</code>:</p>
+    <div class="code"><pre><code># 'spark' ya está disponible en Databricks — no hay que crearlo
+print(spark.version)
+print(spark.sparkContext.defaultParallelism)
+
+# dbutils es específico de Databricks (utilidades del entorno)
+display(spark.range(5))              # display() = render enriquecido del notebook</code></pre></div>
+    <div class="warn"><b>⚠️</b> Tipos de cluster: un <strong>all-purpose cluster</strong> (interactivo, para explorar en notebooks) vs un <strong>job cluster</strong> (efímero, se crea para un job programado y se apaga al terminar; más barato para producción). No corras cargas productivas pesadas en un all-purpose compartido.</div>
+  </section>
+
+  <!-- 7 -->
+  <section class="card" id="s7">
+    <h2><span class="n">7</span> Ejercicios</h2>
+
+    <details>
+      <summary>Ejercicio 1 <span class="lvl">fácil</span></summary>
+      <div class="sol">
+        <p>Crea una <code class="inl">SparkSession</code> local, genera <code class="inl">spark.range(0, 100)</code> e imprime el número de particiones y el <code class="inl">defaultParallelism</code>. ¿Coinciden? ¿Por qué?</p>
+        <div class="code"><pre><code>from pyspark.sql import SparkSession
+spark = SparkSession.builder.master("local[4]").getOrCreate()
+
+df = spark.range(0, 100)
+print("particiones:", df.rdd.getNumPartitions())
+print("defaultParallelism:", spark.sparkContext.defaultParallelism)
+# Con local[4], defaultParallelism = 4 y range() suele crear 4 particiones:
+# el nº de particiones iniciales se deriva del paralelismo del cluster.</code></pre></div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Ejercicio 2 <span class="lvl">medio</span></summary>
+      <div class="sol">
+        <p>Toma el pipeline <code class="inl">spark.range(1_000_000).filter("id % 3 = 0").groupBy((col("id") % 5)).count()</code>. Sin ejecutar la acción, usa <code class="inl">explain()</code> y cuenta cuántos <code class="inl">Exchange</code> (shuffles) aparecen. Explica qué stage separa cada uno.</p>
+        <div class="code"><pre><code>from pyspark.sql.functions import col
+res = (spark.range(1_000_000)
+         .filter("id % 3 = 0")
+         .groupBy((col("id") % 5).alias("b"))
+         .count())
+res.explain(mode="formatted")
+# Aparece 1 Exchange (hashpartitioning), introducido por el groupBy/count.
+# Ese shuffle separa el stage de lectura+filtro del stage de agregación final.
+res.count()   # recién aquí corre el job</code></pre></div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Ejercicio 3 <span class="lvl">difícil</span></summary>
+      <div class="sol">
+        <p>Explica, para un <code class="inl">spark-submit --master yarn --deploy-mode cluster</code>, dónde corre físicamente el driver, qué pasa si tu código hace <code class="inl">collect()</code> de 50&nbsp;GB, y cómo lo reescribirías sin traer todo al driver.</p>
+        <div class="sol">
+          <p><strong>Solución.</strong> En <code class="inl">deploy-mode cluster</code> el driver corre en un contenedor (ApplicationMaster) <em>dentro</em> del cluster YARN, no en tu máquina. Un <code class="inl">collect()</code> de 50&nbsp;GB intenta materializar esas filas en la memoria de ese driver → <code class="inl">OutOfMemoryError</code> y el job cae. La reescritura correcta no mueve los datos al driver: se <strong>escribe el resultado distribuido</strong> con <code class="inl">df.write.format("parquet").save(ruta)</code> (o <code class="inl">.saveAsTable</code>), dejando que cada executor escriba su partición en paralelo. Si solo necesitas una muestra, <code class="inl">df.limit(1000).collect()</code>; si necesitas un agregado, redúcelo primero (<code class="inl">groupBy().agg()</code>) y recién entonces trae el resultado pequeño.</p>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 8 -->
+  <section class="card" id="s8">
+    <h2><span class="n">8</span> Checklist: ya lo domino si…</h2>
+    <ul>
+      <li>Explico sin dudar la diferencia entre <strong>driver</strong>, <strong>executors</strong> y <strong>cluster manager</strong>, y qué hace cada uno.</li>
+      <li>Sé que <code class="inl">SparkSession</code> es el entry point y que por debajo hay un <code class="inl">SparkContext</code> único por aplicación.</li>
+      <li>Puedo trazar el camino <strong>acción → job → stages (separados por shuffles) → tasks (1 por partición) → executors</strong>.</li>
+      <li>Distingo <strong>cluster manager</strong> (<code class="inl">--master</code>) de <strong>deploy mode</strong> (<code class="inl">--deploy-mode</code>) y sé que son ortogonales.</li>
+      <li>Entiendo por qué <code class="inl">collect()</code> sobre datos grandes mata el driver y qué usar en su lugar.</li>
+      <li>Ubico el mapeo de todo esto en Databricks (driver node, workers, runtime, <code class="inl">spark</code> precreado).</li>
+      <li>Reconozco cuándo <strong>no</strong> conviene Spark.</li>
+    </ul>
+  </section>
+
+  <div class="next">
+    <h2>Siguiente tema</h2>
+    <p>Ahora que tienes el mapa de piezas, toca ver cómo se reparte y procesa el dato dentro de ese esquema.</p>
+    <p class="link">→ 1.2 · Modelo de ejecución distribuida (particiones, tasks, cores y data locality)</p>
+  </div>
+
+  <footer>Lección 1.1 · Curso PySpark · estilo Roadmap PySpark</footer>
+</div>
+
+<script>
+  // Botones "Copiar" en cada bloque de código
+  document.querySelectorAll('.code').forEach(block => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-code';
+    btn.textContent = 'Copiar';
+    btn.type = 'button';
+    block.appendChild(btn);
+    btn.addEventListener('click', async () => {
+      const code = block.querySelector('code').innerText;
+      try {
+        await navigator.clipboard.writeText(code);
+        mark();
+      } catch (e) {
+        const r = document.createRange();
+        r.selectNodeContents(block.querySelector('code'));
+        const sel = window.getSelection();
+        sel.removeAllRanges(); sel.addRange(r);
+        try { document.execCommand('copy'); mark(); } catch (_) {}
+      }
+      function mark(){
+        btn.textContent = '¡Copiado!';
+        btn.classList.add('done');
+        setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('done'); }, 1600);
+      }
+    });
+  });
+</script>
+
+</body></html>

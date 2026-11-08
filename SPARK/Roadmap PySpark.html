@@ -1,0 +1,804 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Roadmap PySpark</title>
+<style>
+  /* Layout: índice lateral de fases + panel de temas en tarjetas; cada tarjeta copia un prompt para un LLM */
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --ink: #1a2230;
+    --ink-soft: #566074;
+    --line: #dde3ec;
+    --accent: #e8622c;      /* naranja "ignición" tipo chispa de Spark */
+    --accent-soft: #fbe9e0;
+    --spark: #f0a500;       /* ámbar secundario */
+    --ok: #2e8b6f;
+    --code-bg: #1d2430;
+    --code-ink: #e7ecf3;
+    --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10151d;
+      --surface: #19202b;
+      --surface-2: #212a37;
+      --ink: #eef2f8;
+      --ink-soft: #9aa6b8;
+      --line: #2b3542;
+      --accent: #f2743d;
+      --accent-soft: #35231a;
+      --spark: #f0b429;
+      --ok: #45b48d;
+      --code-bg: #0c1118;
+      --code-ink: #e7ecf3;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10151d;
+    --surface: #19202b;
+    --surface-2: #212a37;
+    --ink: #eef2f8;
+    --ink-soft: #9aa6b8;
+    --line: #2b3542;
+    --accent: #f2743d;
+    --accent-soft: #35231a;
+    --spark: #f0b429;
+    --ok: #45b48d;
+    --code-bg: #0c1118;
+    --code-ink: #e7ecf3;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.55;
+    margin: 0;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 28px 56px;
+  }
+
+  /* ---- Header ---- */
+  header.hero { margin-bottom: 26px; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.9rem, 5vw, 2.9rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 10px;
+  }
+  h1 .flame { color: var(--accent); }
+  .lede {
+    color: var(--ink-soft);
+    max-width: 62ch;
+    font-size: 1.02rem;
+    margin: 0 0 18px;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+  .meta-row b { color: var(--ink); font-weight: 600; }
+
+  /* ---- How to use ---- */
+  .howto {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 22px 0 30px;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+  }
+  .howto b { color: var(--ink); }
+
+  /* ---- Phase navigation ---- */
+  .phase-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  .phase-nav button {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-soft);
+    padding: 7px 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .phase-nav button:hover { border-color: var(--accent); color: var(--ink); }
+  .phase-nav button[aria-selected="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .phase-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- Phase section ---- */
+  .phase { margin-bottom: 44px; scroll-margin-top: 20px; }
+  .phase-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 4px;
+  }
+  .phase-num {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #fff;
+    background: var(--ink);
+    border-radius: 6px;
+    padding: 3px 9px;
+    flex-shrink: 0;
+  }
+  :root[data-theme="dark"] .phase-num,
+  :root:not([data-theme="light"]) .phase-num { background: var(--accent); }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .phase-num { background: var(--ink); } }
+  .phase h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.4rem;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .phase-desc {
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+    margin: 6px 0 20px;
+    max-width: 70ch;
+  }
+
+  /* ---- Topic cards ---- */
+  .topics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .card-ix {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--accent);
+    font-weight: 500;
+    padding-top: 2px;
+  }
+  .card h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.04rem;
+    line-height: 1.25;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .card p {
+    color: var(--ink-soft);
+    font-size: 0.86rem;
+    margin: 0 0 12px;
+  }
+  .hours-badge {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--spark);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+  .sub-label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 7px;
+  }
+  ul.subtopics {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex-grow: 1;
+  }
+  ul.subtopics li {
+    position: relative;
+    padding-left: 16px;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+  ul.subtopics li::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 0.5em;
+    width: 5px;
+    height: 5px;
+    border-radius: 1px;
+    background: var(--accent);
+    transform: rotate(45deg);
+  }
+  .phase-hours {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--spark);
+    font-weight: 500;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    padding: 3px 8px;
+    border-radius: 5px;
+  }
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.86rem;
+    font-weight: 500;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    padding: 9px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .copy-btn:hover { background: var(--accent); color: #fff; }
+  .copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .copy-btn.copied { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .copy-btn svg { width: 15px; height: 15px; }
+
+  /* ---- Prereqs strip ---- */
+  .prereq {
+    background: linear-gradient(120deg, var(--accent-soft), transparent 70%);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 20px 22px;
+    margin-bottom: 40px;
+  }
+  .prereq h2 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .prereq-sub { color: var(--ink-soft); font-size: 0.88rem; margin: 0 0 16px; }
+  .prereq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .prereq-item {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    font-size: 0.86rem;
+  }
+  .prereq-item .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); margin-top: 7px; flex-shrink: 0;
+  }
+  .prereq-item b { font-weight: 600; }
+  .prereq-item span { color: var(--ink-soft); }
+
+  /* ---- Modal ---- */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(8,12,18,0.62);
+    display: flex; align-items: center; justify-content: center;
+    padding: max(16px, env(safe-area-inset-left,0px));
+    z-index: 50;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    max-width: 680px;
+    width: 100%;
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-head {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .modal-head h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0;
+  }
+  .modal-head .sub { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); margin: 2px 0 0; }
+  .modal-close {
+    background: var(--surface-2); border: none; color: var(--ink);
+    width: 30px; height: 30px; border-radius: 7px; cursor: pointer;
+    font-size: 1.1rem; line-height: 1; flex-shrink: 0;
+  }
+  .modal-close:hover { background: var(--line); }
+  .modal-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  pre.prompt {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px;
+    border-radius: 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+  }
+  .modal-foot {
+    padding: 14px 20px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .btn-primary {
+    font-family: var(--font-body);
+    font-size: 0.88rem; font-weight: 500;
+    background: var(--accent); color: #fff; border: none;
+    padding: 9px 16px; border-radius: 8px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn-primary.copied { background: var(--ok); }
+  .btn-primary svg { width: 15px; height: 15px; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+    color: var(--ink-soft);
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+  }
+
+  @media (max-width: 480px) {
+    .modal-head { padding: 14px 16px 12px; }
+    .modal-body { padding: 14px 16px; }
+    .phase-head { flex-wrap: wrap; }
+  }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Ruta de estudio · Data Engineering</p>
+    <h1>Roadmap <span class="flame">PySpark</span> hacia Databricks</h1>
+    <p class="lede">Del motor de Spark y su ejecución distribuida hasta sentirte cómodo en Databricks. Ocho fases, de los fundamentos del cluster al tuning de jobs. Cada tema trae un prompt listo para pedirle a un LLM el curso completo de ese punto.</p>
+    <div class="meta-row">
+      <span><b>8</b> fases</span>
+      <span><b>29</b> temas</span>
+      <span><b id="totalHours">—</b> horas estimadas</span>
+      <span><b>Enfoque:</b> PySpark + internals</span>
+      <span><b>Meta:</b> trabajar en Databricks</span>
+    </div>
+  </header>
+
+  <div class="howto">
+    <b>Cómo usarlo.</b> Recorre las fases en orden. En cada tema, pulsa <b>Ver prompt</b> para abrir una consigna detallada; cópiala y pégala en tu LLM para que te genere la lección como una <b>página HTML con este mismo estilo</b>, lista para seguir el curso. Los prompts hacen que el LLM asuma tu nivel (ingeniero de datos con SQL, Python y pandas) y conecte cada concepto con Databricks.
+  </div>
+
+  <nav class="phase-nav" id="phaseNav" aria-label="Fases del roadmap"></nav>
+
+  <!-- Prerequisites -->
+  <section class="prereq">
+    <h2>Antes de empezar con Spark</h2>
+    <p class="prereq-sub">No es Spark todavía, pero sin esto los internals no cuajan. Lo que conviene tener fresco:</p>
+    <div class="prereq-grid">
+      <div class="prereq-item"><div class="dot"></div><div><b>Python funcional</b> <span>— lambdas, comprehensions, closures, decoradores básicos.</span></div></div>
+      <div class="prereq-item"><div class="dot"></div><div><b>pandas sólido</b> <span>— groupby, merge, apply; te servirá de contraste mental con DataFrames de Spark.</span></div></div>
+      <div class="prereq-item"><div class="dot"></div><div><b>SQL de queries</b> <span>— joins, window functions, agregaciones (ya lo tienes del banco).</span></div></div>
+      <div class="prereq-item"><div class="dot"></div><div><b>Modelos de ejecución</b> <span>— qué es lazy vs eager, paralelismo vs concurrencia.</span></div></div>
+      <div class="prereq-item"><div class="dot"></div><div><b>JVM, nociones</b> <span>— por qué Spark corre sobre la JVM y qué es la memoria heap.</span></div></div>
+      <div class="prereq-item"><div class="dot"></div><div><b>Formatos de archivo</b> <span>— CSV vs Parquet, qué es columnar y por qué importa.</span></div></div>
+      <div class="prereq-item"><div class="dot"></div><div><b>Sistemas distribuidos 101</b> <span>— nodos, red, por qué mover datos es caro.</span></div></div>
+      <div class="prereq-item"><div class="dot"></div><div><b>Git y notebooks</b> <span>— flujo mínimo de trabajo, celdas, entornos.</span></div></div>
+    </div>
+  </section>
+
+  <main id="roadmap"></main>
+
+  <footer>
+    Roadmap PySpark · 8 fases · generado para tu plan de estudio · pulsa cualquier tema para copiar su prompt de curso
+  </footer>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <div>
+        <p class="sub" id="modalSub"></p>
+        <h3 id="modalTitle"></h3>
+      </div>
+      <button class="modal-close" id="modalClose" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="modal-body">
+      <pre class="prompt" id="modalPrompt"></pre>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-primary" id="modalCopy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copiar prompt</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Roadmap data ----
+const LEVEL = "Soy ingeniero de datos (SQL avanzado, Python, pandas, algo de Databricks). Explícame con rigor técnico pero sin rodeos, con ejemplos en PySpark y, donde aplique, cómo se ve esto en Databricks.";
+
+function buildPrompt(topic, bullets){
+  return `Genera una PÁGINA HTML completa y autocontenida (un solo archivo .html, listo para abrir en el navegador o publicar como artifact) que sea la LECCIÓN del curso de Apache Spark / PySpark sobre el tema: "${topic}".
+
+PERFIL DEL ALUMNO: ${LEVEL}
+
+=== FORMATO DE SALIDA (obligatorio) ===
+- Devuelve SOLO el código HTML, sin texto ni explicaciones fuera del bloque de código.
+- Un único archivo con <style> y <script> embebidos; sin dependencias externas salvo Google Fonts.
+- Debe verse en el MISMO estilo visual que mi dashboard "Roadmap PySpark":
+  · Tipografías (Google Fonts): "Space Grotesk" para títulos, "Inter" para el texto, "JetBrains Mono" para el código.
+  · Color de acento naranja #e8622c y ámbar secundario #f0a500; neutros fríos (grises azulados).
+  · Modo claro y oscuro con variables CSS en :root y @media (prefers-color-scheme: dark); body con background explícito desde una variable.
+  · Contenido organizado en secciones tipo tarjeta, con bordes redondeados (~12px), borde sutil y buena jerarquía tipográfica.
+  · Bloques de código con fondo oscuro (#1d2430), texto claro y fuente monoespaciada; cada bloque con un botón "Copiar".
+  · Avisos de trampa/error (⚠️) resaltados en un recuadro con borde de color de acento.
+  · Responsive: se ve bien en móvil (~400px), sin scroll horizontal.
+- Encabezado con el nombre del tema, una línea de contexto, y un índice navegable (anclas) de las secciones.
+
+=== CONTENIDO DE LA LECCIÓN (una sección por cada punto) ===
+1. Intuición y para qué sirve (el problema que resuelve).
+2. Cómo funciona por dentro (el mecanismo real, no analogías vagas).
+3. Sintaxis y API de PySpark, con ejemplos de código ejecutables y comentados.
+4. Errores y malentendidos comunes, y cómo diagnosticarlos.
+5. Buenas prácticas de rendimiento y cuándo NO usarlo.
+6. Cómo se aplica concretamente en Databricks.
+7. Ejercicios prácticos graduados (de fácil a difícil); cada ejercicio con su solución en un <details> colapsable.
+8. Checklist de "ya lo domino si...".
+
+Cubre específicamente estos puntos dentro de las secciones:
+${bullets.map(b => "- " + b).join("\n")}
+
+=== REQUISITOS DE CONTENIDO ===
+- Rigor técnico, sin rodeos. Ejemplos en PySpark reales y comentados.
+- Usa tablas comparativas (HTML) donde ayuden.
+- Marca cada trampa o error común con el recuadro ⚠️.
+- Incluye los comandos exactos.
+- Cierra con una sección "Siguiente tema" que indique qué estudiar después.`;
+}
+
+// Estimado de horas (estudio + práctica) por tema, clave "fase.tema"
+const HOURS = {
+  "1.1":4, "1.2":5, "1.3":4, "1.4":3,
+  "2.1":4, "2.2":3, "2.3":4, "2.4":5,
+  "3.1":4, "3.2":6, "3.3":5, "3.4":4,
+  "4.1":5, "4.2":5, "4.3":5, "4.4":5,
+  "5.1":5, "5.2":5, "5.3":4,
+  "6.1":4, "6.2":5, "6.3":5, "6.4":4,
+  "7.1":3, "7.2":4,
+  "8.1":4, "8.2":6, "8.3":5, "8.4":5,
+};
+
+const PHASES = [
+  {
+    id: "motor",
+    short: "Motor",
+    title: "El motor de Spark",
+    desc: "Qué es Spark, cómo reparte el trabajo y por qué es rápido. La base conceptual sobre la que descansa todo lo demás.",
+    topics: [
+      { t: "Qué es Apache Spark y su arquitectura", d: "Driver, executors, cluster manager y cómo se orquesta un job distribuido.", tags:["arquitectura","cluster"],
+        b:["Driver vs executors vs cluster manager","SparkSession y SparkContext","Qué pasa cuando envías un job (de código a tareas)","Modos de despliegue: local, standalone, YARN, Kubernetes","Dónde encaja Databricks en este esquema"] },
+      { t: "Modelo de ejecución distribuida", d: "Cómo Spark divide los datos en particiones y ejecuta en paralelo sobre el cluster.", tags:["particiones","paralelismo"],
+        b:["Particiones: qué son y cómo se determinan","Tasks, cores y slots de ejecución","Paralelismo real vs número de particiones","Data locality y por qué importa","Cómo inspeccionar particiones en PySpark"] },
+      { t: "Lazy evaluation: transformaciones vs acciones", d: "Por qué Spark no ejecuta nada hasta que pides un resultado, y qué gana con eso.", tags:["lazy","DAG"],
+        b:["Transformaciones (lazy) vs acciones (eager)","Narrow vs wide transformations","Cómo se construye el DAG de ejecución","Por qué un .count() dispara todo el pipeline","Trampas de la evaluación perezosa al depurar"] },
+      { t: "RDD, DataFrame y Dataset", d: "Las tres APIs de Spark, su historia y por qué hoy trabajas casi siempre con DataFrames.", tags:["RDD","DataFrame"],
+        b:["RDD: la abstracción original y cuándo aún aparece","DataFrame: el estándar actual y por qué","Dataset y por qué casi no aplica en PySpark","Conversión entre RDD y DataFrame","Cuándo bajar a RDD tiene sentido"] },
+    ],
+  },
+  {
+    id: "pyspark-basics",
+    short: "PySpark básico",
+    title: "PySpark: primeros comandos",
+    desc: "El arranque práctico. Crear una sesión, leer datos, mirar un DataFrame y hacer las operaciones del día a día.",
+    topics: [
+      { t: "SparkSession y lectura de datos", d: "Punto de entrada a Spark y cómo cargar CSV, Parquet, JSON y tablas.", tags:["sesión","I/O"],
+        b:["Crear y configurar una SparkSession","spark.read: CSV, Parquet, JSON, JDBC","Inferencia de esquema vs esquema explícito (StructType)","Opciones de lectura clave (header, delimiter, mode)","Leer una tabla de catálogo en Databricks"] },
+      { t: "Inspeccionar un DataFrame", d: "show, printSchema, describe y las acciones para entender qué tienes entre manos.", tags:["exploración"],
+        b:["show(), printSchema(), columns, dtypes","count(), describe(), summary()","head(), take(), collect() y sus riesgos","Diferencia entre acciones que traen datos al driver","Cómo no reventar el driver con collect()"] },
+      { t: "Select, filter y columnas", d: "Las operaciones de proyección y filtrado, y cómo se referencia una columna.", tags:["select","filter"],
+        b:["select, selectExpr y la clase Column","col(), expr() y la sintaxis de columnas","filter / where y operadores lógicos","withColumn y withColumnRenamed","drop, distinct, dropDuplicates"] },
+      { t: "Funciones de columna (pyspark.sql.functions)", d: "El módulo F con cientos de funciones: strings, fechas, matemáticas, condicionales.", tags:["functions","F"],
+        b:["import functions as F: el patrón estándar","Funciones de string, fecha y numéricas","when / otherwise para lógica condicional","cast y manejo de tipos","UDFs: qué son y por qué evitarlas cuando puedes"] },
+    ],
+  },
+  {
+    id: "transformaciones",
+    short: "Transformaciones",
+    title: "Transformaciones y agregaciones",
+    desc: "El corazón del trabajo analítico: agrupar, unir, ordenar y las operaciones que mueven datos por la red.",
+    topics: [
+      { t: "GroupBy y agregaciones", d: "Agrupar y calcular métricas, el equivalente distribuido del GROUP BY de SQL.", tags:["groupBy","agg"],
+        b:["groupBy().agg() y funciones de agregación","Múltiples agregaciones en una pasada","Qué es un shuffle y por qué groupBy lo causa","agg con alias y expresiones","pivot: tablas dinámicas en Spark"] },
+      { t: "Joins en Spark", d: "Unir DataFrames, los tipos de join y por qué un join mal hecho mata el rendimiento.", tags:["joins","shuffle"],
+        b:["Tipos de join: inner, left, right, outer, semi, anti","La sintaxis de join y condiciones","Shuffle join vs broadcast join","Broadcast hint: cuándo y cómo","Skew en joins: síntoma y mitigación"] },
+      { t: "Window functions", d: "Cálculos sobre ventanas (ranking, running totals, lag/lead) sin colapsar las filas.", tags:["window","rank"],
+        b:["Window.partitionBy().orderBy()","row_number, rank, dense_rank","lag, lead y diferencias entre filas","Running totals y medias móviles","Coste de rendimiento de las ventanas"] },
+      { t: "Ordenar, unir y reparticionar", d: "sort, union, y las operaciones que cambian cómo se distribuyen los datos.", tags:["sort","repartition"],
+        b:["orderBy / sort y su coste (shuffle global)","union, unionByName","repartition vs coalesce","Cuándo reparticionar y con qué clave","partitionBy al escribir vs repartition en memoria"] },
+    ],
+  },
+  {
+    id: "internals",
+    short: "Internals",
+    title: "Cómo trabaja por dentro",
+    desc: "El nivel que separa a quien usa Spark de quien lo entiende: Catalyst, Tungsten, el plan físico y el shuffle.",
+    topics: [
+      { t: "Catalyst: el optimizador de consultas", d: "El cerebro que convierte tu código en un plan de ejecución optimizado.", tags:["Catalyst","plan"],
+        b:["De plan lógico a plan físico","Reglas de optimización (predicate pushdown, projection pruning)","explain() y cómo leer un plan","Cómo Catalyst reordena y simplifica","Adaptive Query Execution (AQE)"] },
+      { t: "El shuffle en detalle", d: "La operación más cara de Spark: qué es, cuándo ocurre y cómo reducirla.", tags:["shuffle","red"],
+        b:["Qué pasa físicamente en un shuffle","Qué operaciones provocan shuffle","spark.sql.shuffle.partitions y su efecto","Shuffle spill a disco: síntoma y causa","Estrategias para minimizar shuffles"] },
+      { t: "Memoria, caché y persistencia", d: "Cómo Spark gestiona la memoria y cuándo guardar un DataFrame vale la pena.", tags:["cache","memoria"],
+        b:["Modelo de memoria de un executor (execution vs storage)","cache() vs persist() y storage levels","Cuándo cachear ayuda y cuándo estorba","unpersist y gestión del ciclo de vida","Errores de OutOfMemory: diagnóstico"] },
+      { t: "Jobs, stages y tasks", d: "La anatomía de una ejecución y cómo leerla en la Spark UI para encontrar cuellos de botella.", tags:["Spark UI","stages"],
+        b:["Job → stages → tasks: la jerarquía","Qué delimita un stage (los shuffles)","Leer la Spark UI: timeline, DAG, métricas","Detectar skew y tareas lentas (stragglers)","La Spark UI dentro de Databricks"] },
+    ],
+  },
+  {
+    id: "datos-avanzado",
+    short: "Datos avanzado",
+    title: "Datos complejos y escritura",
+    desc: "Esquemas anidados, tipos complejos, UDFs cuando no hay alternativa, y escribir datos de forma eficiente.",
+    topics: [
+      { t: "Esquemas, tipos y datos anidados", d: "StructType, arrays, maps y cómo trabajar con JSON y estructuras jerárquicas.", tags:["schema","structs"],
+        b:["StructType / StructField a fondo","ArrayType, MapType y columnas anidadas","explode, posexplode y aplanar estructuras","Manejo de JSON (from_json, to_json)","Null handling y columnas opcionales"] },
+      { t: "UDFs y pandas UDFs", d: "Cuándo necesitas lógica Python propia y cómo hacerlo sin destruir el rendimiento.", tags:["UDF","Arrow"],
+        b:["UDFs clásicas: coste de serialización","Por qué una UDF rompe la optimización de Catalyst","pandas UDFs (vectorizadas) y Apache Arrow","applyInPandas y mapInPandas","Regla: función nativa > pandas UDF > UDF Python"] },
+      { t: "Escritura y formatos de salida", d: "Guardar resultados: Parquet, particionado en disco, modos de escritura y small files.", tags:["write","Parquet"],
+        b:["write: formatos y save modes (overwrite, append)","partitionBy al escribir: carpetas por clave","El problema de los small files","bucketing: qué es y cuándo","Escribir a tablas del catálogo"] },
+    ],
+  },
+  {
+    id: "optimizacion",
+    short: "Optimización",
+    title: "Rendimiento y tuning",
+    desc: "Hacer que los jobs vuelen: diagnosticar lentitud, atacar el skew, configurar recursos y reducir el shuffle.",
+    topics: [
+      { t: "Diagnóstico de rendimiento", d: "Método para encontrar por qué un job va lento antes de tocar nada.", tags:["profiling"],
+        b:["Flujo de diagnóstico con la Spark UI","Identificar el stage que cuesta","Spill, skew y stragglers: cómo reconocerlos","explain() como primera parada","Métricas clave a vigilar"] },
+      { t: "Data skew y su mitigación", d: "Cuando una partición concentra demasiados datos y arrastra todo el job.", tags:["skew","salting"],
+        b:["Qué es el skew y cómo se manifiesta","Detectar skew en joins y agregaciones","Salting: la técnica clásica","AQE skew join optimization","Broadcast para evitar skew"] },
+      { t: "Configuración y recursos del cluster", d: "Cores, memoria, número de particiones: las perillas que de verdad mueven la aguja.", tags:["config","tuning"],
+        b:["Parámetros clave de spark.conf","Dimensionar executors: cores y memoria","shuffle.partitions según el volumen","Serialización y otras configs de impacto","Qué gestiona Databricks por ti y qué no"] },
+      { t: "Particionado inteligente", d: "Elegir bien las claves y el número de particiones para equilibrar carga y shuffle.", tags:["partitioning"],
+        b:["Número óptimo de particiones (regla práctica)","repartition por clave vs por número","coalesce para reducir sin shuffle","Evitar el over-partitioning","Particionado en lectura (pushdown)"] },
+    ],
+  },
+  {
+    id: "spark-sql",
+    short: "Spark SQL",
+    title: "Spark SQL y catálogo",
+    desc: "Tu territorio: usar SQL directamente sobre Spark, vistas temporales y el catálogo de tablas. Puente natural desde tu mundo T-SQL.",
+    topics: [
+      { t: "Spark SQL y vistas temporales", d: "Ejecutar SQL puro sobre DataFrames y mezclar ambos mundos libremente.", tags:["SQL","views"],
+        b:["spark.sql() y createOrReplaceTempView","Mezclar API de DataFrame y SQL","Vistas temporales vs globales","Diferencias de dialecto Spark SQL vs T-SQL","Cuándo SQL es más legible que la API"] },
+      { t: "Catálogo, bases de datos y tablas", d: "Managed vs external tables, el metastore y cómo se organiza el almacenamiento.", tags:["catálogo","metastore"],
+        b:["Managed tables vs external tables","El metastore y su rol","CREATE TABLE, databases y namespaces","saveAsTable y el ciclo de vida de los datos","Unity Catalog en Databricks (visión general)"] },
+    ],
+  },
+  {
+    id: "databricks",
+    short: "Databricks",
+    title: "Puente a Databricks",
+    desc: "Lo que cambia al pasar de Spark 'crudo' a Databricks: notebooks, clusters gestionados, Delta Lake y los jobs de producción.",
+    topics: [
+      { t: "El entorno Databricks", d: "Workspace, notebooks, clusters y cómo se ejecuta tu PySpark aquí dentro.", tags:["workspace","clusters"],
+        b:["Anatomía del workspace y los notebooks","Tipos de cluster: all-purpose vs jobs","Spark ya viene listo: qué no tienes que montar","dbutils y utilidades del entorno","Magic commands (%sql, %python, %fs)"] },
+      { t: "Delta Lake", d: "El formato que convierte tu data lake en algo transaccional: ACID, time travel y merge.", tags:["Delta","ACID"],
+        b:["Qué resuelve Delta frente a Parquet puro","Transacciones ACID y el transaction log","Time travel y versionado de datos","MERGE (upserts) en Delta","OPTIMIZE, ZORDER y VACUUM"] },
+      { t: "Jobs, workflows y producción", d: "Pasar de un notebook exploratorio a un pipeline programado y monitoreado.", tags:["jobs","workflows"],
+        b:["Databricks Workflows: orquestar tareas","Parametrizar notebooks y pasar valores","Programación y dependencias entre tareas","Monitoreo, reintentos y alertas","Buenas prácticas de pipelines productivos"] },
+      { t: "Autoloader e ingesta incremental", d: "Ingerir archivos nuevos de forma incremental y eficiente, el patrón de ingesta moderno.", tags:["Autoloader","streaming"],
+        b:["Qué es Autoloader y qué problema resuelve","cloudFiles y detección de archivos nuevos","Checkpoints y procesamiento exactly-once","Nociones de Structured Streaming detrás","Comparación con una ingesta batch clásica"] },
+    ],
+  },
+];
+
+// ---- Render ----
+const nav = document.getElementById('phaseNav');
+const roadmap = document.getElementById('roadmap');
+
+PHASES.forEach((ph, i) => {
+  const btn = document.createElement('button');
+  btn.textContent = `${i+1}. ${ph.short}`;
+  btn.setAttribute('role','tab');
+  btn.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+  btn.addEventListener('click', () => {
+    document.getElementById('phase-' + ph.id).scrollIntoView({behavior:'smooth', block:'start'});
+    nav.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected','false'));
+    btn.setAttribute('aria-selected','true');
+  });
+  nav.appendChild(btn);
+
+  const sec = document.createElement('section');
+  sec.className = 'phase';
+  sec.id = 'phase-' + ph.id;
+
+  const phaseHours = ph.topics.reduce((sum, tp, j) => sum + (HOURS[`${i+1}.${j+1}`] || 0), 0);
+
+  const head = document.createElement('div');
+  head.className = 'phase-head';
+  head.innerHTML = `<span class="phase-num">FASE ${i+1}</span><h2>${ph.title}</h2><span class="phase-hours">${phaseHours} h · ${ph.topics.length} temas</span>`;
+  sec.appendChild(head);
+
+  const desc = document.createElement('p');
+  desc.className = 'phase-desc';
+  desc.textContent = ph.desc;
+  sec.appendChild(desc);
+
+  const grid = document.createElement('div');
+  grid.className = 'topics';
+
+  ph.topics.forEach((tp, j) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const ix = `${i+1}.${j+1}`;
+    const hrs = HOURS[ix] || 0;
+    const tagsHtml = tp.tags.map(t => `<span class="tag">${t}</span>`).join('');
+    const subHtml = tp.b.map(s => `<li>${s}</li>`).join('');
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="card-ix">${ix}</span>
+        <h3>${tp.t}</h3>
+        <span class="hours-badge">${hrs} h</span>
+      </div>
+      <p>${tp.d}</p>
+      <p class="sub-label">Subtemas</p>
+      <ul class="subtopics">${subHtml}</ul>
+      <div class="tags">${tagsHtml}</div>
+      <button class="copy-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>Ver prompt</span>
+      </button>`;
+    const prompt = buildPrompt(tp.t, tp.b);
+    card.querySelector('.copy-btn').addEventListener('click', () => openModal(tp.t, `Fase ${i+1} · tema ${ix}`, prompt));
+    grid.appendChild(card);
+  });
+
+  sec.appendChild(grid);
+  roadmap.appendChild(sec);
+});
+
+// Total de horas en el header
+const totalHours = Object.values(HOURS).reduce((a, b) => a + b, 0);
+document.getElementById('totalHours').textContent = totalHours;
+
+// ---- Modal logic ----
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalSub = document.getElementById('modalSub');
+const modalPrompt = document.getElementById('modalPrompt');
+const modalCopy = document.getElementById('modalCopy');
+let currentPrompt = '';
+
+function openModal(title, sub, prompt){
+  modalTitle.textContent = title;
+  modalSub.textContent = sub;
+  modalPrompt.textContent = prompt;
+  currentPrompt = prompt;
+  resetCopyBtn();
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(){
+  modal.hidden = true;
+  document.body.style.overflow = '';
+}
+function resetCopyBtn(){
+  modalCopy.classList.remove('copied');
+  modalCopy.querySelector('span').textContent = 'Copiar prompt';
+}
+document.getElementById('modalClose').addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && !modal.hidden) closeModal(); });
+
+modalCopy.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(currentPrompt);
+    markCopied();
+  } catch(err) {
+    // Fallback: seleccionar el texto
+    const range = document.createRange();
+    range.selectNodeContents(modalPrompt);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    try { document.execCommand('copy'); markCopied(); } catch(e){}
+  }
+});
+function markCopied(){
+  modalCopy.classList.add('copied');
+  modalCopy.querySelector('span').textContent = '¡Copiado!';
+  setTimeout(resetCopyBtn, 1800);
+}
+</script>
+
+</body></html>
